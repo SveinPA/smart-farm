@@ -6,7 +6,8 @@ Short introduction
 A list of special terms you use
 
 ## Transport Choice - TCP / UDP
-What underlying transport did we choose and why
+//TODO: Hvorfor?
+* TCP 
 
 ## Port Number
 The used port number
