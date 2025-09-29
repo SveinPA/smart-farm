@@ -6,24 +6,19 @@ Planen legger opp til jevn progresjon og tid til buffer/finpuss før innlevering
 ---
 
 ## Sprint 1 (Uke 40–41): Oppstart & grunnstruktur
-- [ ] Opprette GitHub repo, sette opp branch-struktur og commit-regler  
-- [ ] Lage mappeoppsett (kode, dokumentasjon, rapport)  
-- [ ] Første utkast til `protocol.md` (innledning, terminologi, valg av TCP/UDP)  
-- [ ] Bestemme basisarkitektur (roller: sensor node, kontrollpanel node, evt. server)  
-- [ ] Implementere enkel “hello world” socket-forbindelse (klient ↔ server)  
-- [ ] Fordele roller og ansvarsområder i gruppen  
+- [x] Opprette GitHub repo, sette opp branch-struktur og commit-regler  
+- [x] Lage mappeoppsett (kode, dokumentasjon, rapport)  
+- [ ] Første utkast til `protocol.md` 
+- [ ] Bestemme basisarkitektur (roller: sensor node, kontrollpanel node, evt. server)     
 - [ ] Skrive første sprint-rapport  
 
 ---
 
-## Sprint 2 (Uke 42–43): Protokolldesign & første implementasjon
-- [ ] Ferdigstille utkast til `protocol.md` (meldingsformat, adressering, kommandoer)  
+## Sprint 2 (Uke 42–43): Protokolldesign & første implementasjon  
 - [ ] Implementere sensor node som sender dummy-data (f.eks. temperatur)  
 - [ ] Implementere kontrollpanel som mottar og viser data (tekstbasert)  
-- [ ] Legge til støtte for flere sensor-noder (liste over aktive noder)  
-- [ ] Dokumentere designvalg i `protocol.md` (arkitektur, meldingsflyt, stateful/stateless)  
-- [ ] Gjennomføre intern code-review i gruppa  
-- [ ] Sprint-rapport + mini-retrospektiv  
+- [ ] Legge til støtte for flere sensor-noder (liste over aktive noder)      
+- [ ] Sprint-rapport retrospektiv  
 
 ---
 
