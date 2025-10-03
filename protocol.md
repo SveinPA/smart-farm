@@ -7,13 +7,24 @@ Short introduction
 - **Actuator**: Controllable element on a sensor node (e.g., fan, heater, window opener, etc.)
 - **Control-Panel Node**: Node providing a user interface to view data and send commands
 - **Server**: Central component to relay messages between sensor nodes and control panels
+- **IANA**: Internet Assigned Numbers Authority
 
 ## Transport Choice - TCP / UDP
 //TODO: Hvorfor?
 * TCP 
 
 ## Port Number
-The used port number
+Default TCP listening port (server/broker): 23048
+
+- The selected port is within the IANA registered rage (1024 - 49151), meaning it is safe from ephemeral port conflicts.
+- Not a commonly used service port (low collision risk)
+- Choosen based on course code and group number: 2304 + 8
+
+Configuration:
+- Validation: Reject port if 1024 $\leq$ port $\leq$ 49151, with error message
+
+Client usage:
+Both Sensor Nodes and Control-Panel Nodes connect to host:port 23048 (unless configured override).
 
 ## Architecture
 ### Actors (nodes)
