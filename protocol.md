@@ -10,8 +10,33 @@ Short introduction
 - **IANA**: Internet Assigned Numbers Authority
 
 ## Transport Choice - TCP / UDP
-//TODO: Hvorfor?
-* TCP 
+We have chosen **TCP** as our transport protocol for the following reasons:
+
+### Reliability
+Our system requires messages to arrive. Sensor readings and commands to actuators cannot be lost, 
+as this could lead to errors in the environmental control of the greenhouse. For example, a command to turn off a heater must
+actually reach the sensor unit. TCP gives us guaranteed message delivery and automatic packet handling.
+
+### Order
+Commands must be executed in the correct order. If a control panel sends several commands one after the other (e.g. "turn off the heater",
+"open the window, "turn on the fan"), these must be processed in the correct sequence. TCP ensures that messages are delivered in the same
+order they were sent.
+
+### Connection Management
+Our protocol is stateful, where the server keeps track of connected nodes. TCP gives us a natural way to know which sensor devices
+are available through established connections. When a node disconnects, the server immediately knows that it is no longer available.
+
+###
+Our hub-and-spoke architecture, where all communication goes through a central server, fits well with the connection-oriented nature
+of TCP. The server must handle multiple simultaneous connections from both sensor devices and control panels, which is what TCP is designed for.
+
+### Performance vs. Reliability
+Although TCP has more overhead than UDP, the data volumes in our system (sensor measurements and commands) are relatively modest.
+The system does not require extremely low latency, so TCP's millisecond delays are acceptable for greenhouse monitoring and control.
+
+### Easier implementation
+TCP handles retransmission, flow control and error detection automatically, which greatly simplifies our implementation. This allows us to
+focus on the application logic instead of implementing reliability features at the application level.
 
 ## Port Number
 Default TCP listening port (server/broker): 23048
@@ -65,7 +90,86 @@ The different types and special values (constants) used
 The different errors that can occur and how each node should react on the errors. For example, what if a message in an unexpected format is reveived? Is it ignored, or does the recipient send a reply with an error code?
 
 ## Scenarioes 
-Describe a realistic scenario: What would happend from a user perspective and what messages would be sent over the network?
+
+### Scenario 1: Startup and Registration
+When the system boots up, the following happens:
+
+1. **The server starts** and starts listening on port 23048
+
+2. **Sensor nodes connect to the server**:
+   - Each sensor node establishes a TCP connection to the server.
+   - The sensor node sends a 'REGISTER_NODE' message with information about its sensors and actuators.
+   - The server stores the information and sends back an acknowledgement with the assigned node ID.
+   - The sensor node start sending sensor data periodically.
+
+3. **Control panel connects to the server**:
+   - The control panel establishes a TCP connection to the server.
+   - The control panel sends a 'REGISTER_CONTROL_PANEL' message.
+   - The server responds with a list of all registered sensor nodes and their capabilities.
+   - The control panel displays this information to the user.
+
+Message flow:
+```text
+SensorNode -> Server: REGISTER_NODE {sensors:[temp, humidity], actuators:[fan, heater]}
+Server -> SensorNode: REGISTER_ACK {nodeId: 42}
+SensorNode -> Server: SENSOR_DATA {nodeId: 42, readings: {temp: 23,5, humidity: 65}}
+ControlPanel -> Server: REGISTER_CONTROL_PANEL
+Server -> ControlPanel: NODE_LIST {nodes: [{id: 42, sensors:[temp, humidity], actuators:[fan, heater]}]
+```
+
+### Scenario 2: Actuator control
+A farmer notices that the temperatures in the greenhouse is too high and wants to open a window:
+
+1. **User interacts with the control panel**:
+   - The farmer sees on the control panel that the temperature is 28°C in the greenhouse 3.
+   - The farmer selects sensor node 42 from the list and clicks "Open window"
+
+2. **Command sent to the server**:
+   - The control panel sends and 'ACTUATORS_COMMAND' message to the server.
+   - The server forwards the command to the specific sensor unit.
+
+3. **Sensor node executes the command**:
+   - Sensor node 42 receives the command and activates the window opener.
+   - Sensor node 42 sends a status update back to the server.
+   - The server forwards the status update to the control panel.
+   - The control panel updates the user interface to show that the window is open.
+
+Message flow:
+```text
+ControlPanel -> Server: ACTUATOR_COMMAND {targetNode: 42, actuator: "window", action: "open"}
+Server -> SensorNode: ACTUATOR_COMMAND {actuator: "window", action: "open"}
+SensorNode -> Server: ACTUATOR_STATUS {nodeId: 42, actuator: "window", status: "open"}
+Server -> ControlPanel: ACTUATOR_STATUS {nodeId: 42, actuator: "window", status: "open"}
+```   
+
+### Scenario 3: Handling a disconnected node
+A sensor node loses power or network connection:
+
+1. **TCP connection broken**:
+    - The server detects that the TCP connection to sensor node 42 is broken.
+    - The server marks the node as disconnected in its internal state.
+
+2. **Update to control panels**:
+    - The server sends a 'NODE_DISCONNECTED' message to all connected control panels.
+    - The control panels update their user interfaces to show that the node is unavailable.
+    - Any commands to the disconnected node will be rejected.
+
+3. **Reconnect**:
+    - When sensor node 42 regains power/network, it reconnects to the server.
+    - The registration process is repeated as in Scenario 1.
+    - The server sends a 'NODE_CONNECTED' message to all control panels.
+    - The control panels update the user interface to show that the node is available again.
+
+Message flow:
+```text
+Server -> ControlPanel: NODE_DISCONNECTED {nodeId: 42}
+
+[Later, when the node reconnects]
+
+SensorNode -> Server: REGISTER_NODE {sensors: [temp, humidity], actuators: [fan, heater]}
+Server -> SensorNode: REGISTER_ACK {nodeId: 42}
+Server -> ControlPanel: NODE_CONNECTED {nodeId: 42, sensors: [temp, humidity], actuators: [fan, heater]}
+```   
 
 ## Reliability mechanisms
 The reliability mechanisms in your protocol (handling of network errors), if you have any
