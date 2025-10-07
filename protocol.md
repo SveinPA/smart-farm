@@ -71,7 +71,57 @@ The system uses a **hub-and-spoke architecture**:
 All communication flows through the hub/server, which makes the system **scalable** to multiple sensors and multiple control panels.
 
 ## Flow of Information
-When and how the messages are sent?
+
+### Communication Patterns
+Our protocol implements multiple communication patterns to efficiently handle different types of information exchange:
+
+### Registration Flow
+- Connection-based: Nodes establish a TCP connection to the server before any data exchange.
+- Identification: Nodes sends registration messages containing their capabilities (sensors/actuators).
+- Acknowledgement: Server confirms registration with assigned node IDs.
+
+### Sensor Data Transmission
+- Push Model: Sensor nodes actively send data to the server without being polled.
+- Periodic Updates: Default interval of 5 seconds (configurable).
+- Threshold-based: Additional updates when readings change significantly (e.g., temperature change > 1°C).
+- Fan-out distribution: Server forwards data to all connected control panels.
+
+### Command Processing
+- Request-Response: Commands follow a clear request → acknowledgement → status update sequence.
+- Targeted routing: Commands specify exact target node and actuator.
+- Execution confirmation: Two-phase feedback (command received + execution completed).
+
+### Event Notifications
+- Publish-Subscribe: Server publishes node status events to all subscribed control panels.
+- Immediate delivery: Status changes are communicated without delay.
+
+### Message Timing
+
+#### Scheduled Messages
+- Sensor data: Transmitted at regular intervals (default every 5 seconds).
+- heartbeat messages: Exchanged every 30 seconds to verify connection health.
+- Node list updates: Sent after any change in node availability.
+
+#### Event-Driven Messages
+- Actuator commands: Sent immediately when triggered by user action.
+- Status updates: Transmitted after actuator state changes.
+- Error notifications: Sent when protocol violations or system errors occur.
+
+#### Flow Control
+- Rate limiting: Maximum message frequency enforced to prevent network congestion.
+- Message prioritization: Command messages processed before routine updates.
+- Connection management: Server maintains persistent TCP connections to all nodes.
+
+### Justification
+
+This hybrid communication approach was selected to balance:
+- Responsiveness: Critical commands are processed immediately.
+- Efficiency: Regular updates avoid unnecessary polling overhead.
+- Consistency: All control panels maintain synchronized system views.
+- Scalability: Central server handles message distribution to multiple clients.
+
+The centralizes architecture simplifies implementation while providing clear message routing paths.
+The push-based sensor data model ensures timely updates without requiring control panels to continuously request information.
 
 ## Protocol Type
 - **Connection-oriented**: The protocol uses TCP, which establishes a dedicated connection between nodes and the server before exchanging data. This ensures reliable, ordered delivery of messages.
