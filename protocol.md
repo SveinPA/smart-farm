@@ -1,6 +1,15 @@
 # Protocol Description
 ## Introduction
-Short introduction
+This document describes the custom application-layer communication protocol
+designed for the Smart Farm System developed by our group as part of the 
+IDATA2304 course project, at NTNU.
+The protocol enables communication between sensor/actuator nodes and control-panel
+nodes. Is purpose is to ensure reliable data transfer of sensor readings (such as temperature and
+humidity) and commands across a network.
+
+The protocol works over TCP sockets, ensuring reliable, ordered and error-checked
+delivery of messages. It defines message formats, value types, and mechanisms for detecting and handling network
+or message errors to maintain robust communication.
 
 ## Terminology
 - **Sensor Node**: Devices that generate simulated **sensor data** (e.g., temperature, humidity, wind speed, etc.) and use **actuators** to change them
@@ -129,7 +138,35 @@ The push-based sensor data model ensures timely updates without requiring contro
 
 
 ## Types and Special Values
-The different types and special values (constants) used
+The protocol uses text-based messages separated by semicolons. Each message has a message type
+identifier, followed by Key-value pairs that describes the content.
+### Message types
+| Type            | Direction          | Description                                         |
+|-----------------|--------------------|-----------------------------------------------------|
+| SENSOR_DATA     | Sensor → Control   | Periodic sensor readings from sensor node           |
+| ACTUATOR_STATUS | Sensor → Control   | Current state of actuator                           |
+| COMMAND         | Control → Sensor   | Command to control an actuator (TURN_ON, SET_LEVEL) |
+| ACK             | Sensor → Control   | Acknowledgment of successful command execution       |
+| ERROR           | Any → Any          | Indicates invalid message or command failure         |
+
+### Common Fields
+| Field     | Description                                     | Example               | 
+|-----------|-------------------------------------------------|-----------------------|
+| NODE_ID   | Unique identifier for each sensor/actuator node | NODE_ID=7             |
+| TYPE      | Sensor or actuator type                         | TYPE?TEMP or TYPE=FAN |
+| VALUE     | Sensor reading or actuator setting              | VALUE=25.6            |
+| STATUS    | Actuator state                                  | STATUS=ON             |
+| TIMESTAMP | UNIX timestamp of message                       | TIMESTAMP=1728439923  |
+
+### Special Values
+| Constant    | Meaning                                         | 
+|-------------|-------------------------------------------------|
+| OK          | Unique identifier for each sensor/actuator node | 
+| FAIL        | Sensor or actuator type                         |
+| NA          | Sensor reading or actuator setting              | 
+| ALL         | Actuator state                                  | 
+| ERR_FORMAT  | UNIX timestamp of message                       |
+| ERR_UNK_CMD | Unknown command received                        |
 
 ## Message Format
 ### Allowed Message Types
@@ -304,7 +341,33 @@ Server -> ControlPanel: NODE_CONNECTED {nodeId: 42, sensors: [temp, humidity], a
 ```   
 
 ## Reliability mechanisms
-The reliability mechanisms in your protocol (handling of network errors), if you have any
+The current version of the protocol does not yet include reliability mechanisms beyond
+what is provided by the underlying Transport layer(TCP). Several mechanisms are planned for future
+implementation to improve robustness and fault tolerance.
+### Planned Reliability Features
+- **Acknowledgement(ACK/NACK) System**:
+   - Each command message will require an explicit acknowledgment(ACK) from the receiver.
+   - If no acknowledgment is received within a specifies timeout, the sender will
+    automatically retransmit the message up to a limited number of times.
+  
+- **Heartbeat / Keep-Alive Messages**:
+   - Sensor and control nodes will periodically send small "heartbeat" packets to confirm active connections.
+   - If a node does not respond within a certain timeframe, the server will mark is as disconnected/offline,
+    and reconnection attempts will begin.
+  
+- **Message Sequence Numbers**:
+    - Each message will include a unique sequence number.
+    - This allows detection of duplication, lost, or out-of-order messages, in case of temporary network issues.
+  
+- **Buffered Data and Resend on Reconnect**
+    - Sensor nodes will temporarily buffer unsent data.
+    - When the connection to the control node is restored all buffered sensor readings will be
+    retransmitted to ensure no data is lost.
+
+- **Error Handling and Recovery**
+    - When malformed or invalid messages are received, the node will respond with an ERROR message
+    indicating the issue stated as an error code.
+    - This ensures both sides can handle unexpected communication.
 
 ## Security
 - **Initial phase**: No authentication or encryption. The system runs in a trusted environment. Future development might readjust this.
