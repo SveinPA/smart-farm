@@ -134,7 +134,42 @@ Although binary protocols may achieve higher throughput, the small message size 
 Additionally, this format ensures **extensibility**, allowing new sensors, actuators, or fields to be added later without breaking existing implementations.
 
 ## Error handling
-The different errors that can occur and how each node should react on the errors. For example, what if a message in an unexpected format is reveived? Is it ignored, or does the recipient send a reply with an error code?
+### Overview
+Error handling in our protocolensures that communication remains **robust** and that  nodes can recover gracefully from common faults.  
+Error can occur due to malformed messages, connection loss, or invalid commands. The protocol defiens a standard response mechanism using the `ERROR`message type.
+
+### Error Categories
+| Error type  | Code  | Typical Cause  | Handling Strategy  |
+|---|---|---|---|
+| **Malformed Message**   | `400`  |  Missing fields, wrong seperators, or <br> unknown message type | The receiver ignores the message and sends <br> `ERROR;code=404;reason=InvalidMessageFormat` <br> to the sender.  |
+| **Uknown command**  | `404`  | Command name or actuator not <br> recognized by the target node | The receiver replies with <br> `ERROR;code=404;reason=UknownCommand`  |
+| **Unauthorized Action**  | `403`  | A control panel tries to control a <br> node it is not authorized for  | The server rejects the request and <br> notifies the sender  |
+| **Disconnected Node**  | `408`  |  A control panel issues a command <br> to an offline node  | The server returns <br> `ERROR;code=408;reason=NodeUnavailable`  |
+|  **Internal Server Error** | `500`  | Unexpected exceptions or state <br> corruption within the server  | Server logs the error, notifies all <br> connected control panels, and keeps <br> running  |  
+
+### Error Propagation
+* **Local errors (non-critical)**: <br>
+Handled at the node level (e.g., malformed data ignored). No connection reset is required.
+* **Critical errors (connection-level)**: <br>
+The server may close the TCP connection and mark the node as **disconnected**. <br>
+Control panels are notified via a `NODE_DISCONNECTED` message.
+
+### Example Flows
+**Example 1: Malformed message**
+```text
+SensorNode → Server: SENSOR_DATA nodeId=42 temp=22.4   (missing separators)
+Server → SensorNode: ERROR;code=400;reason=InvalidMessageFormat
+```
+**Example 2: Node Unavailable**
+```text
+ControlPanel → Server: ACTUATOR_COMMAND;targetNode=99;actuator=fan;action=ON
+Server → ControlPanel: ERROR;code=408;reason=NodeUnavailable
+```
+
+### Justification
+Explicit error messages allow for **transparent debugging** and **predictable system behavior** without interrupting other active sessions.  
+This approach ensures that communication errors affect only the problematic node, not the entire network.  
+Since TCP already provides delivery guarantees, our error handling focuses on **application-level validation** and **state consistency**, keeping the system stable even under partial failures.
 
 ## Scenarioes 
 
