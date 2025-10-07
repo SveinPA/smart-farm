@@ -82,9 +82,56 @@ When and how the messages are sent?
 The different types and special values (constants) used
 
 ## Message Format
-* The allowed message types (sensor messages, command messages)
-* The type of marshalling used (fixed size, seperators, TLV?)
-* Whitch messages are send by whitch node? For example, are some messages only sent by the control-panel node?
+### Allowed Message Types
+The protocol defines a clear seperation between **data messages** and **command messages**.  
+Each message includes a **type identifier** and a structured payload.  
+|  Category 	|   Message Type	|  Direction 	|  Description 	|
+|---	|---	|---	|---	|
+|  Registration 	|  `REGISTER_NODE`, <br>`REGISTER_CONTROL_PANEL`, <br> `REGISTER_ACK`, `NODE_LIST`	|  Sensor/Control &rarr; Server 	|  Used when nodes join or reconnect to the system. 	|
+|  Sensor Data	|  `SENSOR_DATA`, `ACTUATOR_STATUS` 	|  Sensor &rarr; Server &rarr; Control 	|  Periodic updates containing sensor reading and actuator states 	|
+|  Commands 	|   `ACTUATOR_COMMAND`, `COMMAND_ACK`	|  Control &rarr; Server &rarr; Sensor 	|  Commands sent by the control panel to trigger actuator actions 	|
+|  Connection Events 	|  `NODE_CONNECTED`, `NODE_DISCONNECTED`  	|  Server &rarr; Control 	|   Used to update all control panels when node connectivity changes	|
+|  Errors 	|  `ERROR` 	|  Any 	|   Sent when invalid data ir an unknown command is received	|
+
+### Marshalling and Encoding
+* **Encoding type**: Seperator-based (human-readable) text format
+* **Seperator**: Semicolon(`;`) between key-value pairs
+* **Rationale**: Easy to parse and debug during testing. Avoid binary complexity
+
+**Example Messages:**
+```text
+SENSOR_DATA;nodeId=42;temp=22.4;humidity=55;status=OK
+ACTUATOR_COMMAND;targetNode=42;actuator=fan;action=ON
+ACTUATOR_STATUS;nodeId=42;actuator=fan;status=ON
+ERROR;code=400;reason=InvalidMessageFormat
+```
+If future efficiency improvements are needed, the format can be upgraded to **TLV (Type-Length-Value)** or binary marshalling without changing the logical structure of the protocol.
+
+### Message Direction
+|  Node Type | Sends  | Receives  |
+|---|---|---|
+| Sensor Node  | `REGISTER_NODE`, `SENSOR_DATA`, <br> `ACTUATOR_STATUS`  |  `ACTUATOR_COMMAND`, `REGISTER_ACK` |
+|  Control Panel | `REGISTER_CONTROL_PANEL`, <br> `ACTUATOR_COMMAND`  | `NODE_LIST`, `SENSOR_DATA`, `ACTUATOR_STATUS`, <br> `COMMAND_ACK`, `ERROR`  |
+|  Server | Routes all messages  |  Receives all messages and forwards appropriately |
+
+### Structure Summary
+Each message follows a consistent pattern:
+```text
+<MESSAGE_TYPE>;<field1>=<value1>;<field2>=<value2>;...;<fieldN>=<valueN>
+```
+**Example communication flow**:
+```text
+ControlPanel → Server → SensorNode:
+ACTUATOR_COMMAND;targetNode=42;actuator=window;action=open
+
+SensorNode → Server → ControlPanel:
+ACTUATOR_STATUS;nodeId=42;actuator=window;status=open
+```
+
+### Justification
+We chose a **seperator-based**, **text-oriented message format** because it offers high **readability** and **low complexity** during development and debugging. It allows straightforward inspection of network traffic with tools like wireshar or simple console logs.  
+Although binary protocols may achieve higher throughput, the small message size and moderate update frequency in our greenhouse simulation make human-readable encoding ideal.  
+Additionally, this format ensures **extensibility**, allowing new sensors, actuators, or fields to be added later without breaking existing implementations.
 
 ## Error handling
 The different errors that can occur and how each node should react on the errors. For example, what if a message in an unexpected format is reveived? Is it ignored, or does the recipient send a reply with an error code?
