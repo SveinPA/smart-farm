@@ -18,7 +18,7 @@
 
 
 - **Project:**
-  🌱Smart farm
+  Smart farm🌱
 
 ## Completed Work
 ### Finished tasks
