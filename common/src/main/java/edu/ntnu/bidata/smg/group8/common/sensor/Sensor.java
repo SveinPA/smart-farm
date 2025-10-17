@@ -12,7 +12,7 @@ package edu.ntnu.bidata.smg.group8.common.sensor;
  * to provide its specific behavior.</p>
  *
  * @author Ida Soldal
- * @version 16.10.2025
+ * @version 17.10.2025
  */
 public interface Sensor {
     /**
@@ -21,14 +21,14 @@ public interface Sensor {
      *
      * @return the short key identifying the sensor type
      */
-    String key();
+    String getKey();
 
     /**
      * Returns the unit of measurement for the sensor (°C, %, lux, etc.).
      *
      * @return the unit of measurement for the sensor
      */
-    String unit();
+    String getUnit();
 
     /**
      * Returns the current simulated reading from the sensor.
@@ -38,5 +38,5 @@ public interface Sensor {
      *
      * @return the current simulated reading from the sensor
      */
-    double read();
+    double getReading();
 }
