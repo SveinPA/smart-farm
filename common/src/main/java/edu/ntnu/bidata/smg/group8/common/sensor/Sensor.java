@@ -1,7 +1,7 @@
 package edu.ntnu.bidata.smg.group8.common.sensor;
 
 /**
- * <h3>Interface that represents a generic sensor.</h3>
+ * <h3>Interface Representing a Generic Sensor.</h3>
  *
  * <p>This interface defines the basic methods that all sensor types must implement,
  * including methods to get the <b>sensor's key, unit of measurement, and to read the simulated value</b>
