@@ -13,11 +13,37 @@ public abstract class AbstractActuator {
     private  final String type;
     private boolean isActive;
 
-    // Constructor
+    /**
+     * Constructor for AbstractActuator.
+     *
+     * @param id the identifier of the actuator
+     * @param type the type of the actuator
+     */
     public AbstractActuator(int id, String type) {
+        validateInput(id, type);
         this.id = id;
         this.type = type;
         this.isActive = false; // Default state is inactive
+    }
+
+    /**
+     * Validates the input parameters for the actuator.
+     * This method is called in the constructor of subclasses, in order to
+     * ensure that the input parameters are valid, when creating an actuator.
+     *
+     * @param id the identifier of the actuator
+     * @param type the type of the actuator
+     *
+     * @throws IllegalArgumentException if the id is negative or type is null/empty
+     * @throws IllegalArgumentException if the type is null or empty
+     */
+    private void validateInput(int id, String type) {
+        if (id < 0) {
+            throw new IllegalArgumentException("Actuator ID cannot be negative.");
+        }
+        if (type == null || type.isEmpty()) {
+            throw new IllegalArgumentException("Actuator type cannot be null or empty.");
+        }
     }
 
     /**
@@ -49,20 +75,26 @@ public abstract class AbstractActuator {
 
     /**
      * Activates the actuator.
+     *
+     * @throws IllegalStateException if the actuator is already active
      */
     public void activate() {
-        if (!isActive) {
-            this.isActive = true;
+        if (isActive) {
+            throw new IllegalStateException("Actuator is already active.");
         }
+        this.isActive = true;
     }
 
     /**
      * Deactivates the actuator.
+     *
+     * @throws IllegalStateException if the actuator is already inactive
      */
     public void deactivate() {
-        if (isActive) {
-            this.isActive = false;
+        if (!isActive) {
+            throw new IllegalStateException("Actuator is already inactive.");
         }
+        this.isActive = false;
     }
 
     /**
