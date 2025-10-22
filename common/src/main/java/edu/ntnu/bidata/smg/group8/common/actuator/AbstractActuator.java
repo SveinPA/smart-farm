@@ -1,106 +1,147 @@
 package edu.ntnu.bidata.smg.group8.common.actuator;
 
+import static java.lang.Math.clamp;
+import static java.lang.Math.min;
+
 /**
  * Abstract class for actuators.
- * In order to reduce code duplication, an abstract class for actuators is created.
- * This class can be extended by all actuators to inherit common properties and methods.
+ *
+ * <p>Provides shared fields and behaviors:
+ * key/unit, min/max, current/target, enable flag,
+ * clamping, and a rate-limited ramp towards the target.</p>
  *
  * @author Group 8, MLTA
  * @version 21.10.25
  */
-public abstract class AbstractActuator {
-    private final int id;
-    private  final String type;
-    private boolean isActive;
+public abstract class AbstractActuator implements Actuator{
+    private final String key;
+    private final String unit;
+    private final double minValue;
+    private final double maxValue;
+
+    private boolean enabled = false;
+    private double currentValue;
+    private double targetValue;
 
     /**
-     * Constructor for AbstractActuator.
-     *
-     * @param id the identifier of the actuator
-     * @param type the type of the actuator
+     * Constructor for the abstract Actuator.
      */
-    public AbstractActuator(int id, String type) {
-        validateInput(id, type);
-        this.id = id;
-        this.type = type;
-        this.isActive = false; // Default state is inactive
+    public AbstractActuator(String key, String unit,
+                            double minValue, double maxValue, double initial) {
+        this.key = key;
+        this.unit = unit;
+        this.minValue = minValue;
+        this.maxValue = maxValue;
+        this.currentValue = clamp(initial, minValue, maxValue);
+        this.targetValue = this.currentValue;
     }
 
     /**
-     * Validates the input parameters for the actuator.
-     * This method is called in the constructor of subclasses, in order to
-     * ensure that the input parameters are valid, when creating an actuator.
+     * Returns the unique key of the actuator.
      *
-     * @param id the identifier of the actuator
-     * @param type the type of the actuator
+     * <p>This key identifies what actuator we have.</p>
      *
-     * @throws IllegalArgumentException if the id is negative or type is null/empty
-     * @throws IllegalArgumentException if the type is null or empty
+     * @return the type of actuator
      */
-    private void validateInput(int id, String type) {
-        if (id < 0) {
-            throw new IllegalArgumentException("Actuator ID cannot be negative.");
+    @Override
+    public String getKey() {
+        return key;
+    }
+
+    /**
+     * Returns the unit of measurement for the actuator.
+     *
+     * @return unit of measurement
+     */
+    @Override
+    public String getUnit() {
+        return unit;
+    }
+
+    /**
+     * Get the current value of the actuator.
+     *
+     * @return the current value
+     */
+    @Override
+    public double getCurrentValue() {
+        return currentValue;
+    }
+
+    /**
+     * Get the target value of the actuator.
+     *
+     * @return the target value
+     */
+    @Override
+    public double getTargetValue() {
+        return targetValue;
+    }
+
+    /**
+     * Set the actuator to have a new target value.
+     *
+     * @param value the new target value
+     */
+    @Override
+    public void act(double value) {
+        if (!enabled) {
+            return; //If off do nothing
         }
-        if (type == null || type.isEmpty()) {
-            throw new IllegalArgumentException("Actuator type cannot be null or empty.");
+
+        double rate = ratePerAct();
+        double difference = targetValue - currentValue;
+
+        if (Math.abs(difference) <= rate) {
+            currentValue = targetValue;
+        } else {
+            currentValue += Math.signum(difference) * min(Math.abs(difference), rate);
         }
+        currentValue = clamp(currentValue, minValue, maxValue);
     }
 
     /**
-     * Returns the id of the actuator.
-     *
-     * @return identifier of the actuator
+     * Sets the actuator as enabled.
      */
-    public int getIdentifier() {
-        return id;
+    public void enable() {
+        this.enabled = true;
     }
 
     /**
-     * Returns the type of the actuator.
-     *
-     * @return type of the actuator
+     * Sets the actuator as disabled.
      */
-    public String getType() {
-        return type;
+    public void disable() {
+        this.enabled = false;
     }
 
     /**
-     * Returns whether the actuator is active.
+     * Gets the enabled status of the actuator.
      *
-     * @return true if the actuator is active, false otherwise
+     * @return true if enabled, false otherwise
      */
-    public boolean isActive() {
-        return isActive;
+    public boolean isEnabled() {
+        return this.enabled;
     }
 
     /**
-     * Activates the actuator.
+     * Returns the rate of change per actuation step.
      *
-     * @throws IllegalStateException if the actuator is already active
+     * @return the rate of change per actuation step
      */
-    public void activate() {
-        if (isActive) {
-            throw new IllegalStateException("Actuator is already active.");
+    protected double ratePerAct() {
+        return Double.POSITIVE_INFINITY;
+    }
+
+    /**
+     * Clamps a value within the actuator's min and max range.
+     *
+     * @param value the value to clamp
+     * @return the clamped value
+     */
+    private static double clamp(double value, double min, double max) {
+        if (min > max) {
+            throw new IllegalArgumentException("Min cannot be greater than max.");
         }
-        this.isActive = true;
+        return Math.max(min, Math.min(max, value));
     }
-
-    /**
-     * Deactivates the actuator.
-     *
-     * @throws IllegalStateException if the actuator is already inactive
-     */
-    public void deactivate() {
-        if (!isActive) {
-            throw new IllegalStateException("Actuator is already inactive.");
-        }
-        this.isActive = false;
-    }
-
-    /**
-     * For subclasses to implement further if needed.
-     */
-    public abstract void performAction();
-
-
 }

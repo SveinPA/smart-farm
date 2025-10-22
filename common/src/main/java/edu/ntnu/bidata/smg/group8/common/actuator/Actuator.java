@@ -8,40 +8,38 @@ package edu.ntnu.bidata.smg.group8.common.actuator;
  * @version 21.10.25
  */
 public interface Actuator {
-
     /**
-     * Returns the id of the actuator.
+     * Returns the unique key of the actuator.
      *
-     * @return id of the actuator
+     * @return unique key
      */
-    int getId();
+    String getKey();
 
     /**
-     * Returns the type of the actuator.
+     * Returns the unit of measurement for the actuator.
      *
-     * @return type of the actuator
+     * @return unit of measurement
      */
-    String getType();
+    String getUnit();
 
     /**
-     * Checks if the actuator is active.
+     * Get the current value of the actuator.
      *
-     * @return true if the actuator is active, false otherwise
+     * @return the current value
      */
-    boolean isActive();
+    double getCurrentValue();
 
     /**
-     * Activates the actuator.
+     * Get the target value of the actuator.
+     *
+     * @return the target value
      */
-    void activate();
+    double getTargetValue();
 
     /**
-     * Deactivates the actuator.
+     * Actuate the actuator with the given value.
+     *
+     * @param value the value to actuate with
      */
-    void deactivate();
-
-    /**
-     * Performs the action of the actuator.
-     */
-    void performAction();
+    void act(double value);
 }
