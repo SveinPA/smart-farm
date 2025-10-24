@@ -3,7 +3,7 @@ package edu.ntnu.bidata.smg.group8.sensor.entity.sensors;
 import edu.ntnu.bidata.smg.group8.common.sensor.AbstractSensor;
 
 /**
- * <h3>Simulated Temperature Sensor.</h3>
+ * <h3>Simulated Temperature Sensor</h3>
  * <p>This class represents a simulated temperature sensor in a greenhouse environment,
  * extending the {@link AbstractSensor} class to provide specific functionality
  * for temperature measurements.</p>

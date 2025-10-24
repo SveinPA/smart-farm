@@ -3,7 +3,7 @@ package edu.ntnu.bidata.smg.group8.sensor.entity.sensors;
 import edu.ntnu.bidata.smg.group8.common.sensor.AbstractSensor;
 
 /**
- * <h3>pH Sensor.</h3>
+ * <h3>Simulated pH Sensor</h3>
  * <p>This class represents a pH sensor in a greenhouse environment,
  * extending the {@link AbstractSensor} class to provide specific functionality
  * for pH measurements of soil or nutrient solution.</p>
