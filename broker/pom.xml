@@ -18,7 +18,7 @@
       <version>${project.version}</version>
     </dependency>
 
-    <!-- Tester -->
+    <!-- Testing -->
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
@@ -29,7 +29,7 @@
 
   <build>
     <plugins>
-      <!-- Arver versjon/konfig fra parent -->
+      <!-- Inherit version/config from parent -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
