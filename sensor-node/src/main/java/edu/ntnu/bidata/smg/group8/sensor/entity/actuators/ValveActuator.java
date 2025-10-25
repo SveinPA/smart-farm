@@ -87,8 +87,12 @@ public class ValveActuator extends AbstractActuator {
      * to set the valve to the desired opening percentage.</p>
      *
      * @param percentage the desired opening percentage (0-100%)
+     * @throws IllegalArgumentException if percentage is out of bounds (0-100).
      */
     public void setOpening(double percentage) {
+        if (percentage < MIN_VALUE || percentage > MAX_VALUE) {
+            throw new IllegalArgumentException("Percentage must be between 0 and 100.");
+        }
         act(percentage);
     }
 }

@@ -68,8 +68,13 @@ public class FanActuator extends AbstractActuator {
      * to perform the action of changing the fan speed.</p>
      *
      * @param speed The desired speed to set the fan (0-100%).
+     * @throws IllegalArgumentException if the speed is outside the valid range.
      */
     public void setSpeed(double speed) {
+        if(speed < MIN_VALUE || speed > MAX_VALUE) {
+            throw new IllegalArgumentException(
+                    "Speed must be between " + MIN_VALUE + " and " + MAX_VALUE);
+        }
         act(speed);
     }
 
