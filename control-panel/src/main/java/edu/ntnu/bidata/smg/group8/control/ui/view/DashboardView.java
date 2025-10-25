@@ -116,11 +116,17 @@ public class DashboardView {
     ToggleButton lightButton = new ToggleButton("LIGHTS");
     lightButton.setId("light-toggle-button");
 
+    // TODO: Connect light button to actual actuator control logic
+    // TODO: Update lightValueLabel when light state changes
     lightButton.selectedProperty().addListener((obs, oldVal, newVal) -> {
     if (newVal) {
       System.out.println("Lights ON.");
+      // TODO: Send command to turn lights ON via ActuatorController
+      // TODO: Call updateLightStatus("ON")
     } else {
       System.out.println("Lights OFF");
+      // TODO: Send command to turn lights OFF via ActuatorController
+      // TODO: Call updateLightStatus("OFF")
     }
     });
 
@@ -136,8 +142,10 @@ public class DashboardView {
     windowButton.selectedProperty().addListener((obs, oldVal, newVal) -> {
       if (newVal) {
         System.out.println("Windows OPEN.");
+        // TODO: Connect window button to actual actuator control logic
       } else {
         System.out.println("Windows CLOSE");
+        // TODO: Send command to close windows via ActuatorController
       }
     });
 
@@ -158,6 +166,9 @@ public class DashboardView {
     controlPanelButton.setOnAction(event -> {
       System.out.println("Opening Control Panel..");
     });
+
+    // TODO: Add setOnAction to open Control Panel view/window
+    // Example: controlPanelButton.setOnAction(event -> openControlPanel());
 
     optionsButtons.getChildren().addAll(lightButton, windowButton, controlPanelButton);
 
@@ -228,6 +239,7 @@ public class DashboardView {
   }
 
 
+  //TODO: Call this method when receiving humidity data from SensorNode
   /**
   * Updates the humidity display with a new value from the SensorNode.
 
@@ -239,6 +251,7 @@ public class DashboardView {
     }
   }
 
+  //TODO: Call this method when receiving temperature data from SensorNode
   /**
    * Updates the temperature display with a new value from the SensorNode.
 
@@ -250,6 +263,7 @@ public class DashboardView {
     }
   }
 
+  //TODO: Call this method when light actuator state changes
   /**
    * Updates the light status display.
 
@@ -265,3 +279,5 @@ public class DashboardView {
     return rootNode;
   }
 }
+
+// TODO: Add getter methods for buttons if Controller needs access
