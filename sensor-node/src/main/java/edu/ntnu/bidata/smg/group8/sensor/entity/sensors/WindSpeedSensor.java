@@ -3,7 +3,7 @@ package edu.ntnu.bidata.smg.group8.sensor.entity.sensors;
 import edu.ntnu.bidata.smg.group8.common.sensor.AbstractSensor;
 
 /**
- * <h3>Wind Speed Sensor</h3>
+ * <h3>Simulated Wind Speed Sensor</h3>
  * <p>This class represents an external wind speed sensor mounted on the greenhouse
  * structure, extending the {@link AbstractSensor} class to provide specific functionality
  * for ambient wind speed measurements.</p>
