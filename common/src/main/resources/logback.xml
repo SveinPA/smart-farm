@@ -1,10 +1,17 @@
 <configuration>
+    <!-- Console Appender-->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
+            <!-- Pattern: [timestamp] [thread] LEVEL logger - message -->
             <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
         </encoder>
     </appender>
 
+    <!-- Per-package log levels when implementing solutions (Remove or comment out when done)-->
+    <logger name="edu.ntnu.bidata.smg.group8.broker.infra.network.TcpServer" level="DEBUG" />
+    <logger name="edu.ntnu.bidata.smg.group8.broker.infra.network.ClientHandler" level="DEBUG" />
+
+    <!-- Root level (Default for all packages)-->
     <root level="INFO">
         <appender-ref ref="CONSOLE" />
     </root>
