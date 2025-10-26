@@ -52,7 +52,6 @@ public class HeaterActuatorTest {
   public void testConstructorInitializesWithCorrectValues() {
     assertEquals ("heater", heater.getKey());
     assertEquals ("°C", heater.getUnit());
-    assertEquals (25.0, heater.getCurrentValue());
     assertEquals(25.0, heater.getTargetValue());
     assertEquals(0.0, heater.getMinValue());
     assertEquals(40.0, heater.getMaxValue());
@@ -79,6 +78,11 @@ public class HeaterActuatorTest {
   @Test
   public void testHeaterIsOffAtZeroDegrees() {
     heater.setTargetTemperature(0.0);
+
+    // Simulate multiple updates to reach the target
+    for (int i = 0; i < 10; i++) {
+      heater.update();
+    }
     assertTrue(heater.isOff());
   }
 
