@@ -55,7 +55,7 @@ Default TCP listening port (server/broker): 23048
 - Choosen based on course code and group number: 2304 + 8
 
 Configuration:
-- Validation: Reject port if 1024 $\leq$ port $\leq$ 49151, with error message
+- Validation: Accept only ports in 1024 $\leq$ port $\leq$ 49151. Reject and exit on any value **outside** this range.
 
 Client usage:
 Both Sensor Nodes and Control-Panel Nodes connect to host:port 23048 (unless configured override).
@@ -169,16 +169,19 @@ identifier, followed by Key-value pairs that describes the content.
 | ERR_UNK_CMD | Unknown command received                        |
 
 ## Message Format
+- **Framing**: Each message is sent as **length-prefixed**: a 4-byte **big-endian** unsigned length `N`, followed by `N` bytes of payload.
+- **Payload**: UTF-8 **JSON** object
+- Simple to parse, efficient streaming and human-readable during development. 
 ### Allowed Message Types
 The protocol defines a clear seperation between **data messages** and **command messages**.  
 Each message includes a **type identifier** and a structured payload.  
 |  Category 	|   Message Type	|  Direction 	|  Description 	|
 |---	|---	|---	|---	|
-|  Registration 	|  `REGISTER_NODE`, <br>`REGISTER_CONTROL_PANEL`, <br> `REGISTER_ACK`, `NODE_LIST`	|  Sensor/Control &rarr; Server 	|  Used when nodes join or reconnect to the system. 	|
-|  Sensor Data	|  `SENSOR_DATA`, `ACTUATOR_STATUS` 	|  Sensor &rarr; Server &rarr; Control 	|  Periodic updates containing sensor reading and actuator states 	|
-|  Commands 	|   `ACTUATOR_COMMAND`, `COMMAND_ACK`	|  Control &rarr; Server &rarr; Sensor 	|  Commands sent by the control panel to trigger actuator actions 	|
-|  Connection Events 	|  `NODE_CONNECTED`, `NODE_DISCONNECTED`  	|  Server &rarr; Control 	|   Used to update all control panels when node connectivity changes	|
-|  Errors 	|  `ERROR` 	|  Any 	|   Sent when invalid data ir an unknown command is received	|
+|  Registration 	|  `REGISTER_NODE`, <br>`REGISTER_CONTROL_PANEL`, <br> `REGISTER_ACK`, `NODE_LIST`	|  Client &rarr; Server (first two), Server &rarr; Client (last two)   	|  Join/acknowledge and initial inventory. 	|
+|  Sensor Data	|  `SENSOR_DATA`, `ACTUATOR_STATUS` 	|  Sensor &rarr; Server &rarr; Control 	|  Periodic readings and actuator states. 	|
+|  Commands 	|   `ACTUATOR_COMMAND`, `COMMAND_ACK`	|  Control &rarr; Server &rarr; Sensor 	|  Actuator commands and acknowledgements 	|
+|  Connection Events 	|  `NODE_CONNECTED`, `NODE_DISCONNECTED`  	|  Server &rarr; Control 	|   Broadcast connectivity changes	|
+|  Errors 	|  `ERROR` 	|  Any 	|   Application-level error reporting	|
 
 ### Marshalling and Encoding
 * **Encoding type**: Seperator-based (human-readable) text format
@@ -186,20 +189,26 @@ Each message includes a **type identifier** and a structured payload.
 * **Rationale**: Easy to parse and debug during testing. Avoid binary complexity
 
 **Example Messages:**
-```text
-SENSOR_DATA;nodeId=42;temp=22.4;humidity=55;status=OK
-ACTUATOR_COMMAND;targetNode=42;actuator=fan;action=ON
-ACTUATOR_STATUS;nodeId=42;actuator=fan;status=ON
-ERROR;code=400;reason=InvalidMessageFormat
+```json
+{"type":"REGISTER_NODE","role":"SENSOR_NODE","nodeId":"dev-1"}
+{"type":"REGISTER_CONTROL_PANEL","role":"CONTROL_PANEL","nodeId":"ui-1"}
+{"type":"REGISTER_ACK","protocolVersion":"1.0","message":"Registration successful"}
+
+{"type":"SENSOR_DATA","nodeId":"42","temp":"22.4","humidity":"55","status":"OK"}
+{"type":"ACTUATOR_COMMAND","targetNode":"42","actuator":"fan","action":"ON"}
+{"type":"ACTUATOR_STATUS","nodeId":"42","actuator":"fan","status":"ON"}
+
+{"type":"HEARTBEAT","direction":"S→C","protocolVersion":"1.0"}
+
 ```
 If future efficiency improvements are needed, the format can be upgraded to **TLV (Type-Length-Value)** or binary marshalling without changing the logical structure of the protocol.
 
 ### Message Direction
 |  Node Type | Sends  | Receives  |
 |---|---|---|
-| Sensor Node  | `REGISTER_NODE`, `SENSOR_DATA`, <br> `ACTUATOR_STATUS`  |  `ACTUATOR_COMMAND`, `REGISTER_ACK` |
-|  Control Panel | `REGISTER_CONTROL_PANEL`, <br> `ACTUATOR_COMMAND`  | `NODE_LIST`, `SENSOR_DATA`, `ACTUATOR_STATUS`, <br> `COMMAND_ACK`, `ERROR`  |
-|  Server | Routes all messages  |  Receives all messages and forwards appropriately |
+| Sensor Node  | `REGISTER_NODE`, `SENSOR_DATA`, <br> `ACTUATOR_STATUS`, `HEARTBEAT`  |  `ACTUATOR_COMMAND`, `REGISTER_ACK`, `HEARTBEAT` |
+|  Control Panel | `REGISTER_CONTROL_PANEL`, <br> `ACTUATOR_COMMAND`, `HEARTBEAT`  | `NODE_LIST`, `SENSOR_DATA`, `ACTUATOR_STATUS`, <br> `COMMAND_ACK`, `ERROR`, `HEARTBEAT`  |
+|  Server | Routes all  |  Receives all |
 
 ### Structure Summary
 Each message follows a consistent pattern:
@@ -243,14 +252,14 @@ Control panels are notified via a `NODE_DISCONNECTED` message.
 
 ### Example Flows
 **Example 1: Malformed message**
-```text
-SensorNode → Server: SENSOR_DATA nodeId=42 temp=22.4   (missing separators)
-Server → SensorNode: ERROR;code=400;reason=InvalidMessageFormat
+```json
+SensorNode -> Server: {"type":"REGISTER_NODE","role":"SENSOR_NODE","nodeId":"dev-1"}
+Server -> SensorNode: {"type":"REGISTER_ACK","protocolVersion":"1.0","message":"Registration successful"}
 ```
 **Example 2: Node Unavailable**
-```text
-ControlPanel → Server: ACTUATOR_COMMAND;targetNode=99;actuator=fan;action=ON
-Server → ControlPanel: ERROR;code=408;reason=NodeUnavailable
+```json
+ControlPanel -> Server: {"type":"REGISTER_CONTROL_PANEL","role":"CONTROL_PANEL","nodeId":"ui-1"}
+Server -> ControlPanel: {"type":"NODE_LIST", ...}
 ```
 
 ### Justification
@@ -344,6 +353,8 @@ Server -> ControlPanel: NODE_CONNECTED {nodeId: 42, sensors: [temp, humidity], a
 The current version of the protocol does not yet include reliability mechanisms beyond
 what is provided by the underlying Transport layer(TCP). Several mechanisms are planned for future
 implementation to improve robustness and fault tolerance.
+
+**Current status**: Length-prefixed frames + TCP provide delivery guarantees; `HEARTBEAT` is implemented to keep idle connections alive. `ACK/NACK`, sequence numbers, node events, and `ERROR` remain planned.
 ### Planned Reliability Features
 - **Acknowledgement(ACK/NACK) System**:
    - Each command message will require an explicit acknowledgment(ACK) from the receiver.

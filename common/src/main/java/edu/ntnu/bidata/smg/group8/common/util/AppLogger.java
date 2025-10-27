@@ -5,8 +5,8 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Utility class for obtaining SLF4J loggers with standardized configuration.
- * 
- * Example usage:
+ *
+ * <p>Example usage:
  * <pre>
  * private static final Logger logger = AppLogger.get(MyClass.class);
  * logger.info("This is a log message.");
@@ -20,7 +20,7 @@ public class AppLogger {
 
   /**
    * Returns an SLF4J logger for the given class.
-   * 
+   *
    * @param clazz The class for which to get the logger.
    * @return A configured SLF4J logger.
    */

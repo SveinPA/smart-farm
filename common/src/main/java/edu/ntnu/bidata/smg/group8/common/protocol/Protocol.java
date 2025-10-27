@@ -1,5 +1,8 @@
 package edu.ntnu.bidata.smg.group8.common.protocol;
 
+/**
+ * Protocol constants for the Smart Farm Messaging Protocol.
+ */
 public final class Protocol {
   private Protocol() {
     // No instances allowed
