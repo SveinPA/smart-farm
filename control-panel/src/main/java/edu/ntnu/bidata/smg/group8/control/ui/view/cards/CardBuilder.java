@@ -12,6 +12,8 @@ import javafx.scene.layout.StackPane;
 public interface CardBuilder {
   /**
   * Builds and returns the complete control card.
+  * This method should construct the card with all its UI components,
+  * styling and event handlers fully configured.
 
   * @return a StackPane containing the fully configured card.
   */
@@ -19,6 +21,8 @@ public interface CardBuilder {
 
   /**
   * Gets the card instance for direct manipulation.
+  * This method provides access to the underlying ControlCard instance,
+  * allowing controllers to interact with the card after it has been built.
 
   * @return the ControlCard instance
   */

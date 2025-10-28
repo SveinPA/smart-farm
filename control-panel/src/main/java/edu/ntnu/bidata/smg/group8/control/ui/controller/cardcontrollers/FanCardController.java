@@ -1,6 +1,8 @@
 package edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers;
 
+import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
 import edu.ntnu.bidata.smg.group8.control.ui.view.cards.FanCardBuilder;
+import org.slf4j.Logger;
 
 /**
 * Controller for the Fan control card.
@@ -11,6 +13,8 @@ import edu.ntnu.bidata.smg.group8.control.ui.view.cards.FanCardBuilder;
 * @version 28.10.2025
 */
 public class FanCardController {
+  private static final Logger log = AppLogger.get(FanCardController.class);
+
   FanCardBuilder builder;
 
   /**
@@ -20,19 +24,24 @@ public class FanCardController {
   */
   public FanCardController(FanCardBuilder builder) {
     this.builder = builder;
+    log.debug("FanCardController created for builder: {}", builder);
   }
 
   /**
   * Initializes event handlers and starts any listeners required by this controller.
   */
   public void start() {
-
+    log.info("Starting FanCardController");
+    // TODO: Add initialization logic here
+    log.debug("FanCardController started successfully");
   }
 
   /**
   * Stops this controller and cleans up resources/listeners.
   */
   public void stop() {
-
+    log.info("Stopping FanCardController");
+    // TODO: Add cleanup logic here
+    log.debug("FanCardController stopped successfully");
   }
 }
