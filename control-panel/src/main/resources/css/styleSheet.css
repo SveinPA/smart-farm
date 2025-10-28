@@ -1,6 +1,4 @@
 
-  CSS Stylesheet for JavaFX Control Panel Application
-
 /*--------------- GLOBAL STYLES ---------------*/
 
 /* Root background color */
@@ -162,3 +160,64 @@
     -fx-font-size: 20px;
     -fx-padding: 10px 20px;
 }
+
+
+/*--------------- CONTROL PANEL ---------------*/
+
+.control-surface {
+    -fx-background-color: white;
+    -fx-border-color: black;
+    -fx-border-width: 2;
+    -fx-background-radius: 30;
+    -fx-border-radius: 30;
+    -fx-padding: 24;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.12), 16, 0.25, 0, 4);
+}
+
+.control-card {
+    -fx-background-color: #AFC7B2;
+    -fx-border-color: #AAC7B2;
+    -fx-border-width: 2;
+    -fx-background-radius: 20;
+    -fx-border-radius: 20;
+    -fx-padding: 15;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.20), 6, 0.2, 0, 2);
+    -fx-cursor: hand;
+    -fx-scale-x: 1.0;
+    -fx-scale-y: 1.0;
+    -fx-transition: all 160ms ease-in-out;
+}
+
+.control-card:hover {
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.25), 14, 0.4, 0, 4);
+    -fx-scale-x: 1.02;
+    -fx-scale-y: 1.02;
+}
+
+.control-card-title {
+    -fx-font-family: "Arial";
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: black;
+}
+
+.control-card-value {
+    -fx-font-family: "Arial";
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #222;
+}
+
+.control-card .button {
+    -fx-font-size: 12px;
+    -fx-padding: 4 8;
+}
+
+.transparent-scroll {
+    -fx-background-color: transparent;
+}
+
+.transparent-scroll > .viewport {
+    -fx-background-color: transparent;
+}
+

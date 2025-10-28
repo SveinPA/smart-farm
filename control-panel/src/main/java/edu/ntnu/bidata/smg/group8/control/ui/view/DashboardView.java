@@ -1,7 +1,8 @@
 
 package edu.ntnu.bidata.smg.group8.control.ui.view;
-import edu.ntnu.bidata.smg.group8.control.ui.factory.ButtonFactory;
 
+import edu.ntnu.bidata.smg.group8.control.ui.factory.ButtonFactory;
+import java.util.Objects;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
@@ -20,9 +21,6 @@ import javafx.scene.text.Text;
 import javafx.scene.text.TextAlignment;
 
 
-import java.util.Objects;
-
-
 /**
 * This class represents the dashboard display of the application.
 * It provides a graphical user interface for monitoring greenhouse sensors
@@ -37,7 +35,7 @@ public class DashboardView {
   private Label lightValueLabel;
 
   /**
-   * Constructs a new DashboardView with all UI components initialized.
+  * Constructs a new DashboardView with all UI components initialized.
   * The dashboard is divided into three main sections:
   * - Left: Status cards displaying sensor readings
   * - Center: Application Logo
@@ -46,7 +44,7 @@ public class DashboardView {
   public DashboardView() {
     this.rootNode = new BorderPane();
 
-  //----------------------------- Upper Border Section ----------------------------//
+    //----------------------------- Upper Border Section ----------------------------//
 
     // The header bar with application title
 
@@ -57,11 +55,11 @@ public class DashboardView {
 
     upperBorder.getChildren().add(upperBorderTitle);
     upperBorder.setAlignment(Pos.CENTER);
-    upperBorder.setPadding(new Insets(70,0,0,0));
+    upperBorder.setPadding(new Insets(70, 0, 0, 0));
     upperBorder.setId("upper-border");
     rootNode.setTop(upperBorder);
 
-  //----------------------------- Left Side - Sensor Display Section --------------//
+    //----------------------------- Left Side - Sensor Display Section --------------//
 
     // Status cards with current sensor readings from the greenhouse
 
@@ -75,7 +73,7 @@ public class DashboardView {
 
     display.getChildren().addAll(humidityStatus, temperatureStatus, lightStatus);
 
-  //---------------------------- Center Section - Logo Display --------------------//
+    //---------------------------- Center Section - Logo Display --------------------//
 
     // Application logo
 
@@ -104,7 +102,7 @@ public class DashboardView {
 
     centralWindow.getChildren().add(smartFarmLogo);
 
-  //------------------------ Right Side - Control Buttons Section ------------------//
+    //------------------------ Right Side - Control Buttons Section ------------------//
 
     // Toggle buttons and control panel access for greenhouse actuators
 
@@ -119,15 +117,15 @@ public class DashboardView {
     // TODO: Connect light button to actual actuator control logic
     // TODO: Update lightValueLabel when light state changes
     lightButton.selectedProperty().addListener((obs, oldVal, newVal) -> {
-    if (newVal) {
-      System.out.println("Lights ON.");
-      // TODO: Send command to turn lights ON via ActuatorController
-      // TODO: Call updateLightStatus("ON")
-    } else {
-      System.out.println("Lights OFF");
-      // TODO: Send command to turn lights OFF via ActuatorController
-      // TODO: Call updateLightStatus("OFF")
-    }
+      if (newVal) {
+        System.out.println("Lights ON.");
+        // TODO: Send command to turn lights ON via ActuatorController
+        // TODO: Call updateLightStatus("ON")
+      } else {
+        System.out.println("Lights OFF");
+        // TODO: Send command to turn lights OFF via ActuatorController
+        // TODO: Call updateLightStatus("OFF")
+      }
     });
 
     lightButton.setPrefWidth(230);
@@ -172,7 +170,7 @@ public class DashboardView {
 
     optionsButtons.getChildren().addAll(lightButton, windowButton, controlPanelButton);
 
-  //------------------------------- Main Layout Assembly ----------------------------//
+    //------------------------------- Main Layout Assembly ----------------------------//
 
     // Combining all three sections into one main row.
 
@@ -181,7 +179,7 @@ public class DashboardView {
     centerRow.setSpacing(0);
     centerRow.setPadding(new Insets(0, 10, 0, 10));
 
-    BorderPane.setMargin(centerRow, new Insets(-40,0,0,0));
+    BorderPane.setMargin(centerRow, new Insets(-40, 0, 0, 0));
 
     VBox.setVgrow(smartFarmLogo, Priority.NEVER);
 
@@ -199,7 +197,7 @@ public class DashboardView {
   * @param title The title/Label of the sensor (e.g., "Humidity")
   * @param valueText The initial value to display
   * @param storeLabelReference If true, stores a reference to the value label
-  * for later updates
+   *                            for later updates
   * @return A StackPane containing the formatted status card
   */
   private StackPane createStatusCard(String title, String valueText, boolean storeLabelReference) {
@@ -211,8 +209,6 @@ public class DashboardView {
 
     Label valueLabel = new Label(valueText);
     valueLabel.setFont(Font.font("Arial", FontWeight.BOLD, 26));
-
-
 
     if (storeLabelReference) {
       if (title.equals("Humidity:")) {
@@ -230,10 +226,7 @@ public class DashboardView {
     card.setPadding(new Insets(15));
     card.setPrefWidth(200);
     card.setPrefHeight(100);
-    card.setStyle("-fx-background-color: #F1F6F8; "
-            + "-fx-border-color: black; "
-            + "-fx-border-radius: 20; "
-            + "-fx-background-radius: 20;");
+    card.setId("display-area");
 
     return card;
   }

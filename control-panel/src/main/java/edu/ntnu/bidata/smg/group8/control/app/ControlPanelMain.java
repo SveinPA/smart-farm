@@ -1,5 +1,6 @@
 package edu.ntnu.bidata.smg.group8.control.app;
 
+import edu.ntnu.bidata.smg.group8.control.ui.view.ControlPanelView;
 import edu.ntnu.bidata.smg.group8.control.ui.view.DashboardView;
 import javafx.application.Application;
 import javafx.scene.Scene;
@@ -13,7 +14,8 @@ public final class ControlPanelMain extends Application {
   public void start(Stage stage) {
 
     // For trying out the Dashboard styling
-    DashboardView view = new DashboardView();
+   // DashboardView view = new DashboardView();
+    ControlPanelView view = new ControlPanelView();
     Scene scene = new Scene(view.getRootNode(), 1000, 700);
 
     String cssPath = "/css/styleSheet.css";
@@ -21,7 +23,8 @@ public final class ControlPanelMain extends Application {
     scene.getStylesheets().add(Objects.requireNonNull(ControlPanelMain.class.getResource(cssPath),
             "app.css not found" + cssPath).toExternalForm());
 
-    stage.setTitle("Smart-Greenhouse");
+   // stage.setTitle("Smart-Greenhouse");
+    stage.setTitle("Control Panel");
     stage.setScene(scene);
     stage.show();
   }
