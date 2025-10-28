@@ -20,7 +20,7 @@ import javafx.scene.layout.VBox;
 * @author Andrea Sandnes
 * @version 28.10.2025
 */
-public class LightsCardBuilder implements CardBuilder {
+public class LightCardBuilder implements CardBuilder {
   private final ControlCard card;
   private Label ambientLabel;
   private RadioButton onButton;
@@ -34,7 +34,7 @@ public class LightsCardBuilder implements CardBuilder {
   /**
   * Constructs a new lights card builder.
   */
-  public LightsCardBuilder() {
+  public LightCardBuilder() {
     this.card = new ControlCard("Lights");
     card.setValueText("OFF");
   }
