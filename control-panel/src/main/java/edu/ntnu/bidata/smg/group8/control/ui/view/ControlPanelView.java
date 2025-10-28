@@ -4,7 +4,7 @@ import edu.ntnu.bidata.smg.group8.control.ui.view.cards.FanCardBuilder;
 import edu.ntnu.bidata.smg.group8.control.ui.view.cards.FertilizerCardBuilder;
 import edu.ntnu.bidata.smg.group8.control.ui.view.cards.HeaterCardBuilder;
 import edu.ntnu.bidata.smg.group8.control.ui.view.cards.HumidityCardBuilder;
-import edu.ntnu.bidata.smg.group8.control.ui.view.cards.LightsCardBuilder;
+import edu.ntnu.bidata.smg.group8.control.ui.view.cards.LightCardBuilder;
 import edu.ntnu.bidata.smg.group8.control.ui.view.cards.PHCardBuilder;
 import edu.ntnu.bidata.smg.group8.control.ui.view.cards.TemperatureCardBuilder;
 import edu.ntnu.bidata.smg.group8.control.ui.view.cards.ValveCardBuilder;
@@ -43,7 +43,7 @@ public class ControlPanelView {
   private HumidityCardBuilder humidityBuilder;
   private PHCardBuilder phBuilder;
   private WindSpeedCardBuilder windSpeedBuilder;
-  private LightsCardBuilder lightsBuilder;
+  private LightCardBuilder lightsBuilder;
   private WindowsCardBuilder windowsBuilder;
   private FanCardBuilder fanBuilder;
   private HeaterCardBuilder heaterBuilder;
@@ -116,7 +116,7 @@ public class ControlPanelView {
     windSpeedBuilder = new WindSpeedCardBuilder();
     cards.add(windSpeedBuilder.build());
 
-    lightsBuilder = new LightsCardBuilder();
+    lightsBuilder = new LightCardBuilder();
     cards.add(lightsBuilder.build());
 
     windowsBuilder = new WindowsCardBuilder();
@@ -243,7 +243,7 @@ public class ControlPanelView {
   *
   * @return the lights card builder
   */
-  public LightsCardBuilder getLightsBuilder() {
+  public LightCardBuilder getLightsBuilder() {
     return lightsBuilder;
   }
 
