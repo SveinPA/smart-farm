@@ -1,6 +1,8 @@
 package edu.ntnu.bidata.smg.group8.sensor.entity.actuators;
 
 import edu.ntnu.bidata.smg.group8.common.actuator.AbstractActuator;
+import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
+import org.slf4j.Logger;
 
 /**
  * Represents a fan actuator in the greenhouse environment.
@@ -15,10 +17,16 @@ import edu.ntnu.bidata.smg.group8.common.actuator.AbstractActuator;
  *     turn on full, and turn off.</li>
  * </ul>
  *
+ * <p>The logger is used to log important events and state changes
+ * * related to the fan's operation, such as speed adjustments.</p>
+ *
  * @author Mona Amundsen
  * @version 25.10.25
  */
 public class FanActuator extends AbstractActuator {
+  // Logger for logging fan actuator activities
+  private static final Logger log = AppLogger.get(FanActuator.class);
+
   private static final String KEY = "fan";
   private static final String UNIT = "%";
   private static final double MIN_VALUE = 0.0;
@@ -30,6 +38,7 @@ public class FanActuator extends AbstractActuator {
    */
   public FanActuator() {
     super(KEY, UNIT, MIN_VALUE, MAX_VALUE);
+    log.info("Fan actuator initialized with speed at {} % speed", getCurrentValue());
   }
 
   /**
@@ -72,9 +81,12 @@ public class FanActuator extends AbstractActuator {
    */
   public void setSpeed(double speed) {
     if (speed < MIN_VALUE || speed > MAX_VALUE) {
+      log.error("Invalid fan speed: {} % (valid range): {}-{} %",
+              speed, MIN_VALUE, MAX_VALUE);
       throw new IllegalArgumentException(
               "Speed must be between " + MIN_VALUE + " and " + MAX_VALUE);
     }
+    log.info("Fan speed changed from {} % to {} %", getCurrentValue(), speed);
     act(speed);
   }
 
@@ -86,6 +98,11 @@ public class FanActuator extends AbstractActuator {
    * the action of changing the fan speed.</p>
    */
   public void turnOnFull() {
+    if (isOff()) {
+        log.warn("Cannot set speed to FULL. The fan is currently OFF.");
+        return;
+    }
+    log.info("Fan turned to FULL speed (100% )");
     act(MAX_VALUE);
   }
 
@@ -98,6 +115,11 @@ public class FanActuator extends AbstractActuator {
    * the action of changing the fan speed.</p>
    */
   public void turnOnLow() {
+    if (isOff()) {
+        log.warn("Cannot set speed to LOW. The fan is currently OFF.");
+        return;
+    }
+    log.info("Fan turned to LOW speed (25% )");
     act(25.0);
   }
 
@@ -110,6 +132,11 @@ public class FanActuator extends AbstractActuator {
    * the action of changing the fan speed.</p>
    */
   public void turnOnMedium() {
+    if (isOff()) {
+        log.warn("Cannot set speed to MEDIUM. The fan is currently OFF.");
+        return;
+    }
+    log.info("Fan turned to MEDIUM speed (50% )");
     act(50.0);
   }
 
@@ -122,6 +149,11 @@ public class FanActuator extends AbstractActuator {
    * the action of changing the fan speed.</p>
    */
   public void turnOnHigh() {
+    if (isOff()) {
+        log.warn("Cannot set speed to HIGH. The fan is currently OFF.");
+        return;
+    }
+    log.info("Fan turned to HIGH speed (75% )");
     act(75.0);
   }
 
@@ -133,6 +165,11 @@ public class FanActuator extends AbstractActuator {
    * the action of changing the fan speed.</p>
    */
   public void turnOff() {
+    if (isOff()) {
+        log.warn("Fan is already OFF.");
+        return;
+    }
+    log.info("Fan turned OFF (current: {} %", getCurrentValue());
     act(MIN_VALUE);
   }
 }

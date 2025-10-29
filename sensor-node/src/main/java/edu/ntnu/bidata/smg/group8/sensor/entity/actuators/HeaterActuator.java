@@ -16,6 +16,9 @@ import org.slf4j.Logger;
  *     <li>Methods to set target temperature and turn off the heater.</li>
  * </ul>
  *
+ * <p>The logger is used to log important events and state changes
+ * related to the heater's operation such as temperature adjustments.</p>
+ *
  * @author Mona Amundsen
  * @version 25.10.25
  */
