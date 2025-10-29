@@ -1,7 +1,8 @@
 package edu.ntnu.bidata.smg.group8.sensor.entity.actuators;
 
 import edu.ntnu.bidata.smg.group8.common.actuator.AbstractActuator;
-
+import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
+import org.slf4j.Logger;
 /**
  * Represents a heater actuator in the greenhouse environment.
  *
@@ -18,7 +19,11 @@ import edu.ntnu.bidata.smg.group8.common.actuator.AbstractActuator;
  * @author Mona Amundsen
  * @version 25.10.25
  */
+
 public class HeaterActuator extends AbstractActuator {
+  // Logger for logging heater actuator activities
+  private static final Logger log = AppLogger.get(HeaterActuator.class);
+
   private static final String KEY = "heater";
   private static final String UNIT = "°C";
   private static final double MIN_VALUE = 0.0; // Minimum temperature
@@ -33,6 +38,7 @@ public class HeaterActuator extends AbstractActuator {
     super(KEY, UNIT, MIN_VALUE, MAX_VALUE);
     // Set initial target value to 25°C
     this.targetValue = 25.0;
+    log.info("Heater actuator initialized with default target temperature: 25°C");
   }
 
   /**
@@ -63,7 +69,8 @@ public class HeaterActuator extends AbstractActuator {
   }
 
   /**
-   * Set the heater to a specific target temperature.
+   * Set the heater to a specific target temperature (thermostat setting).
+   * This sets the temperature that the heater will try to maintain.
    *
    * <p>The temperature must be within the valid range of
    * 0°C to 40°C.</p>
@@ -76,9 +83,12 @@ public class HeaterActuator extends AbstractActuator {
    */
   public void setTargetTemperature(double temperature) {
     if (temperature < MIN_VALUE || temperature > MAX_VALUE) {
-      throw new IllegalArgumentException("Temperature must be between "
-              + MIN_VALUE + " and " + MAX_VALUE + " °C.");
+      log.error("Invalid heater temperature: {} °C (valid range: {}-{} °C)",
+              temperature, MIN_VALUE, MAX_VALUE);
+      throw new IllegalArgumentException("Temperature out of range");
     }
+    log.info("Heater target temperature changed from {} °C to {} °C",
+            getTargetValue(), temperature);
     act(temperature);
   }
 
@@ -86,6 +96,7 @@ public class HeaterActuator extends AbstractActuator {
    * Turn the heater off (sets temperature to minimum).
    */
   public void turnOff() {
+    log.info("Turning heater OFF (current: {} °C)", getCurrentValue());
     act(MIN_VALUE);
   }
 

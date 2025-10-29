@@ -1,5 +1,8 @@
 package edu.ntnu.bidata.smg.group8.common.actuator;
 
+import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
+import org.slf4j.Logger;
+
 /**
  * Abstract class for actuators.
  * This class implements the {@link Actuator} interface and provides
@@ -13,10 +16,16 @@ package edu.ntnu.bidata.smg.group8.common.actuator;
  *     <li>Methods to actuate and update the actuator state.</li>
  * </ul>
  *
+ * <p>The logger is used to log important events and state changes
+ * related to the actuator's operation (such as act and update methods).</p>
+ *
  * @author Mona Amundsen
  * @version 21.10.25
  */
 public abstract class AbstractActuator implements Actuator {
+  // Logger for logging actuator activities
+  private static final Logger log = AppLogger.get(AbstractActuator.class);
+
   private final String key;
   private final String unit;
   private final double minValue;
@@ -35,6 +44,9 @@ public abstract class AbstractActuator implements Actuator {
     this.maxValue = maxValue;
     this.currentValue = minValue + (maxValue - minValue) / 2;
     this.targetValue = this.currentValue;
+
+    log.debug("Initialized {} actuator: range=[{}, {}] {}, inital= {}",
+            key, minValue, maxValue, unit, currentValue);
   }
 
   /**
@@ -110,13 +122,30 @@ public abstract class AbstractActuator implements Actuator {
    */
   @Override
   public void act(double value) {
+    double originalValue = value;
     if (value < minValue) {
+      // Log a warning if value is below minimum
+      log.warn("{} actuator: request value {} below minimum {}, clamping to min",
+              key, originalValue, minValue);
       value = minValue;
     }
+    // Log a warning if value is above maximum
     if (value > maxValue) {
+      log.warn("{} actuator: request value {} above maximum {}, clamping to max",
+              key, originalValue, maxValue);
       value = maxValue;
     }
     this.targetValue = value;
+
+    // Log the actuation event, debug = Useful debug info during development
+    if (originalValue != value) {
+      log.debug("{} actuator: target value set to {} {} (requested {})",
+              key, targetValue, unit, originalValue);
+    } else {
+      // Log the actuation event, debug = Useful debug info during development
+      log.debug("{} actuator: target value set to {} {}",
+              key, targetValue, unit);
+    }
   }
 
   /**
@@ -130,15 +159,28 @@ public abstract class AbstractActuator implements Actuator {
    */
   @Override
   public void update() {
+    double previousValue = currentValue;
     double diff = targetValue - currentValue;
     double step = (maxValue - minValue) * 0.05;
 
-    // If the difference is smaller than the step, set to target
-    // else, move by step towards target
+    // If already at target, do nothing
+    if (Math.abs(diff) < 0.001) {
+      // trace is used for: Very detailed internal steps, temporary debugging
+      log.trace("{} actuator: already at target {} {}", key, currentValue, unit);
+      return;
+    }
+
+    // If the difference is smaller than the step, set to target directly
     if (Math.abs(diff) <= step) {
       currentValue = targetValue;
+      log.debug("{} actuator: reached target {} {} (from {})",
+              key, currentValue, unit, previousValue);
+
+      // else move towards target by step size
     } else {
       currentValue += Math.copySign(step, diff);
+      log.trace("{} actuator: updating {} {} -> {} {} (target: {})",
+              key, previousValue, unit, currentValue, unit, targetValue);
     }
   }
 }
