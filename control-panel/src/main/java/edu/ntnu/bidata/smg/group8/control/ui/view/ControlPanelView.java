@@ -1,5 +1,6 @@
 package edu.ntnu.bidata.smg.group8.control.ui.view;
 
+import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
 import edu.ntnu.bidata.smg.group8.control.ui.view.cards.FanCardBuilder;
 import edu.ntnu.bidata.smg.group8.control.ui.view.cards.FertilizerCardBuilder;
 import edu.ntnu.bidata.smg.group8.control.ui.view.cards.HeaterCardBuilder;
@@ -22,7 +23,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
 import javafx.scene.text.Text;
-
+import org.slf4j.Logger;
 
 
 /**
@@ -37,6 +38,8 @@ import javafx.scene.text.Text;
  * @version 16.10.2025
  */
 public class ControlPanelView {
+  private static final Logger log = AppLogger.get(ControlPanelView.class);
+
   private final BorderPane rootNode;
 
   private TemperatureCardBuilder temperatureBuilder;
@@ -65,6 +68,7 @@ public class ControlPanelView {
   * with responsive sizing to accommodate different screen dimensions.</p>
   */
   public ControlPanelView() {
+    log.info("Initializing ControlPanelView");
     this.rootNode = new BorderPane();
 
     //----------------------------- Upper Border Section ----------------------------//
@@ -79,6 +83,8 @@ public class ControlPanelView {
     upperBorder.setPadding(new Insets(70, 0, 0, 0));
     upperBorder.setId("upper-border");
     rootNode.setTop(upperBorder);
+
+    log.debug("Header section created");
 
     //----------------------------- Grid Layout ----------------------------//
 
@@ -100,46 +106,60 @@ public class ControlPanelView {
     c3.setHgrow(Priority.ALWAYS);
     grid.getColumnConstraints().addAll(c1, c2, c3);
 
+    log.debug("Grid layout configured with 3 columns");
+
     //----------------------------- Create Cards ----------------------------//
+    log.debug("Creating control cards");
 
     List<StackPane> cards = new ArrayList<>();
 
     temperatureBuilder = new TemperatureCardBuilder();
     cards.add(temperatureBuilder.build());
+    log.trace("Temperature card created");
 
     humidityBuilder = new HumidityCardBuilder();
     cards.add(humidityBuilder.build());
+    log.trace("Humidity card created");
 
     phBuilder = new PHCardBuilder();
     cards.add(phBuilder.build());
+    log.trace("pH card created");
 
     windSpeedBuilder = new WindSpeedCardBuilder();
     cards.add(windSpeedBuilder.build());
+    log.trace("Wind speed card created");
 
     lightsBuilder = new LightCardBuilder();
     cards.add(lightsBuilder.build());
+    log.trace("Lights card created");
 
     windowsBuilder = new WindowsCardBuilder();
     cards.add(windowsBuilder.build());
+    log.trace("Windows card created");
 
     fanBuilder = new FanCardBuilder();
     cards.add(fanBuilder.build());
+    log.trace("Fan card created");
 
     heaterBuilder = new HeaterCardBuilder();
     cards.add(heaterBuilder.build());
+    log.trace("Heater card created");
 
     valveBuilder = new ValveCardBuilder();
     cards.add(valveBuilder.build());
+    log.trace("Valve card created");
 
     fertilizerBuilder = new FertilizerCardBuilder();
     cards.add(fertilizerBuilder.build());
+    log.trace("Fertilizer card created");
+
+    log.debug("All {} control cards created successfully", cards.size());
 
     // Configure card growth properties
     for (StackPane card : cards) {
       GridPane.setHgrow(card, Priority.ALWAYS);
       GridPane.setVgrow(card, Priority.NEVER);
     }
-
 
     // Add cards to grid
     addCardsToGrid(grid, cards, 3);
@@ -165,8 +185,10 @@ public class ControlPanelView {
     centerWrapper.setPadding(new Insets(24, 24, 40, 24));
     BorderPane.setMargin(centerWrapper, new Insets(0, 0, 0, 0));
 
-
     rootNode.setCenter(centerWrapper);
+
+    log.debug("Scrollable surface configured");
+    log.info("ControlPanelView initialization completed successfully");
   }
 
   /**
@@ -180,11 +202,15 @@ public class ControlPanelView {
   * @param cols the number of columns in the grid
   */
   private void addCardsToGrid(GridPane grid, List<StackPane> cards, int cols) {
+    log.debug("Adding {} cards to grid with {} columns", cards.size(), cols);
+
     for (int i = 0; i < cards.size(); i++) {
       int col = i % cols;
       int row = i / cols;
       grid.add(cards.get(i), col, row);
     }
+
+    log.trace("Cards arranged in {} rows", (cards.size() + cols - 1) / cols);
   }
 
   /**

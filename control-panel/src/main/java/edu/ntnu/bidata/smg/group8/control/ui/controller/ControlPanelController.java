@@ -1,5 +1,6 @@
 package edu.ntnu.bidata.smg.group8.control.ui.controller;
 
+import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
 import edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers.FanCardController;
 import edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers.FertilizerCardController;
 import edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers.HeaterCardController;
@@ -11,6 +12,7 @@ import edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers.ValveCar
 import edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers.WindSpeedCardController;
 import edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers.WindowsCardController;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlPanelView;
+import org.slf4j.Logger;
 
 /**
 * Main UI Controller for the control panel.
@@ -21,6 +23,8 @@ import edu.ntnu.bidata.smg.group8.control.ui.view.ControlPanelView;
 * @version 28.10.2025
 */
 public class ControlPanelController {
+  private static final Logger log = AppLogger.get(ControlPanelController.class);
+
   private final ControlPanelView view;
 
   private FanCardController fanController;
@@ -36,16 +40,18 @@ public class ControlPanelController {
 
 
   /**
-  *
-  * @param view
+  * Creates a new ControlPanelController for the given view.
+
+  * @param view the ControlPanelView instance to control
   */
   public ControlPanelController(ControlPanelView view) {
     this.view = view;
+    log.debug("ControlPanelController created for view: {}", view);
     initializeControllers();
   }
 
   /**
-  *
+  * Initializes all card-specific controllers.
   */
   private void initializeControllers() {
     fanController = new FanCardController(view.getFanBuilder());
@@ -58,12 +64,16 @@ public class ControlPanelController {
     valveController = new ValveCardController(view.getValveBuilder());
     windowController = new WindowsCardController(view.getWindowsBuilder());
     windSpeedController = new WindSpeedCardController(view.getWindSpeedBuilder());
+
+    log.debug("All card controllers initialized successfully");
   }
 
   /**
-  *
+  * Starts all card controllers.
   */
   public void start() {
+    log.info("Starting ControlPanelController and all card controllers");
+
     fanController.start();
     fertilizerController.start();
     heaterController.start();
@@ -75,12 +85,15 @@ public class ControlPanelController {
     windowController.start();
     windSpeedController.start();
 
+    log.info("ControlPanelController started successfully");
   }
 
   /**
-  *
+  * Stops all card controllers and cleans up resources.
   */
   public void stop() {
+    log.info("Stopping ControlPanelController and all card controllers");
+
     fanController.stop();
     fertilizerController.stop();
     heaterController.stop();
@@ -91,5 +104,7 @@ public class ControlPanelController {
     valveController.stop();
     windowController.stop();
     windSpeedController.stop();
+
+    log.info("ControlPanelController stopped successfully");
   }
 }

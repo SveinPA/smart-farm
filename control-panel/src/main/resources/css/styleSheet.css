@@ -213,11 +213,66 @@
     -fx-padding: 4 8;
 }
 
+.label.card-subtle {
+    -fx-font-size: 11px;
+    -fx-opacity: 0.9;
+    -fx-text-fill: #444444;
+}
+
 .transparent-scroll {
     -fx-background-color: transparent;
 }
 
 .transparent-scroll > .viewport {
     -fx-background-color: transparent;
+}
+
+/*--------------- Temperature card ---------------*/
+
+.label.temp-current {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-alignment: center;
+}
+
+.label.temp-stat {
+    -fx-font-size: 11px;
+}
+
+.temp-stats-title {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+
+.temp-stats-box {
+    -fx-spacing: 6px;
+}
+
+.progress-bar .track {
+    -fx-background-color: #e6e6e6;
+}
+
+.progress-bar.temp-bar {
+    -fx-accent: #FF5722;
+}
+
+.progress-bar.temp-cold .bar {
+    -fx-accent: #2196F3;
+}
+
+.progress-bar.temp-cool .bar {
+    -fx-accent: #4CAF50;
+}
+
+.progress-bar.temp-optimal .bar {
+    -fx-accent: #8BC34A;
+}
+
+.progress-bar.temp-warm  .bar {
+    -fx-accent: #FF9800;
+}
+
+.progress-bar.temp-hot .bar {
+    -fx-accent: #F44336;
 }
 

@@ -1,6 +1,7 @@
 
 package edu.ntnu.bidata.smg.group8.control.ui.view;
 
+import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
 import edu.ntnu.bidata.smg.group8.control.ui.factory.ButtonFactory;
 import java.util.Objects;
 import javafx.geometry.Insets;
@@ -19,6 +20,7 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextAlignment;
+import org.slf4j.Logger;
 
 
 /**
@@ -27,6 +29,8 @@ import javafx.scene.text.TextAlignment;
 * and controlling various actuators such as lights and windows.
 */
 public class DashboardView {
+  private static final Logger log = AppLogger.get(DashboardView.class);
+
   private final BorderPane rootNode;
 
   // Labels for dynamic sensor values
@@ -42,6 +46,8 @@ public class DashboardView {
   * - Right: Control buttons for actuators
   */
   public DashboardView() {
+    log.info("Initializing DashboardView");
+
     this.rootNode = new BorderPane();
 
     //----------------------------- Upper Border Section ----------------------------//
@@ -59,6 +65,8 @@ public class DashboardView {
     upperBorder.setId("upper-border");
     rootNode.setTop(upperBorder);
 
+    log.debug("Header section created");
+
     //----------------------------- Left Side - Sensor Display Section --------------//
 
     // Status cards with current sensor readings from the greenhouse
@@ -72,6 +80,8 @@ public class DashboardView {
     StackPane lightStatus = createStatusCard("Lights:", "OFF", true);
 
     display.getChildren().addAll(humidityStatus, temperatureStatus, lightStatus);
+
+    log.debug("Sensor display section created with {} status cards", 3);
 
     //---------------------------- Center Section - Logo Display --------------------//
 
@@ -91,12 +101,13 @@ public class DashboardView {
       smartFarmLogo.setPreserveRatio(true);
 
       // Binding the logo size to window for responsive scaling
-
       smartFarmLogo.fitWidthProperty().bind(rootNode.widthProperty().multiply(0.6));
       smartFarmLogo.fitHeightProperty().bind(rootNode.heightProperty().multiply(0.9));
 
+      log.debug("Logo loaded successfully from: {}", logoPath);
+
     } catch (Exception e) {
-      System.err.println("Feil ved lasting av bilde: " + e.getMessage());
+      log.error("Failed to load logo from {}: {}", logoPath, e.getMessage());
       smartFarmLogo = new ImageView();
     }
 
@@ -118,11 +129,11 @@ public class DashboardView {
     // TODO: Update lightValueLabel when light state changes
     lightButton.selectedProperty().addListener((obs, oldVal, newVal) -> {
       if (newVal) {
-        System.out.println("Lights ON.");
+        log.info("User toggled lights ON");
         // TODO: Send command to turn lights ON via ActuatorController
         // TODO: Call updateLightStatus("ON")
       } else {
-        System.out.println("Lights OFF");
+        log.info("User toggled lights OFF");
         // TODO: Send command to turn lights OFF via ActuatorController
         // TODO: Call updateLightStatus("OFF")
       }
@@ -134,15 +145,16 @@ public class DashboardView {
 
     // Switch animation
     ButtonFactory.attachSwitch(lightButton);
+    log.debug("Light toggle button created and configured");
 
     // Window - Toggle button
     ToggleButton windowButton = new ToggleButton("WINDOWS");
     windowButton.selectedProperty().addListener((obs, oldVal, newVal) -> {
       if (newVal) {
-        System.out.println("Windows OPEN.");
+        log.info("User toggled windows OPEN");
         // TODO: Connect window button to actual actuator control logic
       } else {
-        System.out.println("Windows CLOSE");
+        log.info("User toggled windows CLOSE");
         // TODO: Send command to close windows via ActuatorController
       }
     });
@@ -154,6 +166,7 @@ public class DashboardView {
 
     // Switch animation
     ButtonFactory.attachWindowSwitch(windowButton);
+    log.debug("Window toggle button created and configured");
 
     // Control Panel Button
     Button controlPanelButton = new Button("CONTROL PANEL");
@@ -162,11 +175,12 @@ public class DashboardView {
     controlPanelButton.setId("control-panel-button");
 
     controlPanelButton.setOnAction(event -> {
-      System.out.println("Opening Control Panel..");
+      log.info("User clicked Control Panel button");
     });
 
     // TODO: Add setOnAction to open Control Panel view/window
-    // Example: controlPanelButton.setOnAction(event -> openControlPanel());
+
+    log.debug("Control Panel button created");
 
     optionsButtons.getChildren().addAll(lightButton, windowButton, controlPanelButton);
 
@@ -189,6 +203,8 @@ public class DashboardView {
     centerRow.getChildren().addAll(display, centralWindow, optionsButtons);
 
     rootNode.setCenter(centerRow);
+
+    log.info("DashboardView initialization completed successfully");
   }
 
   /**
@@ -201,6 +217,8 @@ public class DashboardView {
   * @return A StackPane containing the formatted status card
   */
   private StackPane createStatusCard(String title, String valueText, boolean storeLabelReference) {
+    log.trace("Creating status card: {}", title);
+
     VBox vbox = new VBox(5);
     vbox.setAlignment(Pos.CENTER);
 
@@ -213,10 +231,13 @@ public class DashboardView {
     if (storeLabelReference) {
       if (title.equals("Humidity:")) {
         humidityValueLabel = valueLabel;
+        log.debug("Humidity label reference stored");
       } else if (title.equals("Temperature:")) {
         temperatureValueLabel = valueLabel;
+        log.debug("Temperature label reference stored");
       } else if (title.equals("Lights:")) {
         lightValueLabel = valueLabel;
+        log.debug("Lights label reference stored");
       }
     }
 
@@ -239,8 +260,11 @@ public class DashboardView {
   * @param humidity The humidity value to display
   */
   public void updateHumidity(String humidity) {
+    log.debug("Updating humidity display to: {}", humidity);
     if (humidityValueLabel != null) {
       humidityValueLabel.setText(humidity);
+    } else {
+      log.warn("Cannot update humidity: label reference is null");
     }
   }
 
@@ -252,7 +276,10 @@ public class DashboardView {
    */
   public void updateTemperature(String temperature) {
     if (temperatureValueLabel != null) {
+      log.debug("Updating temperature display to: {}", temperature);
       temperatureValueLabel.setText(temperature);
+    } else {
+      log.warn("Cannot update temperature: label reference is null");
     }
   }
 
@@ -264,7 +291,10 @@ public class DashboardView {
    */
   public void updateLightStatus(String status) {
     if (lightValueLabel != null) {
+      log.debug("Updating light status display to: {}", status);
       lightValueLabel.setText(status);
+    } else {
+      log.warn("Cannot update light status: label reference is null");
     }
   }
 

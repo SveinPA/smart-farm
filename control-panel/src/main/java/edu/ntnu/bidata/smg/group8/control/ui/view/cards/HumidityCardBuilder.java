@@ -1,5 +1,6 @@
 package edu.ntnu.bidata.smg.group8.control.ui.view.cards;
 
+import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
 import edu.ntnu.bidata.smg.group8.control.ui.factory.ButtonFactory;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlCard;
 import javafx.geometry.Pos;
@@ -9,6 +10,7 @@ import javafx.scene.control.ProgressBar;
 import javafx.scene.control.Separator;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import org.slf4j.Logger;
 
 /**
 * Builder for the humidity control card.
@@ -16,6 +18,8 @@ import javafx.scene.layout.VBox;
 *
 */
 public class HumidityCardBuilder implements CardBuilder {
+  private static final Logger log = AppLogger.get(HumidityCardBuilder.class);
+
   private final ControlCard card;
   private Label currentLabel;
   private Label minLabel;
@@ -24,12 +28,25 @@ public class HumidityCardBuilder implements CardBuilder {
   private ProgressBar humidityBar;
   private Button historyButton;
 
+  private static final double HUMIDITY_VERY_DRY = 30.0;
+  private static final double HUMIDITY_DRY = 40.0;
+  private static final double HUMIDITY_OPTIMAL_HIGH = 60.0;
+  private static final double HUMIDITY_SLIGHTLY_HUMID = 70.0;
+  private static final double HUMIDITY_HUMID = 80.0;
+
+  // Critical thresholds
+  private static final double HUMIDITY_CRITICAL_LOW = 30.0;
+  private static final double HUMIDITY_CRITICAL_HIGH = 80.0;
+
+  private String previousLevel = null;
+
   /**
   * Constructs a new humidity card builder.
   */
   public HumidityCardBuilder() {
     this.card = new ControlCard("Humidity");
     card.setValueText("--%");
+    log.debug("HumidityCardBuilder initialized with range [0% - 100%]");
   }
 
   /**
@@ -39,6 +56,8 @@ public class HumidityCardBuilder implements CardBuilder {
   */
   @Override
   public ControlCard build() {
+    log.info("Building Humidity control card");
+
     createCurrentLabel();
     createStatisticsLabels();
     createHumidityBar();
@@ -50,6 +69,8 @@ public class HumidityCardBuilder implements CardBuilder {
             humidityBar,
             createStatisticsBox()
     );
+
+    log.debug("Humidity control card built successfully");
 
     return card;
   }
@@ -71,6 +92,7 @@ public class HumidityCardBuilder implements CardBuilder {
     currentLabel = new Label("Current: --%");
     currentLabel.getStyleClass().add("card-subtle");
     currentLabel.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
+    log.trace("Current humidity label created");
   }
 
   /**
@@ -88,6 +110,8 @@ public class HumidityCardBuilder implements CardBuilder {
     avgLabel = new Label("Avg: --%");
     avgLabel.getStyleClass().add("card-subtle");
     avgLabel.setStyle("-fx-font-size: 11px;");
+
+    log.trace("Statistics labels created");
   }
 
   /**
@@ -99,7 +123,8 @@ public class HumidityCardBuilder implements CardBuilder {
     humidityBar.setPrefHeight(20);
 
     // Style based on humidity level
-    humidityBar.setStyle("-fx-accent: #2196f3;"); // Blue for normal
+    humidityBar.setStyle("-fx-accent: #2196f3;");
+    log.trace("Humidity progress bar created with default style");
   }
 
   /**
@@ -117,6 +142,8 @@ public class HumidityCardBuilder implements CardBuilder {
     VBox statsBox = new VBox(4, statsTitle, statsRow1, avgLabel);
     statsBox.setAlignment(Pos.CENTER_LEFT);
 
+    log.trace("Statistics box created");
+
     return statsBox;
   }
 
@@ -126,6 +153,8 @@ public class HumidityCardBuilder implements CardBuilder {
   private void createFooter() {
     historyButton = ButtonFactory.createButton("History...");
     card.getFooter().getChildren().add(historyButton);
+
+    log.trace("Footer with history button created");
   }
 
   /**
@@ -134,16 +163,35 @@ public class HumidityCardBuilder implements CardBuilder {
   * @param humidity the current relative humidity (0-100%)
   */
   public void updateHumidity(double humidity) {
-    card.setValueText(String.format("%.0f%%", humidity));
-    currentLabel.setText(String.format("Current: %.0f%%", humidity));
+    log.debug("Updating humidity to: {:.1f}%", humidity);
 
-    // Update progress bar (humidity is already 0-100, convert to 0-1)
-    double progress = humidity / 100.0;
-    progress = Math.max(0, Math.min(1, progress)); // Clamp to 0-1
-    humidityBar.setProgress(progress);
+    Runnable ui = () -> {
+      if (currentLabel == null || humidityBar == null) {
+        log.warn("updateHumidity called before build() - skipping UI update");
+        return;
+      }
+
+      card.setValueText(String.format("%.0f%%", humidity));
+      currentLabel.setText(String.format("Current: %.0f%%", humidity));
+
+      // Update progress bar (humidity is already 0-100, convert to 0-1)
+      double progress = humidity / 100.0;
+      progress = Math.max(0, Math.min(1, progress)); // Clamp to 0-1
+      humidityBar.setProgress(progress);
+
+      log.trace("Humidity progress bar updated: {:.2f} ({:.1f}%)", progress, humidity);
 
     // Update color based on humidity level
     updateHumidityBarColor(humidity);
+
+      checkCriticalLevels(humidity);
+    };
+
+    if (javafx.application.Platform.isFxApplicationThread()) {
+      ui.run();
+    } else {
+      javafx.application.Platform.runLater(ui);
+    }
   }
 
   /**
@@ -152,23 +200,58 @@ public class HumidityCardBuilder implements CardBuilder {
   * @param humidity the current humidity percentage
   */
   private void updateHumidityBarColor(double humidity) {
+    String level;
     String color;
 
-    if (humidity < 30) {
+    if (humidity < HUMIDITY_VERY_DRY) {
+      level = "VERY_DRY";
       color = "#f44336"; // Red - too dry
-    } else if (humidity < 40) {
+    } else if (humidity < HUMIDITY_DRY) {
+      level = "DRY";
       color = "#ff9800"; // Orange - dry
-    } else if (humidity < 60) {
+    } else if (humidity < HUMIDITY_OPTIMAL_HIGH) {
+      level = "OPTIMAL";
       color = "#4caf50"; // Green - optimal
-    } else if (humidity < 70) {
+    } else if (humidity < HUMIDITY_SLIGHTLY_HUMID) {
+      level = "SLIGHTLY_HUMID";
       color = "#2196f3"; // Blue - slightly humid
-    } else if (humidity < 80) {
+    } else if (humidity < HUMIDITY_HUMID) {
+      level = "HUMID";
       color = "#3f51b5"; // Dark blue - humid
     } else {
+      level = "VERY_HUMID";
       color = "#9c27b0"; // Purple - too humid
     }
 
+    // Log level changes
+    if (!level.equals(previousLevel)) {
+      log.info("Humidity level changed: {} -> {} ({:.1f}%)",
+              previousLevel != null ? previousLevel : "UNKNOWN",
+              level,
+              humidity);
+      previousLevel = level;
+    }
+
     humidityBar.setStyle("-fx-accent: " + color + ";");
+  }
+
+  /**
+   * Checks for critical humidity levels and logs warnings.
+   *
+   * @param humidity the current humidity percentage
+   */
+  private void checkCriticalLevels(double humidity) {
+    if (humidity < HUMIDITY_CRITICAL_LOW) {
+      log.warn("CRITICAL: Humidity too low ({:.1f}%) - Risk of plant stress and wilting. Consider misting or irrigation.",
+              humidity);
+    } else if (humidity > HUMIDITY_CRITICAL_HIGH) {
+      log.warn("CRITICAL: Humidity too high ({:.1f}%) - Risk of fungal diseases and mold. Increase ventilation.",
+              humidity);
+    } else if (humidity < HUMIDITY_DRY) {
+      log.info("NOTICE: Humidity low ({:.1f}%) - Monitor plant conditions", humidity);
+    } else if (humidity > HUMIDITY_SLIGHTLY_HUMID) {
+      log.info("NOTICE: Humidity high ({:.1f}%) - Consider increasing ventilation", humidity);
+    }
   }
 
   /**
@@ -179,10 +262,41 @@ public class HumidityCardBuilder implements CardBuilder {
   * @param avg average humidity in last 24h
   */
   public void updateStatistics(double min, double max, double avg) {
-    minLabel.setText(String.format("Min: %.0f%%", min));
-    maxLabel.setText(String.format("Max: %.0f%%", max));
-    avgLabel.setText(String.format("Avg: %.0f%%", avg));
+    log.debug("Updating humidity statistics - Min: {:.1f}%, Max: {:.1f}%, Avg: {:.1f}%",
+            min, max, avg);
+
+    Runnable ui = () -> {
+      if (minLabel == null || maxLabel == null || avgLabel == null) {
+        log.warn("updateStatistics called before build() - skipping UI update");
+        return;
+      }
+
+      minLabel.setText(String.format("Min: %.0f%%", min));
+      maxLabel.setText(String.format("Max: %.0f%%", max));
+      avgLabel.setText(String.format("Avg: %.0f%%", avg));
+
+      log.trace("Humidity statistics labels updated successfully");
+
+      // Check 24h extremes
+      if (min < HUMIDITY_CRITICAL_LOW || max > HUMIDITY_CRITICAL_HIGH) {
+        log.warn("24h humidity range includes critical levels - Min: {:.1f}%, Max: {:.1f}%", min, max);
+      }
+
+      // Check for large fluctuations
+      double range = max - min;
+      if (range > 40.0) {
+        log.info("Large humidity fluctuation in 24h period: {:.1f}% range (Min: {:.1f}%, Max: {:.1f}%)",
+                range, min, max);
+      }
+    };
+
+    if (javafx.application.Platform.isFxApplicationThread()) {
+      ui.run();
+    } else {
+      javafx.application.Platform.runLater(ui);
+    }
   }
+
 
   // Getters for controller access
 

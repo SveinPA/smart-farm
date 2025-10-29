@@ -1,5 +1,6 @@
 package edu.ntnu.bidata.smg.group8.control.ui.view.cards;
 
+import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
 import edu.ntnu.bidata.smg.group8.control.ui.factory.ButtonFactory;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlCard;
 import javafx.geometry.Pos;
@@ -9,6 +10,7 @@ import javafx.scene.control.ProgressBar;
 import javafx.scene.control.Separator;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import org.slf4j.Logger;
 
 /**
 * Builder for the pH control card.
@@ -19,6 +21,8 @@ import javafx.scene.layout.VBox;
 * @version 28.10.2025
 */
 public class PHCardBuilder implements CardBuilder {
+  private static final Logger log = AppLogger.get(PHCardBuilder.class);
+
   private final ControlCard card;
   private Label currentLabel;
   private Label statusLabel;
@@ -32,12 +36,22 @@ public class PHCardBuilder implements CardBuilder {
   private static final double MIN_PH = 0.0;
   private static final double MAX_PH = 14.0;
 
+  private static final double PH_VERY_ACIDIC = 4.5;
+  private static final double PH_ACIDIC = 6.0;
+  private static final double PH_SLIGHTLY_ACIDIC = 6.5;
+  private static final double PH_NEUTRAL_HIGH = 7.5;
+  private static final double PH_SLIGHTLY_ALKALINE = 8.5;
+  private static final double PH_ALKALINE = 10.0;
+
+  private String previousStatus = null;
+
   /**
   * Constructs a new pH card builder.
   */
   public PHCardBuilder() {
     this.card = new ControlCard("pH Level");
     card.setValueText("--");
+    log.debug("PHCardBuilder initialized with range [{} - {}]", MIN_PH, MAX_PH);
   }
 
   /**
@@ -47,6 +61,8 @@ public class PHCardBuilder implements CardBuilder {
   */
   @Override
   public ControlCard build() {
+    log.info("Building pH control card");
+
     createCurrentLabel();
     createStatusLabel();
     createStatisticsLabels();
@@ -60,6 +76,8 @@ public class PHCardBuilder implements CardBuilder {
             phBar,
             createStatisticsBox()
     );
+
+    log.debug("pH control card built successfully");
 
     return card;
   }
@@ -81,6 +99,7 @@ public class PHCardBuilder implements CardBuilder {
     currentLabel = new Label("Current: --");
     currentLabel.getStyleClass().add("card-subtle");
     currentLabel.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
+    log.trace("Current pH label created");
   }
 
   /**
@@ -90,6 +109,7 @@ public class PHCardBuilder implements CardBuilder {
     statusLabel = new Label("Status: --");
     statusLabel.getStyleClass().add("card-subtle");
     statusLabel.setStyle("-fx-font-size: 12px; -fx-font-style: italic;");
+    log.trace("Status label created");
   }
 
   /**
@@ -107,6 +127,8 @@ public class PHCardBuilder implements CardBuilder {
     avgLabel = new Label("Avg: --");
     avgLabel.getStyleClass().add("card-subtle");
     avgLabel.setStyle("-fx-font-size: 11px;");
+
+    log.trace("Statistics labels created");
   }
 
   /**
@@ -117,8 +139,8 @@ public class PHCardBuilder implements CardBuilder {
     phBar.setMaxWidth(Double.MAX_VALUE);
     phBar.setPrefHeight(20);
 
-    // Default neutral color
     phBar.setStyle("-fx-accent: #4caf50;");
+    log.trace("pH progress bare created");
   }
 
   /**
@@ -136,6 +158,8 @@ public class PHCardBuilder implements CardBuilder {
     VBox statsBox = new VBox(4, statsTitle, statsRow1, avgLabel);
     statsBox.setAlignment(Pos.CENTER_LEFT);
 
+    log.trace("Statistics box created");
+
     return statsBox;
   }
 
@@ -145,6 +169,7 @@ public class PHCardBuilder implements CardBuilder {
   private void createFooter() {
     historyButton = ButtonFactory.createButton("History...");
     card.getFooter().getChildren().add(historyButton);
+    log.trace("Footer with history button created");
   }
 
   /**
@@ -153,6 +178,14 @@ public class PHCardBuilder implements CardBuilder {
   * @param ph the current pH value (0-14)
   */
   public void updatePH(double ph) {
+    log.debug("Updating pH display to: {:.2f}", ph);
+
+    Runnable ui = () -> {
+      if (currentLabel == null || phBar == null) {
+      log.warn("updatePH called before build() - Skipping UI update");
+      return;
+    }
+
     card.setValueText(String.format("%.1f", ph));
     currentLabel.setText(String.format("Current: %.1f", ph));
 
@@ -161,8 +194,17 @@ public class PHCardBuilder implements CardBuilder {
     progress = Math.max(0, Math.min(1, progress)); // Clamp to 0-1
     phBar.setProgress(progress);
 
+      log.trace("pH progress bar updated: {:.2f} (pH {:.2f})", progress, ph);
+
     // Update status and color
     updatePHStatus(ph);
+  };
+
+    if (javafx.application.Platform.isFxApplicationThread()) {
+      ui.run();
+    } else {
+      javafx.application.Platform.runLater(ui);
+    }
   }
 
   /**
@@ -174,28 +216,42 @@ public class PHCardBuilder implements CardBuilder {
     String status;
     String color;
 
-    if (ph < 4.5) {
+    if (ph < PH_VERY_ACIDIC) {
       status = "Very Acidic";
       color = "#f44336"; // Red
-    } else if (ph < 6.0) {
+    } else if (ph < PH_ACIDIC) {
       status = "Acidic";
       color = "#ff9800"; // Orange
-    } else if (ph < 6.5) {
+    } else if (ph < PH_SLIGHTLY_ACIDIC) {
       status = "Slightly Acidic (Good)";
       color = "#8bc34a"; // Light green
-    } else if (ph < 7.5) {
+    } else if (ph < PH_NEUTRAL_HIGH) {
       status = "Neutral (Optimal)";
       color = "#4caf50"; // Green
-    } else if (ph < 8.5) {
+    } else if (ph < PH_SLIGHTLY_ALKALINE) {
       status = "Slightly Alkaline";
       color = "#2196f3"; // Blue
-    } else if (ph < 10.0) {
+    } else if (ph < PH_ALKALINE) {
       status = "Alkaline";
       color = "#3f51b5"; // Dark blue
     } else {
       status = "Very Alkaline";
       color = "#9c27b0"; // Purple
     }
+
+    if (!status.equals(previousStatus)) {
+      log.info("pH status changed: {} -> {} (pH {:-2f})", previousStatus != null ? previousStatus : "UNKNOWN",
+              status,
+              ph);
+      previousStatus = status;
+    }
+
+    if (ph < PH_VERY_ACIDIC){
+      log.warn("CRITICAL: pH too acidic ({:.2f}) - Risk of nutrient lockout and root damage", ph);
+    } else if (ph > PH_ALKALINE) {
+      log.warn("CRITICAL: pH too alkaline ({:.2f}) - Risk of nutrient deficiencies", ph);
+    }
+
 
     statusLabel.setText("Status: " + status);
     statusLabel.setStyle("-fx-font-size: 12px; -fx-font-style: "
@@ -211,9 +267,27 @@ public class PHCardBuilder implements CardBuilder {
   * @param avg average pH in last 24h
   */
   public void updateStatistics(double min, double max, double avg) {
-    minLabel.setText(String.format("Min: %.1f", min));
-    maxLabel.setText(String.format("Max: %.1f", max));
-    avgLabel.setText(String.format("Avg: %.1f", avg));
+    log.debug("Updating pH statistics - Min: {:.2f}, Max: {:.2f}, Avg: {:.2f}",
+            min, max, avg);
+
+    Runnable ui = () -> {
+      if (minLabel == null || maxLabel == null || avgLabel == null) {
+        log.warn("updateStatistics called before build() - skipping UI update");
+        return;
+      }
+
+      minLabel.setText(String.format("Min: %.1f", min));
+      maxLabel.setText(String.format("Max: %.1f", max));
+      avgLabel.setText(String.format("Avg: %.1f", avg));
+
+      log.trace("pH statistics labels updated successfully");
+    };
+
+    if (javafx.application.Platform.isFxApplicationThread()) {
+      ui.run();
+    } else {
+      javafx.application.Platform.runLater(ui);
+    }
   }
 
   // Getters for controller access

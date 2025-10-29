@@ -1,5 +1,6 @@
 package edu.ntnu.bidata.smg.group8.control.ui.factory;
 
+import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
 import javafx.animation.TranslateTransition;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -11,6 +12,7 @@ import javafx.scene.control.ToggleButton;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.util.Duration;
+import org.slf4j.Logger;
 
 
 /**
@@ -20,6 +22,8 @@ import javafx.util.Duration;
 * UI component creation to ensure consistency across the application.
 */
 public class ButtonFactory {
+  private static final Logger log = AppLogger.get(ButtonFactory.class);
+
   private static final String DANGER_STYLE =
           "-fx-background-color: #f44336; -fx-text-fill: white;";
   private static final String PRIMARY_STYLE =
@@ -37,10 +41,15 @@ public class ButtonFactory {
   * @param button The ToggleButton to enhance with a switch graphic
   */
   public static void attachSwitch(ToggleButton button) {
+    log.debug("Attaching ON/OFF switch to ToggleButton");
+
     button.setContentDisplay((ContentDisplay.RIGHT));
     button.setGraphicTextGap(14);
     button.setAlignment(Pos.CENTER);
     button.setGraphic(createSwitchGraphic(button));
+
+    log.trace("ON/OFF switch attached successfully");
+
   }
 
   /**
@@ -51,10 +60,14 @@ public class ButtonFactory {
   * @param button The ToggleButton to enhance with a switch graphic
   */
   public static void attachWindowSwitch(ToggleButton button) {
+    log.debug("Attaching OPEN/CLOSE switch to ToggleButton");
+
     button.setContentDisplay((ContentDisplay.RIGHT));
     button.setGraphicTextGap(14);
     button.setAlignment(Pos.CENTER);
     button.setGraphic(createWindowSwitchGraphic(button));
+
+    log.trace("OPEN/CLOSE switch attached successfully");
   }
 
   /**
@@ -69,6 +82,8 @@ public class ButtonFactory {
   * @return A node containing the complete switch graphic with animations
   */
   private static Node createSwitchGraphic(ToggleButton owner) {
+    log.trace("Creating ON/OFF switch graphic");
+
     double trackW = 64;
     double trackH = 28;
     double pad = 2;
@@ -117,6 +132,7 @@ public class ButtonFactory {
 
     // State change animation
     owner.selectedProperty().addListener((o, was, isNow) -> {
+      log.debug("Switch state changed to: {}", isNow ? "ON" : "OFF");
       double end = isNow ? shift : 0;
 
       TranslateTransition prev = (TranslateTransition) thumb.getProperties().get("tt");
@@ -155,6 +171,8 @@ public class ButtonFactory {
   * @return A node containing the complete switch graphic with animations
   */
   private static Node createWindowSwitchGraphic(ToggleButton owner) {
+    log.trace("Creating OPEN/CLOSE switch graphic");
+
     double trackW = 85;
     double trackH = 28;
     double pad = 2;
@@ -203,6 +221,7 @@ public class ButtonFactory {
 
     // State change animation
     owner.selectedProperty().addListener((o, was, isNow) -> {
+      log.debug("Window switch state changed to: {}", isNow ? "OPEN" : "CLOSE");
       double end = isNow ? shift : 0;
 
       TranslateTransition prev = (TranslateTransition) thumb.getProperties().get("tt");
@@ -253,6 +272,8 @@ public class ButtonFactory {
   * @return a styled schedule button
   */
   public static Button createScheduleButton(String text) {
+    log.debug("Creating schedule button: {}", text);
+
     Button button = new Button(text);
     button.getStyleClass().add("schedule-button");
     return button;
@@ -266,6 +287,8 @@ public class ButtonFactory {
   * @return a new Button instance
   */
   public static Button createButton(String text) {
+    log.trace("Creating button: {}", text);
+
     Button button = new Button(text);
     return button;
   }
@@ -278,6 +301,8 @@ public class ButtonFactory {
   * @return a new Button instance
   */
   public static Button createButton(String text, double width) {
+    log.trace("Creating button with width {}: {}", width, text);
+
     Button button = createButton(text);
     button.setPrefWidth(width);
     return button;
@@ -291,6 +316,8 @@ public class ButtonFactory {
   * @return a preset button with specified width
   */
   public static Button createPresetButton(String text, double width) {
+    log.debug("Creating preset button with width {}: {}", width, text);
+
     return createButton(text, width);
   }
 
@@ -301,6 +328,8 @@ public class ButtonFactory {
   * @return a button with max width set
   */
   public static Button createFullWidthButton(String text) {
+    log.trace("Creating full-width button: {}", text);
+
     Button button = createButton(text);
     button.setMaxWidth(Double.MAX_VALUE);
     return button;
@@ -317,6 +346,8 @@ public class ButtonFactory {
   * @return a styled danger button
   */
   public static Button createDangerButton(String text) {
+    log.debug("Creating danger button: {}", text);
+
     Button button = createButton(text);
     button.setStyle(DANGER_STYLE);
     return button;
@@ -329,6 +360,8 @@ public class ButtonFactory {
   * @return a full-width danger button
   */
   public static Button createFullWidthDangerButton(String text) {
+    log.debug("Creating full-width danger button: {}", text);
+
     Button button = createDangerButton(text);
     button.setMaxWidth(Double.MAX_VALUE);
     return button;
@@ -342,6 +375,8 @@ public class ButtonFactory {
   * @return a styled primary button
   */
   public static Button createPrimaryButton(String text) {
+    log.debug("Creating primary button: {}", text);
+
     Button button = createButton(text);
     button.setStyle(PRIMARY_STYLE);
     return button;
