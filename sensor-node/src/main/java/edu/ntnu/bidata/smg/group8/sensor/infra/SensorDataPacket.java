@@ -1,5 +1,7 @@
 package edu.ntnu.bidata.smg.group8.sensor.infra;
 
+import java.util.Locale;
+
 import edu.ntnu.bidata.smg.group8.common.sensor.Sensor;
 import edu.ntnu.bidata.smg.group8.common.util.JsonBuilder;
 
@@ -62,7 +64,8 @@ public class SensorDataPacket {
             "type", "SENSOR_DATA",
             "nodeId", nodeId,
             "sensorKey", sensor.getKey(),
-            "value", String.format("%.2f", value),
+            "value", String.format(Locale.US, "%.2f", value), 
+            // Format to 2 decimal places, Locale.US to ensure dot as decimal separator and not comma
             "unit", sensor.getUnit(),
             "timestamp", String.valueOf(System.currentTimeMillis()) // Current time in milliseconds
         );
