@@ -251,13 +251,18 @@ public class HeaterActuatorTest {
    */
   @Test
   public void testSetTemperatureBelowMinimumThrowsException() {
+    double initialTargetTemperature = heater.getTargetTemperature(); // Store initial state
+
     IllegalArgumentException exception = assertThrows(
             IllegalArgumentException.class,
             () -> heater.setTargetTemperature(-5.0)
     );
-    assertTrue(exception.getMessage().contains("between"));
-    assertTrue(exception.getMessage().contains("0.0"));
-    assertTrue(exception.getMessage().contains("40.0"));
+
+    // Assert exception message
+    assertEquals("Temperature out of range", exception.getMessage());
+
+    // Ensure the state of the heater remains unchanged
+    assertEquals(initialTargetTemperature, heater.getTargetTemperature());
   }
 
   /**
@@ -269,12 +274,17 @@ public class HeaterActuatorTest {
    */
   @Test
   public void testSetTemperatureAboveMaximumThrowsException() {
+    double initialTargetTemperature = heater.getTargetTemperature(); // Store initial state
+
     IllegalArgumentException exception = assertThrows(
             IllegalArgumentException.class,
             () -> heater.setTargetTemperature(45.0)
     );
-    assertTrue(exception.getMessage().contains("between"));
-    assertTrue(exception.getMessage().contains("0.0"));
-    assertTrue(exception.getMessage().contains("40.0"));
+
+    // Assert exception message
+    assertEquals("Temperature out of range", exception.getMessage());
+
+    // Ensure the state of the heater remains unchanged
+    assertEquals(initialTargetTemperature, heater.getTargetTemperature());
   }
 }

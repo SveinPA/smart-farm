@@ -39,7 +39,7 @@ public class WindowActuator extends AbstractActuator {
    */
   public WindowActuator() {
     super(KEY, UNIT, MIN_VALUE, MAX_VALUE);
-    log.info ("Window actuator initialized with opening at {} %", getCurrentValue());
+    log.info("Window actuator initialized with opening at {} %", getCurrentValue());
   }
 
   /**
@@ -92,8 +92,8 @@ public class WindowActuator extends AbstractActuator {
    */
   public void openPercentage(double percentage) {
     if (percentage < MIN_VALUE || percentage > MAX_VALUE) {
-        log.error("Invalid window opening percentage: {} % (valid range: {}-{} %)",
-                percentage, MIN_VALUE, MAX_VALUE);
+      log.error("Invalid window opening percentage: {} % (valid range: {}-{} %)",
+              percentage, MIN_VALUE, MAX_VALUE);
       throw new IllegalArgumentException("Percentage must be between 0 and 100.");
     }
     log.info("Window opening changed from {} % to {} %",

@@ -255,10 +255,18 @@ public class WindowActuatorTest {
    */
   @Test
   public void testOpenPercentageAboveMaximumThrowsException() {
+    double initialOpening = window.getCurrentValue(); // Store initial state
+
     IllegalArgumentException exception = assertThrows(
             IllegalArgumentException.class,
             () -> window.openPercentage(150.0)
     );
+
+    // Assert exception message
+    assertEquals("Percentage must be between 0 and 100.", exception.getMessage());
+
+    // Ensure the state of the window remains unchanged
+    assertEquals(initialOpening, window.getCurrentValue());
   }
 
   /**
@@ -270,9 +278,17 @@ public class WindowActuatorTest {
    */
   @Test
   public void testOpenPercentageBelowMinimumThrowsException() {
+    double initialOpening = window.getCurrentValue(); // Store initial state
+
     IllegalArgumentException exception = assertThrows(
             IllegalArgumentException.class,
             () -> window.openPercentage(-10.0)
     );
+
+    // Assert exception message
+    assertEquals("Percentage must be between 0 and 100.", exception.getMessage());
+
+    // Ensure the state of the window remains unchanged
+    assertEquals(initialOpening, window.getCurrentValue());
   }
 }
