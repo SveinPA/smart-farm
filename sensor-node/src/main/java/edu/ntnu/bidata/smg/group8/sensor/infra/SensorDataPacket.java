@@ -2,6 +2,7 @@ package edu.ntnu.bidata.smg.group8.sensor.infra;
 
 import java.util.Locale;
 
+import edu.ntnu.bidata.smg.group8.common.protocol.Protocol;
 import edu.ntnu.bidata.smg.group8.common.sensor.Sensor;
 import edu.ntnu.bidata.smg.group8.common.util.JsonBuilder;
 
@@ -22,12 +23,13 @@ import edu.ntnu.bidata.smg.group8.common.util.JsonBuilder;
  * <li><b>timestamp</b>: the time the reading was taken, in milliseconds.</li>
  * </ul>
  *
- * <p>This class cannot be instantiated and only contains static methods.</p>
+ * <p>This class cannot be instantiated and only contains static methods,
+ * and is final to prevent inheritance.</p>
  *
  * @author Ida Soldal
  * @version 28.10.2025
  */
-public class SensorDataPacket {
+public final class SensorDataPacket {
 
     /**
      * <b>Private constructor</b> to prevent instantiation,
@@ -61,7 +63,7 @@ public class SensorDataPacket {
             throw new IllegalArgumentException("Value must be finite (was: " + value + ")");
         }
         return JsonBuilder.build(
-            "type", "SENSOR_DATA",
+            "type", Protocol.TYPE_SENSOR_DATA,
             "nodeId", nodeId,
             "sensorKey", sensor.getKey(),
             "value", String.format(Locale.US, "%.2f", value), 
