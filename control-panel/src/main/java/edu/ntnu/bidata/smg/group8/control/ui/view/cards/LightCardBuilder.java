@@ -1,5 +1,6 @@
 package edu.ntnu.bidata.smg.group8.control.ui.view.cards;
 
+import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
 import edu.ntnu.bidata.smg.group8.control.ui.factory.ButtonFactory;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlCard;
 import javafx.geometry.Pos;
@@ -11,6 +12,7 @@ import javafx.scene.control.Slider;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import org.slf4j.Logger;
 
 /**
 * Builder for the lights control card.
@@ -21,6 +23,8 @@ import javafx.scene.layout.VBox;
 * @version 28.10.2025
 */
 public class LightCardBuilder implements CardBuilder {
+  private static final Logger log = AppLogger.get(LightCardBuilder.class);
+
   private final ControlCard card;
   private Label ambientLabel;
   private RadioButton onButton;
@@ -37,6 +41,7 @@ public class LightCardBuilder implements CardBuilder {
   public LightCardBuilder() {
     this.card = new ControlCard("Lights");
     card.setValueText("OFF");
+    log.debug("LightCardBuilder initialized with default state: OFF");
   }
 
   /**
@@ -46,6 +51,8 @@ public class LightCardBuilder implements CardBuilder {
   */
   @Override
   public ControlCard build() {
+    log.info("Building Light control card");
+
     createAmbientLabel();
     createStateControls();
     createIntensityControls();
@@ -57,6 +64,8 @@ public class LightCardBuilder implements CardBuilder {
             new Separator(),
             intensityBox
     );
+
+    log.debug("Light control card built successfully");
 
     return card;
   }
@@ -77,6 +86,7 @@ public class LightCardBuilder implements CardBuilder {
   private void createAmbientLabel() {
     ambientLabel = new Label("Ambient: -- lx");
     ambientLabel.getStyleClass().add("card-subtle");
+    log.trace("Ambient light label created");
   }
 
   /**
@@ -93,8 +103,12 @@ public class LightCardBuilder implements CardBuilder {
     // Listen to state changes to update card value
     stateGroup.selectedToggleProperty().addListener((obs, oldT, newT) -> {
       boolean isOn = newT == onButton;
-      card.setValueText(isOn ? "ON" : "OFF");
+      String state = isOn ? "ON" : "OFF";
+      card.setValueText(state);
+      log.info("State controls (ON/OFF) created with default: OFF");
     });
+
+    log.trace("State controls (ON/OFF) created with default: OFF");
   }
 
   /**
@@ -104,7 +118,7 @@ public class LightCardBuilder implements CardBuilder {
   */
   private HBox createStateRow() {
     HBox stateRow = new HBox(12, new Label("State:"), onButton, offButton);
-    stateRow.setAlignment(Pos.CENTER_LEFT);
+    stateRow.setAlignment(Pos.CENTER);
     return stateRow;
   }
 
@@ -118,16 +132,26 @@ public class LightCardBuilder implements CardBuilder {
     intensitySlider.setMaxWidth(Double.MAX_VALUE);
 
     intensityLabel = new Label("Intensity: 60%");
-    intensitySlider.valueProperty().addListener((o, ov, nv) ->
-            intensityLabel.setText("Intensity: " + nv.intValue() + "%"));
+    intensitySlider.valueProperty().addListener((o, ov, nv) -> {
+      int newIntensity = nv.intValue();
+      int oldIntensity = ov.intValue();
+      intensityLabel.setText("Intensity: " + nv.intValue() + "%");
+
+      if (Math.abs(newIntensity - oldIntensity) >= 5 || newIntensity == 0 || newIntensity == 100) {
+        log.debug("Light intensity adjusted: {}% -> {}%", oldIntensity, newIntensity);
+      }
+    });
+
 
     intensityBox = new VBox(8, intensityLabel, intensitySlider);
-    intensityBox.setAlignment(Pos.CENTER_LEFT);
+    intensityBox.setAlignment(Pos.CENTER);
 
     // Only show intensity controls when lights are ON
     intensityBox.visibleProperty().bind(onButton.selectedProperty());
     intensityBox.managedProperty().bind(intensityBox.visibleProperty());
     intensitySlider.disableProperty().bind(onButton.selectedProperty().not());
+
+    log.trace("Intensity controls created with default: 60%");
   }
 
   /**
@@ -136,6 +160,7 @@ public class LightCardBuilder implements CardBuilder {
   private void createFooter() {
     scheduleButton = ButtonFactory.createScheduleButton("Schedule...");
     card.getFooter().getChildren().add(scheduleButton);
+    log.trace("Footer with schedule button created");
   }
 
   // Getters for controller access

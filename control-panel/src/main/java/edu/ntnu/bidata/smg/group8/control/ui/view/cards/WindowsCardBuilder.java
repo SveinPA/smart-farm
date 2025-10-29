@@ -1,5 +1,6 @@
 package edu.ntnu.bidata.smg.group8.control.ui.view.cards;
 
+import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
 import edu.ntnu.bidata.smg.group8.control.ui.factory.ButtonFactory;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlCard;
 import javafx.geometry.Pos;
@@ -12,6 +13,7 @@ import javafx.scene.control.Spinner;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import org.slf4j.Logger;
 
 /**
 * Builder for the windows control card.
@@ -22,6 +24,9 @@ import javafx.scene.layout.VBox;
 * @version 27.10.2025
 */
 public class WindowsCardBuilder implements CardBuilder {
+  private static final Logger log = AppLogger.get(WindowsCardBuilder.class);
+
+
   private final ControlCard card;
   private Label openingLabel;
   private RadioButton manualMode;
@@ -46,12 +51,23 @@ public class WindowsCardBuilder implements CardBuilder {
 
   private Button scheduleButton;
 
+  private static final int POSITION_CLOSED = 0;
+  private static final int POSITION_SLIGHT = 25;
+  private static final int POSITION_HALF = 50;
+  private static final int POSITION_MOSTLY = 75;
+  private static final int POSITION_OPEN = 100;
+
+  private String currentMode = "MANUAL";
+  private int currentPosition = 0;
+
+
   /**
   * Constructs a new windows card builder.
   */
   public WindowsCardBuilder() {
     this.card = new ControlCard("Windows");
     card.setValueText("CLOSED");
+    log.debug("WindowsCardBuilder initialized with default state: CLOSED, Mode: Manual");
   }
 
   /**
@@ -61,6 +77,8 @@ public class WindowsCardBuilder implements CardBuilder {
   */
   @Override
   public ControlCard build() {
+    log.info("Building Windows control card");
+
     createOpeningLabel();
     createModeControls();
     createManualControls();
@@ -76,6 +94,8 @@ public class WindowsCardBuilder implements CardBuilder {
     );
 
     setupBindings();
+
+    log.debug("Windows control card built successfully");
 
     return card;
   }
@@ -96,6 +116,7 @@ public class WindowsCardBuilder implements CardBuilder {
   private void createOpeningLabel() {
     openingLabel = new Label("Opening: 0%");
     openingLabel.getStyleClass().add("card-subtle");
+    log.trace("Opening label created");
   }
 
   /**
@@ -108,7 +129,21 @@ public class WindowsCardBuilder implements CardBuilder {
     manualMode.setToggleGroup(modeGroup);
     autoMode.setToggleGroup(modeGroup);
     manualMode.setSelected(true);
+
+    modeGroup.selectedToggleProperty().addListener((obs, oldToggle, newToggle) -> {
+      String newMode = newToggle == manualMode ? "MANUAL" : "AUTO";
+      log.info("Window control mode changed: {} -> {}", currentMode, newMode);
+      currentMode = newMode;
+
+      if (newMode.equals("AUTO")) {
+        log.debug("Auto mode activated - Temp threshold: {}°C, Wind limit: {} m/s",
+                tempSpinner.getValue(), windSpinner.getValue());
+      }
+    });
+
+    log.trace("Mode controls (Manual/Auto) created with default: MANUAL");
   }
+
 
   /**
   * Creates the mode row with radio buttons.
@@ -133,11 +168,11 @@ public class WindowsCardBuilder implements CardBuilder {
     openButton = ButtonFactory.createPresetButton("Open", 65);
 
     // Add event handlers for presets
-    closedButton.setOnAction(e -> setWindowPosition(0));
-    slightButton.setOnAction(e -> setWindowPosition(25));
-    halfButton.setOnAction(e -> setWindowPosition(50));
-    mostlyButton.setOnAction(e -> setWindowPosition(75));
-    openButton.setOnAction(e -> setWindowPosition(100));
+    closedButton.setOnAction(e -> setWindowPosition(POSITION_CLOSED));
+    slightButton.setOnAction(e -> setWindowPosition(POSITION_SLIGHT));
+    halfButton.setOnAction(e -> setWindowPosition(POSITION_HALF));
+    mostlyButton.setOnAction(e -> setWindowPosition(POSITION_MOSTLY));
+    openButton.setOnAction(e -> setWindowPosition(POSITION_OPEN));
 
     // Slider
     sliderLabel = new Label("Custom: 0%");
@@ -150,9 +185,15 @@ public class WindowsCardBuilder implements CardBuilder {
     // Update label when slider changes
     openingSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
       int value = newVal.intValue();
+      int oldValue = oldVal.intValue();
       sliderLabel.setText("Custom: " + value + "%");
       updateCardValue(value);
+
+      if (Math.abs(value - oldValue) >= 10 || value == 0 || value == 100) {
+        log.debug("Window position adjusted via slider: {}% -> {}%", oldValue, value);
+      }
     });
+
 
     // Create layout
     HBox presetsRow1 = new HBox(6, closedButton, slightButton, halfButton);
@@ -165,6 +206,8 @@ public class WindowsCardBuilder implements CardBuilder {
 
     manualBox = new VBox(8, presetsRow1, presetsRow2, sliderBox);
     manualBox.setAlignment(Pos.CENTER_LEFT);
+
+    log.trace("Manual controls created with presets and slider");
   }
 
   /**
@@ -181,6 +224,10 @@ public class WindowsCardBuilder implements CardBuilder {
     tempSpinner.setPrefWidth(75);
     Label tempUnit = new Label("°C");
 
+    tempSpinner.valueProperty().addListener((obs, oldVal, newVal) -> {
+      log.info("Auto mode temperature threshold changed: {}°C -> {}°C", oldVal, newVal);
+    });
+
     HBox tempBox = new HBox(8, tempLabel, tempSpinner, tempUnit);
     tempBox.setAlignment(Pos.CENTER_LEFT);
 
@@ -191,6 +238,10 @@ public class WindowsCardBuilder implements CardBuilder {
     windSpinner.setPrefWidth(75);
     Label windUnit = new Label("m/s");
 
+    windSpinner.valueProperty().addListener((obs, oldVal, newVal) -> {
+      log.info("Auto mode wind speed limit changed: {} m/s -> {} m/s", oldVal, newVal);
+    });
+
     HBox windBox = new HBox(8, windLabel, windSpinner, windUnit);
     windBox.setAlignment(Pos.CENTER_LEFT);
 
@@ -199,6 +250,9 @@ public class WindowsCardBuilder implements CardBuilder {
 
     autoBox = new VBox(8, autoInfoLabel, tempBox, windBox, autoStatusLabel);
     autoBox.setAlignment(Pos.CENTER_LEFT);
+
+    log.trace("Auto controls created - Default temp: 25°C, wind: 10 m/s");
+
   }
 
   /**
@@ -207,6 +261,7 @@ public class WindowsCardBuilder implements CardBuilder {
   private void createFooter() {
     scheduleButton = ButtonFactory.createButton("Schedule...");
     card.getFooter().getChildren().add(scheduleButton);
+    log.trace("Footer with schedule button created");
   }
 
   /**
@@ -220,6 +275,8 @@ public class WindowsCardBuilder implements CardBuilder {
     // Show auto controls only in auto mode
     autoBox.visibleProperty().bind(autoMode.selectedProperty());
     autoBox.managedProperty().bind(autoBox.visibleProperty());
+
+    log.trace("Mode visibility bindings configured");
   }
 
   /**
@@ -228,6 +285,9 @@ public class WindowsCardBuilder implements CardBuilder {
   * @param position the position percentage (0-100)
   */
   private void setWindowPosition(int position) {
+    log.info("Window position preset selected: {}% ({})",
+            position, getPositionDescription(position));
+
     openingSlider.setValue(position);
     sliderLabel.setText("Custom: " + position + "%");
     updateCardValue(position);
@@ -239,8 +299,6 @@ public class WindowsCardBuilder implements CardBuilder {
   * @param position the position percentage (0-100)
   */
   private void updateCardValue(int position) {
-    openingLabel.setText("Opening: " + position + "%");
-
     String statusText;
     if (position == 0) {
       statusText = "CLOSED";
@@ -254,7 +312,64 @@ public class WindowsCardBuilder implements CardBuilder {
       statusText = "FULLY OPEN";
     }
 
+    openingLabel.setText("Opening: " + position + "%");
+
     card.setValueText(statusText);
+
+    if (position != currentPosition) {
+      int diff = Math.abs(position - currentPosition);
+      if (diff >= 10 || position == 0 || position == 100) {
+        log.debug("Window status updated: {} ({}% -> {}%)",
+                statusText, currentPosition, position);
+      }
+      currentPosition = position;
+    }
+  }
+
+  /**
+   * Updates the auto control status.
+   *
+   * @param isActive true if auto control is actively adjusting windows
+   * @param reason the reason for the current state (e.g., "High temperature", "Strong wind")
+   */
+  public void updateAutoStatus(boolean isActive, String reason) {
+    log.debug("Auto control status update - Active: {}, Reason: {}", isActive, reason);
+
+    Runnable ui = () -> {
+      if (autoStatusLabel == null) {
+        log.warn("updateAutoStatus called before build() - skipping UI update");
+        return;
+      }
+
+      if (isActive) {
+        autoStatusLabel.setText("Auto-control: " + reason);
+        autoStatusLabel.setStyle("-fx-font-size: 11px; -fx-text-fill: #4caf50;");
+      } else {
+        autoStatusLabel.setText("Auto-control: Standby");
+        autoStatusLabel.setStyle("-fx-font-size: 11px; -fx-text-fill: #888;");
+      }
+    };
+
+    if (javafx.application.Platform.isFxApplicationThread()) {
+      ui.run();
+    } else {
+      javafx.application.Platform.runLater(ui);
+    }
+  }
+
+  /**
+   * Gets a description of the window position.
+   *
+   * @param position the position percentage
+   * @return description string
+   */
+  private String getPositionDescription(int position) {
+    if (position == POSITION_CLOSED) return "Closed";
+    if (position == POSITION_SLIGHT) return "Slight";
+    if (position == POSITION_HALF) return "Half";
+    if (position == POSITION_MOSTLY) return "Mostly";
+    if (position == POSITION_OPEN) return "Open";
+    return "Custom";
   }
 
   // Getters for controller access

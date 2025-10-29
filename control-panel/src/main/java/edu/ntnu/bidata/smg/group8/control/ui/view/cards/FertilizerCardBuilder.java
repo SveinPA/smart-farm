@@ -1,5 +1,6 @@
 package edu.ntnu.bidata.smg.group8.control.ui.view.cards;
 
+import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
 import edu.ntnu.bidata.smg.group8.control.ui.factory.ButtonFactory;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlCard;
 import javafx.geometry.Pos;
@@ -10,6 +11,7 @@ import javafx.scene.control.Separator;
 import javafx.scene.control.Spinner;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import org.slf4j.Logger;
 
 /**
 * Builder for the fertilizer dispenser control card.
@@ -18,6 +20,8 @@ import javafx.scene.layout.VBox;
 * usage and reservoir levels.
 */
 public class FertilizerCardBuilder implements CardBuilder {
+  private static final Logger log = AppLogger.get(FertilizerCardBuilder.class);
+
   private final ControlCard card;
   private Label statusLabel;
   private Label usageLabel;
@@ -30,12 +34,15 @@ public class FertilizerCardBuilder implements CardBuilder {
   private Label reservoirLabel;
   private Button scheduleButton;
 
+
+
   /**
   * Constructs a new fertilizer card builder.
   */
   public FertilizerCardBuilder() {
     this.card = new ControlCard("Fertilizer");
     card.setValueText("IDLE");
+    log.debug("FertilizerCardBuilder initialized");
   }
 
   /**
@@ -45,6 +52,8 @@ public class FertilizerCardBuilder implements CardBuilder {
   */
   @Override
   public ControlCard build() {
+    log.info("Building Fertilizer control card");
+
     createStatusLabel();
     createUsageLabel();
     createReservoirIndicator();
@@ -61,6 +70,8 @@ public class FertilizerCardBuilder implements CardBuilder {
             createDoseBox(),
             createPresetsBox()
     );
+
+    log.debug("Fertilizer control card built successfully");
     return card;
   }
 
@@ -81,6 +92,7 @@ public class FertilizerCardBuilder implements CardBuilder {
     statusLabel = new Label("Status: Ready");
     statusLabel.getStyleClass().add("card-subtle");
     statusLabel.setStyle("-fx-font-weight: bold;");
+    log.trace("Status label created");
   }
 
   /**
@@ -90,6 +102,7 @@ public class FertilizerCardBuilder implements CardBuilder {
     usageLabel = new Label("Today: 0 ml");
     usageLabel.getStyleClass().add("card-subtle");
     usageLabel.setStyle("-fx-font-size: 11px;");
+    log.trace("Usage label created");
   }
 
   /**
@@ -104,6 +117,8 @@ public class FertilizerCardBuilder implements CardBuilder {
     reservoirLabel = new Label("Reservoir: 100%");
     reservoirLabel.getStyleClass().add("card-subtle");
     reservoirLabel.setStyle("-fx-font-size: 11px;");
+
+    log.trace("Reservoir indicator created");
   }
 
   /**
@@ -127,6 +142,8 @@ public class FertilizerCardBuilder implements CardBuilder {
 
     dispenseButton = ButtonFactory.createPrimaryButton("Dispense");
     dispenseButton.setOnAction(e -> dispenseFertilizer(doseSpinner.getValue()));
+
+    log.trace("Dose spinner created");
   }
 
   /**
@@ -155,6 +172,8 @@ public class FertilizerCardBuilder implements CardBuilder {
 
     largeButton = ButtonFactory.createFullWidthButton("Large (200 ml)");
     largeButton.setOnAction(e -> dispenseFertilizer(200));
+
+    log.trace("Preset buttons created");
   }
 
   /**
@@ -177,6 +196,7 @@ public class FertilizerCardBuilder implements CardBuilder {
   private void createFooter() {
     scheduleButton = ButtonFactory.createButton("Schedule...");
     card.getFooter().getChildren().add(scheduleButton);
+    log.trace("Footer created");
   }
 
   /**
@@ -185,25 +205,30 @@ public class FertilizerCardBuilder implements CardBuilder {
   * @param amount the amount in milliliters
   */
   private void dispenseFertilizer(int amount) {
+    log.info("Dispensing fertilizer: {} ml", amount);
+
     card.setValueText("DISPENSING");
     statusLabel.setText("Status: Dispensing " + amount + " ml...");
     statusLabel.setStyle("-fx-text-fill: #2196f3; -fx-font-weight: bold;");
 
     // Disable buttons during dispensing
     setButtonsEnabled(false);
+    log.debug("Dispenser controls disabled during operation");
 
-    // In real implementation, this would trigger actual dispensing
-    // and the status would be updated by the controller when complete
   }
 
   /**
   * Updates the status to ready after dispensing.
   */
   public void setReady() {
+    log.info("Fertilizer dispenser ready");
+
     card.setValueText("IDLE");
     statusLabel.setText("Status: Ready");
     statusLabel.setStyle("-fx-text-fill: #4caf50; -fx-font-weight: bold;");
     setButtonsEnabled(true);
+
+    log.debug("Dispenser controls re-enabled");
   }
 
   /**
@@ -212,6 +237,8 @@ public class FertilizerCardBuilder implements CardBuilder {
   * @param totalML the total milliliters used today
   */
   public void updateUsage(int totalML) {
+    log.debug("Updating fertilizer usage: {} ml today", totalML);
+
     usageLabel.setText("Today: " + totalML + " ml");
   }
 
@@ -221,6 +248,8 @@ public class FertilizerCardBuilder implements CardBuilder {
   * @param percentage the reservoir fill percentage (0-100)
   */
   public void updateReservoir(double percentage) {
+    log.debug("Updating reservoir level: {:.1f}%", percentage);
+
     double progress = percentage / 100.0;
     reservoirBar.setProgress(progress);
     reservoirLabel.setText(String.format("Reservoir: %.0f%%", percentage));
@@ -231,8 +260,10 @@ public class FertilizerCardBuilder implements CardBuilder {
       color = "#4caf50"; // Green
     } else if (percentage > 20) {
       color = "#ff9800"; // Orange
+      log.warn("Reservoir level low: {:.1f}%", percentage);
     } else {
       color = "#f44336"; // Red
+      log.warn("Reservoir level critical: {:.1f}%", percentage);
     }
     reservoirBar.setStyle("-fx-accent: " + color + ";");
 
@@ -241,6 +272,7 @@ public class FertilizerCardBuilder implements CardBuilder {
       setButtonsEnabled(false);
       statusLabel.setText("Status: Reservoir Empty!");
       statusLabel.setStyle("-fx-text-fill: #f44336; -fx-font-weight: bold;");
+      log.error("Reservoir empty - Dispenser disabled");
     }
   }
 
@@ -255,6 +287,8 @@ public class FertilizerCardBuilder implements CardBuilder {
     mediumButton.setDisable(!enabled);
     largeButton.setDisable(!enabled);
     doseSpinner.setDisable(!enabled);
+
+    log.trace("Fertilizer controls {}", enabled ? "enabled" : "disabled");
   }
 
   // Getters for controller access

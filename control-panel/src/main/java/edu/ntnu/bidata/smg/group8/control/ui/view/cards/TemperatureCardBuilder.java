@@ -1,26 +1,26 @@
 package edu.ntnu.bidata.smg.group8.control.ui.view.cards;
 
+import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
 import edu.ntnu.bidata.smg.group8.control.ui.factory.ButtonFactory;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlCard;
 import javafx.geometry.Pos;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.ProgressBar;
-import javafx.scene.control.Separator;
+import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import org.slf4j.Logger;
 
 /**
 * Builder for the temperature control card.
-* This builder creates a control card for managing greenhouse temperature,
-*
+* This builder creates a control card for managing greenhouse temperature with
+* current value, progress indicator and 24h statistics
 
 * @author Andrea Sandnes
 * @version 27.10.2025
 */
 public class TemperatureCardBuilder implements CardBuilder {
+  private static final Logger log = AppLogger.get(TemperatureCardBuilder.class);
+
   private final ControlCard card;
-  private Label currentLabel;
   private Label minLabel;
   private Label maxLabel;
   private Label avgLabel;
@@ -31,12 +31,22 @@ public class TemperatureCardBuilder implements CardBuilder {
   private static final double MIN_TEMP = 0.0;
   private static final double MAX_TEMP = 50.0;
 
+  // Temperature threshold color coding
+  private static final double T_COLD = 15.0;
+  private static final double T_COOL = 20.0;
+  private static final double T_OPTIMAL = 25.0;
+  private static final double T_WARM = 30.0;
+
+  private String activeZoneClass;
+
   /**
   * Constructs a new temperature card builder.
   */
   public TemperatureCardBuilder() {
     this.card = new ControlCard("Temperature");
     card.setValueText("--°C");
+
+    log.debug("TemperatureCardBuilder initialized with range [{}..{}]°C", MIN_TEMP, MAX_TEMP);
   }
 
   /**
@@ -46,23 +56,25 @@ public class TemperatureCardBuilder implements CardBuilder {
   */
   @Override
   public ControlCard build() {
-    createCurrentLabel();
+    log.info("Building Temperature control card");
+
     createStatisticsLabels();
     createTemperatureBar();
     createFooter();
 
     card.addContent(
-            currentLabel,
             new Separator(),
             temperatureBar,
             createStatisticsBox()
     );
 
+    log.debug("Temperature control card built successfully");
+
     return card;
   }
 
   /**
-  * Creates the control card instance.
+  * Gets the control card instance.
 
   * @return the ControlCard instance
   */
@@ -72,29 +84,19 @@ public class TemperatureCardBuilder implements CardBuilder {
   }
 
   /**
-  * Creates the current temperature label.
-  */
-  private void createCurrentLabel() {
-    currentLabel = new Label("Current: --°C");
-    currentLabel.getStyleClass().add("card-subtle");
-    currentLabel.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
-  }
-
-  /**
   * Creates the statistics labels (min, max, average).
   */
   private void createStatisticsLabels() {
     minLabel = new Label("Min: --°C");
-    minLabel.getStyleClass().add("card-subtle");
-    minLabel.setStyle("-fx-font-size: 11px;");
+    minLabel.getStyleClass().addAll("card-subtle", "temp-stat");
 
     maxLabel = new Label("Max: --°C");
-    maxLabel.getStyleClass().add("card-subtle");
-    maxLabel.setStyle("-fx-font-size: 11px;");
+    maxLabel.getStyleClass().addAll("card-subtle", "temp-stat");
 
     avgLabel = new Label("Avg: --°C");
-    avgLabel.getStyleClass().add("card-subtle");
-    avgLabel.setStyle("-fx-font-size: 11px;");
+    avgLabel.getStyleClass().addAll("card-subtle", "temp-stat");
+
+    log.trace("Statistics labels created");
   }
 
   /**
@@ -104,9 +106,10 @@ public class TemperatureCardBuilder implements CardBuilder {
     temperatureBar = new ProgressBar(0);
     temperatureBar.setMaxWidth(Double.MAX_VALUE);
     temperatureBar.setPrefHeight(20);
+    temperatureBar.getStyleClass().addAll("temp-bar", "temp-cool");
+    Tooltip.install(temperatureBar, new Tooltip("Status for temperature"));
 
-    // Style based on temperature ranges
-    temperatureBar.setStyle("-fx-accent: #2196f3;"); // Blue for normal
+    log.trace("Temperature progress bar created");
   }
 
   /**
@@ -116,13 +119,24 @@ public class TemperatureCardBuilder implements CardBuilder {
   */
   private VBox createStatisticsBox() {
     Label statsTitle = new Label("24h Statistics:");
-    statsTitle.setStyle("-fx-font-size: 11px; -fx-font-weight: bold;");
+    statsTitle.getStyleClass().add("temp-stats-title");
+    statsTitle.setMaxWidth(Double.MAX_VALUE);
+    statsTitle.setAlignment(Pos.CENTER);
 
-    HBox statsRow1 = new HBox(15, minLabel, maxLabel);
-    statsRow1.setAlignment(Pos.CENTER_LEFT);
+    minLabel.setMaxWidth(Double.MAX_VALUE);
+    minLabel.setAlignment(Pos.CENTER);
 
-    VBox statsBox = new VBox(4, statsTitle, statsRow1, avgLabel);
-    statsBox.setAlignment(Pos.CENTER_LEFT);
+    avgLabel.setMaxWidth(Double.MAX_VALUE);
+    avgLabel.setAlignment(Pos.CENTER);
+
+    maxLabel.setMaxWidth(Double.MAX_VALUE);
+    maxLabel.setAlignment(Pos.CENTER);
+
+    VBox statsBox = new VBox(6, statsTitle, new Separator(), minLabel, avgLabel, maxLabel);
+    statsBox.setAlignment(Pos.CENTER);
+    statsBox.getStyleClass().add("temp-stats-box");
+
+    log.trace("Statistics box created");
 
     return statsBox;
   }
@@ -132,7 +146,10 @@ public class TemperatureCardBuilder implements CardBuilder {
   */
   private void createFooter() {
     historyButton = ButtonFactory.createButton("History...");
+    historyButton.setTooltip(new Tooltip("View temperature history (24h)"));
     card.getFooter().getChildren().add(historyButton);
+
+    log.trace("Footer with history button created");
   }
 
   /**
@@ -141,39 +158,69 @@ public class TemperatureCardBuilder implements CardBuilder {
   * @param temperature the current temperature in Celsius
   */
   public void updateTemperature(double temperature) {
-    card.setValueText(String.format("%.1f°C", temperature));
-    currentLabel.setText(String.format("Current: %.1f°C", temperature));
+    Runnable ui = () -> {
+      if (temperatureBar == null) {
+        log.warn("updateTemperature called before build() - skipping UI update");
+        return;
+      }
+      card.setValueText(String.format("%.1f°C", temperature));
 
-    // Update progress bar (normalized to 0-1 range)
-    double progress = (temperature - MIN_TEMP) / (MAX_TEMP - MIN_TEMP);
-    progress = Math.max(0, Math.min(1, progress)); // Clamp to 0-1
-    temperatureBar.setProgress(progress);
+      // Update progress bar (normalized to 0-1 range)
+      double progress = (temperature - MIN_TEMP) / (MAX_TEMP - MIN_TEMP);
+      progress = Math.max(0, Math.min(1, progress)); // Clamp to 0-1
+      temperatureBar.setProgress(progress);
 
-    // Update color based on temperature
-    updateTemperatureBarColor(temperature);
-  }
+      log.trace("Progress bar updated: {:.2f} ({}°C)", progress, temperature);
+
+      // Update color based on temperature
+      applyTemperatureStyle(temperature);
+      };
+
+      if (javafx.application.Platform.isFxApplicationThread()) {
+        ui.run();
+      } else {
+        javafx.application.Platform.runLater(ui);
+      }
+    }
 
   /**
-  * Updates the temperature bar color based on value.
+  * Applies CSS style classes based on temperature zones.
   *
   * @param temperature the current temperature
   */
-  private void updateTemperatureBarColor(double temperature) {
-    String color;
+  private void applyTemperatureStyle(double temperature) {
+    String newClass;
+    String zone;
 
-    if (temperature < 15) {
-      color = "#2196f3"; // Blue - cold
-    } else if (temperature < 20) {
-      color = "#4caf50"; // Green - cool
-    } else if (temperature < 25) {
-      color = "#8bc34a"; // Light green - optimal
-    } else if (temperature < 30) {
-      color = "#ff9800"; // Orange - warm
+    if (temperature < T_COLD) {
+      newClass = "temp-cold";
+      zone = "COLD";
+    } else if (temperature < T_COOL) {
+      newClass = "temp-cool";
+      zone = "COOL";
+    } else if (temperature < T_OPTIMAL) {
+      newClass = "temp-optimal";
+      zone = "OPTIMAL";
+    } else if (temperature < T_WARM) {
+      newClass = "temp-warm";
+      zone = "WARM";
     } else {
-      color = "#f44336"; // Red - hot
+      newClass = "temp-hot";
+      zone = "HOT";
     }
 
-    temperatureBar.setStyle("-fx-accent: " + color + ";");
+    if (!newClass.equals(activeZoneClass)) {
+      if (activeZoneClass != null) {
+        temperatureBar.getStyleClass().remove(activeZoneClass);
+      }
+      temperatureBar.getStyleClass().add(newClass);
+      log.debug("Temperature zone changed: {} -> {} ({:.1f}°C)",
+              activeZoneClass != null ? activeZoneClass : "none",
+              zone,
+              temperature);
+      activeZoneClass = newClass;
+
+    }
   }
 
   /**
@@ -184,20 +231,26 @@ public class TemperatureCardBuilder implements CardBuilder {
   * @param avg average temperature in last 24h
   */
   public void updateStatistics(double min, double max, double avg) {
-    minLabel.setText(String.format("Min: %.1f°C", min));
-    maxLabel.setText(String.format("Max: %.1f°C", max));
-    avgLabel.setText(String.format("Avg: %.1f°C", avg));
-  }
+    log.debug("Updating 24h statistics - Min: {:.1f}°C, Max: {:.1f}°C, Avg: {:.1f}°C",
+            min, max, avg);
 
-  // Getters for controller access
+    Runnable ui = () -> {
+      if (minLabel == null || maxLabel == null || avgLabel == null) {
+        log.warn("updateStatistics called before build() - skipping UI update");
+        return;
+      }
+      minLabel.setText(String.format("Min: %.1f°C", min));
+      maxLabel.setText(String.format("Max: %.1f°C", max));
+      avgLabel.setText(String.format("Avg: %.1f°C", avg));
 
-  /**
-  * Gets the current temperature label.
-  *
-  * @return the current label
-  */
-  public Label getCurrentLabel() {
-    return currentLabel;
+      log.trace("Statistics labels updated successfully");
+    };
+
+    if (javafx.application.Platform.isFxApplicationThread()) {
+      ui.run();
+    } else {
+      javafx.application.Platform.runLater(ui);
+    }
   }
 
   /**

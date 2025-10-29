@@ -1,5 +1,6 @@
 package edu.ntnu.bidata.smg.group8.control.ui.view.cards;
 
+import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
 import edu.ntnu.bidata.smg.group8.control.ui.factory.ButtonFactory;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlCard;
 import javafx.geometry.Pos;
@@ -12,6 +13,7 @@ import javafx.scene.control.Spinner;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import org.slf4j.Logger;
 
 /**
 * Builder for the fan control card.
@@ -20,6 +22,8 @@ import javafx.scene.layout.VBox;
 *
 */
 public class FanCardBuilder implements CardBuilder {
+  private static final Logger log = AppLogger.get(FanCardBuilder.class);
+
   private final ControlCard card;
   private Label speedLabel;
   private RadioButton manualMode;
@@ -50,6 +54,7 @@ public class FanCardBuilder implements CardBuilder {
   public FanCardBuilder() {
     this.card = new ControlCard("Fan");
     card.setValueText("OFF");
+    log.debug("FanCardBuilder initialized");
   }
 
   /**
@@ -59,6 +64,8 @@ public class FanCardBuilder implements CardBuilder {
   */
   @Override
   public ControlCard build() {
+    log.info("Building Fan control card");
+
     createSpeedLabel();
     createModeControls();
     createManualControls();
@@ -74,6 +81,8 @@ public class FanCardBuilder implements CardBuilder {
     );
 
     setupBindings();
+
+    log.debug("Fan control card built successfully");
 
     return card;
   }
@@ -94,6 +103,7 @@ public class FanCardBuilder implements CardBuilder {
   private void createSpeedLabel() {
     speedLabel = new Label("Speed: 0%");
     speedLabel.getStyleClass().add("card-subtle");
+    log.trace("Speed label created");
   }
 
   /**
@@ -106,6 +116,16 @@ public class FanCardBuilder implements CardBuilder {
     manualMode.setToggleGroup(modeGroup);
     autoMode.setToggleGroup(modeGroup);
     manualMode.setSelected(true);
+
+    modeGroup.selectedToggleProperty().addListener((obs, oldToggle, newToggle) -> {
+      if (newToggle == manualMode) {
+        log.info("Fan mode changed to: MANUAL");
+      } else if (newToggle == autoMode) {
+        log.info("Fan mode changed to: AUTO");
+      }
+    });
+
+    log.trace("Mode controls created - Default: MANUAL");
   }
 
   /**
@@ -152,6 +172,7 @@ public class FanCardBuilder implements CardBuilder {
       int value = newVal.intValue();
       sliderLabel.setText("Custom: " + value + "%");
       updateCardValue(value);
+      log.debug("Fan speed adjusted via slider: {}%", value);
     });
 
     // Create layout
@@ -163,6 +184,8 @@ public class FanCardBuilder implements CardBuilder {
 
     manualBox = new VBox(8, presetsRow1, sliderBox, offButton);
     manualBox.setAlignment(Pos.CENTER_LEFT);
+
+    log.trace("Manual controls created");
   }
 
   /**
@@ -179,6 +202,12 @@ public class FanCardBuilder implements CardBuilder {
     tempSpinner.setPrefWidth(75);
     Label tempUnit = new Label("°C");
 
+    tempSpinner.valueProperty().addListener((obs, oldVal, newVal) -> {
+      if (oldVal != null && newVal != null && !oldVal.equals(newVal)) {
+        log.info("Auto mode temperature threshold changed: {}°C -> {}°C", oldVal, newVal);
+      }
+    });
+
     HBox tempBox = new HBox(8, tempLabel, tempSpinner, tempUnit);
     tempBox.setAlignment(Pos.CENTER_LEFT);
 
@@ -188,6 +217,12 @@ public class FanCardBuilder implements CardBuilder {
     humiditySpinner.setEditable(false);
     humiditySpinner.setPrefWidth(75);
     Label humidityUnit = new Label("% RH");
+
+    humiditySpinner.valueProperty().addListener((obs, oldVal, newVal) -> {
+      if (oldVal != null && newVal != null && !oldVal.equals(newVal)) {
+        log.info("Auto mode humidity threshold changed: {}% -> {}%", oldVal, newVal);
+      }
+    });
 
     HBox humidityBox = new HBox(8, humidityLabel, humiditySpinner, humidityUnit);
     humidityBox.setAlignment(Pos.CENTER_LEFT);
@@ -200,6 +235,8 @@ public class FanCardBuilder implements CardBuilder {
 
     autoBox = new VBox(8, autoInfoLabel, tempBox, humidityBox, autoStatusLabel, noteLabel);
     autoBox.setAlignment(Pos.CENTER_LEFT);
+
+    log.trace("Auto controls created - Defaults: Temp=26°C, Humidity=75%");
   }
 
   /**
@@ -208,6 +245,7 @@ public class FanCardBuilder implements CardBuilder {
   private void createFooter() {
     scheduleButton = ButtonFactory.createButton("Schedule...");
     card.getFooter().getChildren().add(scheduleButton);
+    log.trace("Footer created");
   }
 
   /**
@@ -221,6 +259,8 @@ public class FanCardBuilder implements CardBuilder {
     // Show auto controls only in auto mode
     autoBox.visibleProperty().bind(autoMode.selectedProperty());
     autoBox.managedProperty().bind(autoBox.visibleProperty());
+
+    log.trace("Mode visibility bindings configured");
   }
 
   /**
@@ -229,6 +269,7 @@ public class FanCardBuilder implements CardBuilder {
   * @param speed the speed percentage (0-100)
   */
   private void setFanSpeed(int speed) {
+    log.info("Fan speed set to: {}%", speed);
     speedSlider.setValue(speed);
     sliderLabel.setText("Custom: " + speed + "%");
     updateCardValue(speed);
@@ -256,6 +297,8 @@ public class FanCardBuilder implements CardBuilder {
     }
 
     card.setValueText(statusText);
+
+    log.trace("Fan status updated: {}", statusText);
   }
 
   // Getters for controller access
