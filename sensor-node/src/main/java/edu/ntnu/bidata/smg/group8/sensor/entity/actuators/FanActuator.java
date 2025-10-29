@@ -98,11 +98,6 @@ public class FanActuator extends AbstractActuator {
    * the action of changing the fan speed.</p>
    */
   public void turnOnFull() {
-    if (isOff()) {
-        log.warn("Cannot set speed to FULL. The fan is currently OFF.");
-        return;
-    }
-    log.info("Fan turned to FULL speed (100% )");
     act(MAX_VALUE);
   }
 
@@ -115,11 +110,6 @@ public class FanActuator extends AbstractActuator {
    * the action of changing the fan speed.</p>
    */
   public void turnOnLow() {
-    if (isOff()) {
-        log.warn("Cannot set speed to LOW. The fan is currently OFF.");
-        return;
-    }
-    log.info("Fan turned to LOW speed (25% )");
     act(25.0);
   }
 
@@ -132,11 +122,6 @@ public class FanActuator extends AbstractActuator {
    * the action of changing the fan speed.</p>
    */
   public void turnOnMedium() {
-    if (isOff()) {
-        log.warn("Cannot set speed to MEDIUM. The fan is currently OFF.");
-        return;
-    }
-    log.info("Fan turned to MEDIUM speed (50% )");
     act(50.0);
   }
 
@@ -149,11 +134,6 @@ public class FanActuator extends AbstractActuator {
    * the action of changing the fan speed.</p>
    */
   public void turnOnHigh() {
-    if (isOff()) {
-        log.warn("Cannot set speed to HIGH. The fan is currently OFF.");
-        return;
-    }
-    log.info("Fan turned to HIGH speed (75% )");
     act(75.0);
   }
 
@@ -165,11 +145,6 @@ public class FanActuator extends AbstractActuator {
    * the action of changing the fan speed.</p>
    */
   public void turnOff() {
-    if (isOff()) {
-        log.warn("Fan is already OFF.");
-        return;
-    }
-    log.info("Fan turned OFF (current: {} %", getCurrentValue());
     act(MIN_VALUE);
   }
 }

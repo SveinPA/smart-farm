@@ -228,10 +228,18 @@ public class ValveActuatorTest {
    */
   @Test
   public void testSetOpeningBelowMinimumThrowsException() {
+    double initialOpening = valve.getCurrentValue(); // Store initial state
+
     IllegalArgumentException exception = assertThrows(
             IllegalArgumentException.class,
             () -> valve.setOpening(-10.0)
     );
+
+    // Assert exception message
+    assertEquals("Percentage must be between 0 and 100.", exception.getMessage());
+
+    // Ensure the state of the valve remains unchanged
+    assertEquals(initialOpening, valve.getCurrentValue());
   }
 
   /**
@@ -243,9 +251,17 @@ public class ValveActuatorTest {
    */
   @Test
   public void testSetOpeningAboveMaximumThrowsException() {
+    double initialOpening = valve.getCurrentValue(); // Store initial state
+
     IllegalArgumentException exception = assertThrows(
             IllegalArgumentException.class,
             () -> valve.setOpening(101.0)
     );
+
+    // Assert exception message
+    assertEquals("Percentage must be between 0 and 100.", exception.getMessage());
+
+    // Ensure the state of the valve remains unchanged
+    assertEquals(initialOpening, valve.getCurrentValue());
   }
 }

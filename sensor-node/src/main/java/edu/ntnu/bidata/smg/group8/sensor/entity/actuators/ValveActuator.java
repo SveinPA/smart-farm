@@ -1,6 +1,8 @@
 package edu.ntnu.bidata.smg.group8.sensor.entity.actuators;
 
 import edu.ntnu.bidata.smg.group8.common.actuator.AbstractActuator;
+import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
+import org.slf4j.Logger;
 
 /**
  * Represents a valve actuator in the greenhouse environment.
@@ -15,10 +17,15 @@ import edu.ntnu.bidata.smg.group8.common.actuator.AbstractActuator;
  *     <li>Methods to check if the valve is open, fully open, or closed.</li>
  *</ul>
  *
+ * <p>The logger is used to log important events and state changes
+ * * related to the valve's operation, such as opening and closing actions.</p>
+ *
  * @author Mona Amundsen
  * @version 25.10.25
  */
 public class ValveActuator extends AbstractActuator {
+  // Logger for logging valve actuator activities
+  private static final Logger log = AppLogger.get(ValveActuator.class);
   private static final String KEY = "valve";
   private static final String UNIT = "%";
   private static final double MIN_VALUE = 0.0; // Closed
@@ -30,6 +37,7 @@ public class ValveActuator extends AbstractActuator {
    */
   public ValveActuator() {
     super(KEY, UNIT, MIN_VALUE, MAX_VALUE);
+    log.info("Valve actuator initialized with opening at {} %", getCurrentValue());
   }
 
   /**
@@ -91,8 +99,12 @@ public class ValveActuator extends AbstractActuator {
    */
   public void setOpening(double percentage) {
     if (percentage < MIN_VALUE || percentage > MAX_VALUE) {
+      log.error("Invalid valve opening percentage: {} % (valid range: {} % - {} %)",
+              percentage, MIN_VALUE, MAX_VALUE);
       throw new IllegalArgumentException("Percentage must be between 0 and 100.");
     }
+    log.info("Valve opening changed from {} % to {} %",
+            getCurrentValue(), percentage);
     act(percentage);
   }
 }
