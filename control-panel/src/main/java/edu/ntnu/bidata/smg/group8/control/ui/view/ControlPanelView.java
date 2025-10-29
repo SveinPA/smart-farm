@@ -53,6 +53,17 @@ public class ControlPanelView {
   private ValveCardBuilder valveBuilder;
   private FertilizerCardBuilder fertilizerBuilder;
 
+  private ControlCard temperatureCard;
+  private ControlCard humidityCard;
+  private ControlCard phCard;
+  private ControlCard windSpeedCard;
+  private ControlCard lightCard;
+  private ControlCard windowCard;
+  private ControlCard fanCard;
+  private ControlCard heaterCard;
+  private ControlCard valveCard;
+  private ControlCard fertilizerCard;
+
   /**
   * Constructs a new Control Panel View with all sensor and actuator cards.
   *
@@ -126,7 +137,8 @@ public class ControlPanelView {
     log.trace("pH card created");
 
     windSpeedBuilder = new WindSpeedCardBuilder();
-    cards.add(windSpeedBuilder.build());
+    windSpeedCard = windSpeedBuilder.build();
+    cards.add(windSpeedCard);
     log.trace("Wind speed card created");
 
     lightsBuilder = new LightCardBuilder();
@@ -155,7 +167,6 @@ public class ControlPanelView {
 
     log.debug("All {} control cards created successfully", cards.size());
 
-    // Configure card growth properties
     for (StackPane card : cards) {
       GridPane.setHgrow(card, Priority.ALWAYS);
       GridPane.setVgrow(card, Priority.NEVER);
@@ -229,6 +240,15 @@ public class ControlPanelView {
   //----------------------------- Card getters ----------------------------//
 
   /**
+   * Gets the wind speed card.
+   *
+   * @return the wind speed ControlCard instance
+   */
+  public ControlCard getWindSpeedCard() {
+    return windSpeedCard;
+  }
+
+  /**
   * Gets the temperature card builder.
   *
   * @return the temperature card builder
@@ -253,15 +273,6 @@ public class ControlPanelView {
   */
   public PHCardBuilder getPhBuilder() {
     return phBuilder;
-  }
-
-  /**
-  * Gets the wind speed card builder.
-  *
-  * @return the wind speed card builder
-  */
-  public WindSpeedCardBuilder getWindSpeedBuilder() {
-    return windSpeedBuilder;
   }
 
   /**

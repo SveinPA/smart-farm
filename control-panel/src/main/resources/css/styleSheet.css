@@ -276,3 +276,75 @@
     -fx-accent: #F44336;
 }
 
+/*--------------- Wind-Speed card ---------------*/
+
+/* Labels */
+
+.current-wind-speed {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+}
+
+.wind-speed-status {
+    -fx-font-size: 12px;
+    -fx-font-style: italic;
+}
+
+.wind-speed-gust {
+    -fx-font-size: 11px;
+}
+
+.wind-speed-stats-title {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+
+.wind-speed-stat {
+    -fx-font-size: 11px;
+}
+
+/* Colors for the Labels */
+
+.wind-speed-calm {
+    -fx-text-fill: #4CAF50;
+}
+.wind-speed-light {
+    -fx-text-fill: #8BC34A;
+}
+
+.wind-speed-breeze {
+    -fx-text-fill: #2196F3;
+}
+
+.wind-speed-moderate {
+    -fx-text-fill: #FF9800;
+}
+
+.wind-speed-strong {
+    -fx-text-fill: #F44336;
+}
+
+.wind-speed-gale {
+    -fx-text-fill: #D32D2F;
+}
+
+/* Progress bar colors */
+
+.progress-bar.wind-speed-calm .bar {
+    -fx-accent: #4CAF50;
+}
+.progress-bar.wind-speed-light .bar {
+    -fx-accent: #8BC34A;
+}
+.progress-bar.wind-speed-breeze .bar {
+    -fx-accent: #2196F3;
+}
+.progress-bar.wind-speed-moderate .bar {
+    -fx-accent: #FF9800;
+}
+.progress-bar.wind-speed-strong .bar {
+    -fx-accent: #F44336;
+}
+.progress-bar.wind-speed-gale .bar {
+    -fx-accent: #D32D2F;
+}
