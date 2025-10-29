@@ -44,8 +44,20 @@ public class SensorDataPacket {
      * @param sensor The sensor that produced the reading.
      * @param value  The sensor's most recent reading.
      * @return A JSON string representing the sensor data packet, ready for transmission.
+     *
+     * @throws IllegalArgumentException if nodeId is null/blank, sensor is null,
+     *                                  or value is not a finite number.
      */
     public static String build(String nodeId, Sensor sensor, double value) {
+        if (nodeId == null || nodeId.isBlank()) {
+            throw new IllegalArgumentException("Node ID cannot be null or blank");
+        }
+        if (sensor == null) {
+            throw new IllegalArgumentException("Sensor cannot be null");
+        }
+        if (!Double.isFinite(value)) {
+            throw new IllegalArgumentException("Value must be finite (was: " + value + ")");
+        }
         return JsonBuilder.build(
             "type", "SENSOR_DATA",
             "nodeId", nodeId,
