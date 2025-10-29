@@ -1,6 +1,8 @@
 package edu.ntnu.bidata.smg.group8.sensor.entity.actuators;
 
 import edu.ntnu.bidata.smg.group8.common.actuator.AbstractActuator;
+import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
+import org.slf4j.Logger;
 
 /**
  * Represents a window actuator in the greenhouse environment.
@@ -15,10 +17,15 @@ import edu.ntnu.bidata.smg.group8.common.actuator.AbstractActuator;
  *     <li>Methods to open, close, and set specific opening percentages.</li>
  * </ul>
  *
+ * <p>The logger is used to log important events and state changes
+ * * related to the window's operation, such as opening and closing actions.</p>
+ *
  * @author Mona Amundsen
  * @version 25.10.25
  */
 public class WindowActuator extends AbstractActuator {
+  // Logger for logging window actuator activities
+  private static final Logger log = AppLogger.get(WindowActuator.class);
   private static final String KEY = "window";
   private static final String UNIT = "%";
   private static final double MIN_VALUE = 0.0; // Closed
@@ -32,6 +39,7 @@ public class WindowActuator extends AbstractActuator {
    */
   public WindowActuator() {
     super(KEY, UNIT, MIN_VALUE, MAX_VALUE);
+    log.info ("Window actuator initialized with opening at {} %", getCurrentValue());
   }
 
   /**
@@ -84,8 +92,12 @@ public class WindowActuator extends AbstractActuator {
    */
   public void openPercentage(double percentage) {
     if (percentage < MIN_VALUE || percentage > MAX_VALUE) {
+        log.error("Invalid window opening percentage: {} % (valid range: {}-{} %)",
+                percentage, MIN_VALUE, MAX_VALUE);
       throw new IllegalArgumentException("Percentage must be between 0 and 100.");
     }
+    log.info("Window opening changed from {} % to {} %",
+            getCurrentValue(), percentage);
     act(percentage);
   }
 
