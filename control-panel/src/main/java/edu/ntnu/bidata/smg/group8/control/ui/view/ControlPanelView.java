@@ -58,7 +58,7 @@ public class ControlPanelView {
   private ControlCard phCard;
   private ControlCard windSpeedCard;
   private ControlCard lightCard;
-  private ControlCard windowCard;
+  private ControlCard windowsCard;
   private ControlCard fanCard;
   private ControlCard heaterCard;
   private ControlCard valveCard;
@@ -146,7 +146,8 @@ public class ControlPanelView {
     log.trace("Lights card created");
 
     windowsBuilder = new WindowsCardBuilder();
-    cards.add(windowsBuilder.build());
+    windowsCard = windowsBuilder.build();
+    cards.add(windowsCard);
     log.trace("Windows card created");
 
     fanBuilder = new FanCardBuilder();
@@ -158,7 +159,8 @@ public class ControlPanelView {
     log.trace("Heater card created");
 
     valveBuilder = new ValveCardBuilder();
-    cards.add(valveBuilder.build());
+    valveCard = valveBuilder.build();
+    cards.add(valveCard);
     log.trace("Valve card created");
 
     fertilizerBuilder = new FertilizerCardBuilder();
@@ -258,6 +260,15 @@ public class ControlPanelView {
   }
 
   /**
+   * Gets the windows card.
+   *
+   * @return the windows ControlCard instance
+   */
+  public ControlCard getValveCard() {
+    return valveCard;
+  }
+
+  /**
   * Gets the temperature card builder.
   *
   * @return the temperature card builder
@@ -293,14 +304,6 @@ public class ControlPanelView {
     return lightsBuilder;
   }
 
-  /**
-  * Gets the windows card builder.
-  *
-  * @return the windows card builder
-  */
-  public WindowsCardBuilder getWindowsBuilder() {
-    return windowsBuilder;
-  }
 
   /**
   * Gets the fan card builder.
@@ -320,14 +323,7 @@ public class ControlPanelView {
     return heaterBuilder;
   }
 
-  /**
-  * Gets the valve card builder.
-  *
-  * @return the valve card builder
-  */
-  public ValveCardBuilder getValveBuilder() {
-    return valveBuilder;
-  }
+
 
   /**
   * Gets the fertilizer card builder.

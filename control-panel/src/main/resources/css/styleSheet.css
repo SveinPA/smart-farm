@@ -368,3 +368,71 @@
 .window-auto-status.standby {
     -fx-text-fill: #888888;
 }
+
+/*--------------- Valve card ---------------*/
+
+.valve-state {
+    -fx-font-weight: bold;
+}
+
+.valve-state.valve-open {
+    -fx-text-fill: #4CAF50;
+}
+
+.valve-state.valve-closed {
+    -fx-text-fill: #888888;
+}
+
+.valve-flow {
+    -fx-font-size: 11px;
+}
+
+.valve-flow-indicator {
+    -fx-pref-height: 15px;
+}
+
+.valve-flow-indicator.valve-flow-open {
+    -fx-accent: #4CAF50;
+}
+
+.valve-flow-indicator.valve-flow-closed {
+    -fx-accent: #2196F3;
+}
+
+.valve-action-label {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+
+.open-valve-button {
+    -fx-background-color: #4CAF50;
+    -fx-text-fill: white;
+    -fx-font-weight: BOLD;
+}
+
+.open-valve-button:hover {
+    -fx-background-color: #45A049;
+}
+
+.open-valve-button:disabled {
+    -fx-opacity: 0.5;
+}
+
+.close-valve-button {
+    -fx-background-color: #F44336;
+    -fx-text-fill: white;
+    -fx-font-weight: BOLD;
+}
+
+.close-valve-button:hover {
+    -fx-background-color: #DA190B;
+}
+
+.close-valve-button:disabled {
+    -fx-opacity: 0.5;
+}
+
+.valve-action-label {
+    -fx-font-size: 11px;
+    -fx-font-weight: BOLD;
+}
