@@ -2,6 +2,7 @@ package edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers;
 
 import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
 import edu.ntnu.bidata.smg.group8.control.ui.view.cards.FanCardBuilder;
+import javafx.application.Platform;
 import org.slf4j.Logger;
 
 /**
@@ -43,5 +44,18 @@ public class FanCardController {
     log.info("Stopping FanCardController");
     // TODO: Add cleanup logic here
     log.debug("FanCardController stopped successfully");
+  }
+
+  /**
+   * Ensures the given runnable executes on the JavaFX Application Thread.
+   *
+   * @param r the runnable to execute on the FX thread
+   */
+  private static void fx(Runnable r) {
+    if (Platform.isFxApplicationThread()) {
+      r.run();
+    } else {
+      Platform.runLater(r);
+    }
   }
 }

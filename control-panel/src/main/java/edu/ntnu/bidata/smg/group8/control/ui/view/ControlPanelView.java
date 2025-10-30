@@ -65,19 +65,19 @@ public class ControlPanelView {
   private ControlCard fertilizerCard;
 
   /**
-  * Constructs a new Control Panel View with all sensor and actuator cards.
-  *
-  * <p>This constructor initializes the complete user interface, including:</p>
-  * <ul>
-  *     <li>Header with application title</li>
-  *     <li>Grid layout with three columns</li>
-  *     <li>All sensor and actuator control cards</li>
-  *     <li>Scrollable surface for overflow content</li>
-  * </ul>
-  *
-  * <p>The cards are automatically arranged in a three-column grid layout,
-  * with responsive sizing to accommodate different screen dimensions.</p>
-  */
+   * Constructs a new Control Panel View with all sensor and actuator cards.
+   *
+   * <p>This constructor initializes the complete user interface, including:</p>
+   * <ul>
+   *     <li>Header with application title</li>
+   *     <li>Grid layout with three columns</li>
+   *     <li>All sensor and actuator control cards</li>
+   *     <li>Scrollable surface for overflow content</li>
+   * </ul>
+   *
+   * <p>The cards are automatically arranged in a three-column grid layout,
+   * with responsive sizing to accommodate different screen dimensions.</p>
+   */
   public ControlPanelView() {
     log.info("Initializing ControlPanelView");
     this.rootNode = new BorderPane();
@@ -169,7 +169,8 @@ public class ControlPanelView {
     log.trace("Valve card created");
 
     fertilizerBuilder = new FertilizerCardBuilder();
-    cards.add(fertilizerBuilder.build());
+    fertilizerCard = fertilizerBuilder.build();
+    cards.add(fertilizerCard);
     log.trace("Fertilizer card created");
 
     log.debug("All {} control cards created successfully", cards.size());
@@ -210,15 +211,15 @@ public class ControlPanelView {
   }
 
   /**
-  * Adds a list of control cards to a grid pane.
-  *
-  * <p>This method distributes the cards evenly across the specified number
-  * of columns, calculating the appropriate row and column position for each card.</p>
-  *
-  * @param grid the grid pane to add cards to
-  * @param cards the list of cards to add
-  * @param cols the number of columns in the grid
-  */
+   * Adds a list of control cards to a grid pane.
+   *
+   * <p>This method distributes the cards evenly across the specified number
+   * of columns, calculating the appropriate row and column position for each card.</p>
+   *
+   * @param grid  the grid pane to add cards to
+   * @param cards the list of cards to add
+   * @param cols  the number of columns in the grid
+   */
   private void addCardsToGrid(GridPane grid, List<StackPane> cards, int cols) {
     log.debug("Adding {} cards to grid with {} columns", cards.size(), cols);
 
@@ -232,14 +233,14 @@ public class ControlPanelView {
   }
 
   /**
-  * Gets the root node of the control panel view.
-  *
-  * <p>This method provides access to the main BorderPane container
-  * that holds all UI components. The root node can be added to a
-  * Scene for display in a JavaFX application.</p>
-  *
-  * @return the root BorderPane node containing the complete control panel interface
-  */
+   * Gets the root node of the control panel view.
+   *
+   * <p>This method provides access to the main BorderPane container
+   * that holds all UI components. The root node can be added to a
+   * Scene for display in a JavaFX application.</p>
+   *
+   * @return the root BorderPane node containing the complete control panel interface
+   */
   public BorderPane getRootNode() {
     return rootNode;
   }
@@ -318,24 +319,23 @@ public class ControlPanelView {
     return heaterCard;
   }
 
-
   /**
-  * Gets the fan card builder.
-  *
-  * @return the fan card builder
-  */
-  public FanCardBuilder getFanBuilder() {
-    return fanBuilder;
+   * Gets the fertilizer card.
+   *
+   * @return the heater ControlCard instance
+   */
+  public ControlCard getFertilizerCard() {
+    return fertilizerCard;
   }
 
 
   /**
-  * Gets the fertilizer card builder.
-  *
-  * @return the fertilizer card builder
-  */
-  public FertilizerCardBuilder getFertilizerBuilder() {
-    return fertilizerBuilder;
+   * Gets the fan card builder.
+   *
+   * @return the fan card builder
+   */
+  public FanCardBuilder getFanBuilder() {
+    return fanBuilder;
   }
 }
 

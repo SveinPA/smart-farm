@@ -624,3 +624,36 @@
 .heater-preset-button:hover {
     -fx-background-color: #bbdefb;
 }
+
+/*--------------- Fertilizer Card ---------------*/
+
+.fertilizer-status {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+}
+
+.fertilizer-last-dose {
+    -fx-font-size: 11px;
+}
+
+.fertilizer-spinner {
+    -fx-pref-width: 100px;
+}
+
+.fertilizer-spinner .text-field {
+    -fx-alignment: center;
+}
+
+.fertilizer-presets-title {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+
+.fertilizer-quick-button {
+    -fx-background-color: #e8f5e9;
+    -fx-text-fill: #2e7d32;
+}
+
+.fertilizer-quick-button:hover {
+    -fx-background-color: #c8e6c9;
+}
