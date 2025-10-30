@@ -51,9 +51,6 @@ import java.util.concurrent.TimeUnit;
  * # Run with default settings (localhost:23048, nodeId=node-1)
  * java SensorNodeMain
  *
- * # Run with custom broker address and node ID
- * java SensorNodeMain 192.168.1.100 9000 greenhouse-alpha
- *
  * # Multiple nodes can run simultaneously with different IDs
  * java SensorNodeMain localhost 23048 greenhouse-1  # Terminal 1
  * java SensorNodeMain localhost 23048 greenhouse-2  # Terminal 2
@@ -100,7 +97,7 @@ public final class SensorNodeMain {
   private static final String DEFAULT_NODE_ID = "node-1";
 
   // Interval for sending sensor data to the broker (in seconds).
-  private static final int SENSOR_DATA_INTERVAL_SECONDS = 15;
+  private static final int SENSOR_DATA_INTERVAL_SECONDS = 5;
 
   // Interval for sending heartbeat messages to the broker (in seconds).
   private static final int HEARTBEAT_INTERVAL_SECONDS = 30;
@@ -168,6 +165,7 @@ public final class SensorNodeMain {
 
       // Step 2: Create node agent for communication
       agent = new NodeAgent(nodeId, brokerHost, brokerPort);
+      agent.setCatalog(catalog); // Link catalog to agent
       log.info("NodeAgent created for node '{}'", nodeId);
 
       // Step 3: Connect to broker
@@ -267,9 +265,14 @@ public final class SensorNodeMain {
         System.exit(1);
       }
 
-      for (Sensor sensor : catalog.getAllSensors()) {
-        agent.sendSensorData(sensor);
-      }
+        for (Sensor sensor : catalog.getAllSensors()) {
+            try { // Try-catch per sensor to continue on individual failures
+                agent.sendSensorData(sensor);
+            } catch (Exception e) {
+                log.warn("Failed to send data for sensor {}: {}", sensor.getKey(), e.getMessage());
+                // Continue with remaining sensors
+            }
+        }
       log.debug("Sent data for {} sensors", catalog.getSensorCount());
     } catch (Exception e) {
       log.error("Error sending sensor data: {}", e.getMessage());
@@ -287,13 +290,11 @@ public final class SensorNodeMain {
 
   // ============================================================
   // INITIALIZATION METHODS
-  // ============================================================
 
   /**
    * Creates and populates the device catalog with sensors and actuators.
    *
-   * <p><b>Purpose:</b> This method demonstrates project requirement 5.1.1.3
-   * by allowing different nodes to have different sensor configurations.
+   * <p><b>Purpose:</b> This method allows different nodes to have different sensor configurations.
    * By modifying this method, you can create specialized node types
    * (e.g., temperature-only nodes, humidity-focused nodes, etc.).</p>
    *
@@ -303,36 +304,47 @@ public final class SensorNodeMain {
    *   <li><b>4 Actuators:</b> Heater, Fan, Window, Valve</li>
    * </ul>
    *
-   * <p><b>Customization Example:</b></p>
-   * <pre>
-   * // Create a temperature-focused node
-   * catalog.addSensor(new TemperatureSensor());
-   * catalog.addActuator(new HeaterActuator());
-   * catalog.addActuator(new FanActuator());
-   * </pre>
+   * <p><b>Sensor-Actuator Integration:</b> Temperature, humidity, and wind speed sensors
+   * are linked to the catalog so they can respond to actuator states (e.g., heater affects
+   * temperature readings).</p>
    *
    * @return A fully populated DeviceCatalog ready for use
    */
   private static DeviceCatalog createDeviceCatalog() {
-    DeviceCatalog catalog = new DeviceCatalog();
+      DeviceCatalog catalog = new DeviceCatalog();
+  
+      // Add all sensor types
+      log.info("Adding sensors to catalog...");
+      TemperatureSensor tempSensor = new TemperatureSensor();
+      HumiditySensor humSensor = new HumiditySensor();
+      WindSpeedSensor windSensor = new WindSpeedSensor();
+      
+      catalog.addSensor(tempSensor);
+      catalog.addSensor(humSensor);
+      catalog.addSensor(new LightSensor());
+      catalog.addSensor(new FertilizerSensor());
+      catalog.addSensor(new PhSensor());
+      catalog.addSensor(windSensor);
+  
+      // Add all actuator types
+      log.info("Adding actuators to catalog...");
+      catalog.addActuator(new HeaterActuator());
+      catalog.addActuator(new FanActuator());
+      catalog.addActuator(new WindowActuator());
+      catalog.addActuator(new ValveActuator());
+      
+      // Link sensors to catalog so they can check actuator states
+      log.info("Linking sensors to actuators for realistic readings...");
+      tempSensor.setCatalog(catalog);
+      log.debug("✓ Temperature sensor linked (affected by: heater, fan, window)");
 
-    // Add all sensor types (requirement 5.1.1.2 & 5.1.1.3)
-    log.info("Adding sensors to catalog...");
-    catalog.addSensor(new TemperatureSensor());
-    catalog.addSensor(new HumiditySensor());
-    catalog.addSensor(new LightSensor());
-    catalog.addSensor(new FertilizerSensor());
-    catalog.addSensor(new PhSensor());
-    catalog.addSensor(new WindSpeedSensor());
-
-    // Add all actuator types (requirement 5.1.1.4 & 5.1.1.5)
-    log.info("Adding actuators to catalog...");
-    catalog.addActuator(new HeaterActuator());
-    catalog.addActuator(new FanActuator());
-    catalog.addActuator(new WindowActuator());
-    catalog.addActuator(new ValveActuator());
-
-    return catalog;
+      humSensor.setCatalog(catalog);
+      log.debug("✓ Humidity sensor linked (affected by: valve, window)");
+      
+      windSensor.setCatalog(catalog);
+      log.debug("✓ Wind speed sensor linked (affected by: window state)");
+  
+      return catalog;
   }
 
   // ============================================================
@@ -351,9 +363,6 @@ public final class SensorNodeMain {
    *   <li>Disconnects the NodeAgent from the broker</li>
    *   <li>Logs the cleanup process</li>
    * </ol>
-   *
-   * <p><b>Technical Note:</b> This is registered as a JVM shutdown hook, which runs
-   * even if the program is forcefully terminated (but not on kill -9).</p>
    *
    * @param agent     The NodeAgent to disconnect
    * @param scheduler The ScheduledExecutorService to shut down
@@ -378,11 +387,9 @@ public final class SensorNodeMain {
    * its communication tasks in background threads. Without this, the main method
    * would exit immediately after starting the background tasks.</p>
    *
-   * <p><b>User Experience:</b> The user can stop the node at any time by pressing
+   * <p>The user can stop the node at any time by pressing
    * ENTER in the terminal, which triggers a graceful shutdown sequence.</p>
    *
-   * <p><b>Alternative:</b> You could also implement this as {@code Thread.sleep(Long.MAX_VALUE)}
-   * or {@code while(running)}, but waiting for user input provides better UX.</p>
    */
   private static void waitForUserInput() {
     try (Scanner scanner = new Scanner(System.in)) {
