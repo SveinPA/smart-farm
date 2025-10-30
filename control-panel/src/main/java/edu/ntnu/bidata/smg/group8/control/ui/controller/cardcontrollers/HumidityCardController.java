@@ -10,8 +10,7 @@ import org.slf4j.Logger;
 
 /**
 * Controller for the Humidity control card.
-* This controller coordinates the interaction between the HumidityCardBuilder UI
-* and the underlying logic it is responsible for.
+* Handles humidity updates, statistics display, and zone-based styling.
 
 * @author Andrea Sandnes
 * @version 28.10.2025

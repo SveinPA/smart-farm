@@ -68,8 +68,8 @@ public class ControlPanelController {
             view.getFanBuilder());
     fertilizerController = new FertilizerCardController(
             view.getFertilizerBuilder());
-    heaterController = new HeaterCardController(
-            view.getHeaterBuilder());
+    heaterController = getControllerFromCard(
+            view.getHeaterCard(), HeaterCardController.class);
     humidityController = getControllerFromCard(
             view.getHumidityCard(), HumidityCardController.class);
     lightController = getControllerFromCard(
@@ -131,7 +131,7 @@ public class ControlPanelController {
 
     fanController.start();
     fertilizerController.start();
-    heaterController.start();
+    safeStart(heaterController, "HeaterCardController");
     safeStart(humidityController, "HumidityCardController");
     safeStart(lightController, "LightCardController");
     safeStart(pHController, "PHCardController");
@@ -170,7 +170,7 @@ public class ControlPanelController {
 
     fanController.stop();
     fertilizerController.stop();
-    heaterController.stop();
+    safeStop(heaterController, "HeaterCardController");
     safeStop(humidityController, "HumidityCardController");
     safeStop(lightController, "LightCardController");
     safeStop(pHController, "PHCardController");
@@ -258,6 +258,15 @@ public class ControlPanelController {
    */
   public HumidityCardController getHumidityController() {
     return humidityController;
+  }
+
+  /**
+   * Returns the instance managed by this controller.
+
+   * @return the heater controller
+   */
+  public HeaterCardController getHeaterController() {
+    return heaterController;
   }
 
 

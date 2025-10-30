@@ -596,3 +596,31 @@
     -fx-font-weight: bold;
 }
 
+/*--------------- Heater Card ---------------*/
+
+.heater-target {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+}
+
+.heater-spinner {
+    -fx-pref-width: 80px;
+}
+
+.heater-spinner .text-field {
+    -fx-alignment: center;
+}
+
+.heater-presets-title {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+
+.heater-preset-button {
+    -fx-background-color: #e3f2fd;
+    -fx-text-fill: #1976d2;
+}
+
+.heater-preset-button:hover {
+    -fx-background-color: #bbdefb;
+}

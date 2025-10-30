@@ -159,7 +159,8 @@ public class ControlPanelView {
     log.trace("Fan card created");
 
     heaterBuilder = new HeaterCardBuilder();
-    cards.add(heaterBuilder.build());
+    heaterCard = heaterBuilder.build();
+    cards.add(heaterCard);
     log.trace("Heater card created");
 
     valveBuilder = new ValveCardBuilder();
@@ -308,6 +309,14 @@ public class ControlPanelView {
     return humidityCard;
   }
 
+  /**
+   * Gets the heater card.
+   *
+   * @return the heater ControlCard instance
+   */
+  public ControlCard getHeaterCard() {
+    return heaterCard;
+  }
 
 
   /**
@@ -318,16 +327,6 @@ public class ControlPanelView {
   public FanCardBuilder getFanBuilder() {
     return fanBuilder;
   }
-
-  /**
-  * Gets the heater card builder.
-  *
-  * @return the heater card builder
-  */
-  public HeaterCardBuilder getHeaterBuilder() {
-    return heaterBuilder;
-  }
-
 
 
   /**
