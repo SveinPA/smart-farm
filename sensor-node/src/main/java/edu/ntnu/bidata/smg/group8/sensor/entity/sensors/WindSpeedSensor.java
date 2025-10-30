@@ -1,6 +1,8 @@
 package edu.ntnu.bidata.smg.group8.sensor.entity.sensors;
 
 import edu.ntnu.bidata.smg.group8.common.sensor.AbstractSensor;
+import edu.ntnu.bidata.smg.group8.sensor.entity.actuators.WindowActuator;
+import edu.ntnu.bidata.smg.group8.sensor.logic.DeviceCatalog;
 
 /**
  * <h3>Simulated Wind Speed Sensor</h3>
@@ -34,6 +36,7 @@ public class WindSpeedSensor extends AbstractSensor {
     private static final double MIN_WIND_SPEED = 0.0;   // Calm conditions
     private static final double MAX_WIND_SPEED = 25.0;  // Strong storm conditions
     private static final double DRIFT_FACTOR = 0.04;    // 4% drift factor (moderate variability)
+    private DeviceCatalog catalog;
 
     /**
      * Constructor for WindSpeedSensor. Initializes the wind speed sensor
@@ -52,10 +55,44 @@ public class WindSpeedSensor extends AbstractSensor {
     /**
      * Retrieves the current wind speed reading from the sensor.
      *
+     * <p>This sensor measures <b>outside wind speed</b> for weather monitoring.
+     * When the window is closed, the sensor reads near-zero (sheltered inside).
+     * When the window is open, it measures the actual outside wind conditions.</p>
+     *
+     * <p>Natural drift of 4% simulates changing weather patterns.</p>
+     *
      * @return The current wind speed reading in meters per second (m/s).
      */
     @Override
     public double getReading() {
-        return varyReading(DRIFT_FACTOR);
+        // Get natural outside wind speed (includes base + drift)
+        double outsideWind = varyReading(DRIFT_FACTOR);
+        
+        // Check window state
+        if (catalog != null) {
+            var window = catalog.getActuator("window");
+            if (window instanceof WindowActuator) {
+                WindowActuator w = (WindowActuator) window;
+                // If window is closed, sensor reads minimal wind (sheltered inside)
+                if (w.isClosed()) {
+                    return Math.round((Math.random() * 0.5) * 10.0) / 10.0; // 0-0.5 m/s inside
+                }
+            }
+            // If window is open, we measure the full outside wind
+        }
+        // Return outside wind reading (window is open or no catalog available)
+        return Math.round(outsideWind * 10.0) / 10.0;
+    }
+
+    /**
+     * Sets the device catalog for the sensor to access actuators.
+     *
+     * <p>This allows the sensor to consider the state of various actuators
+     * (like windows) when calculating its readings.</p>
+     *
+     * @param catalog The DeviceCatalog instance containing actuators
+     */
+    public void setCatalog(DeviceCatalog catalog) {
+        this.catalog = catalog;
     }
 }

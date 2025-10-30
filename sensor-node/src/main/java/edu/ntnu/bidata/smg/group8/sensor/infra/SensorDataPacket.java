@@ -1,0 +1,75 @@
+package edu.ntnu.bidata.smg.group8.sensor.infra;
+
+import java.util.Locale;
+
+import edu.ntnu.bidata.smg.group8.common.protocol.Protocol;
+import edu.ntnu.bidata.smg.group8.common.sensor.Sensor;
+import edu.ntnu.bidata.smg.group8.common.util.JsonBuilder;
+
+/**
+ * <h3>Sensor Data Packet</h3>
+ *
+ * <p>This utility class provides a simple, reusable way to create JSON-formatted
+ * messages representing sensor readings for transmission to the broker.</p>
+ *
+ * <p>It uses the shared {@link JsonBuilder} utility to create a lightweight JSON string,
+ * without relying on external libraries. Each message includes essential information such as:</p>
+ * <ul>
+ *   <li><b>type</b>: always {@code SENSOR_DATA}</li>
+ *   <li><b>nodeId</b>: the unique ID of the sensor node</li>
+ *   <li><b>sensorKey</b>: the sensor's key (e.g., "temp", "hum")</li>
+ *  <li><b>value</b>: the sensor's current reading, formatted to two decimal places</li>
+ *  <li><b>unit</b>: the unit of measurement (e.g., "°C", "%")</li>
+ * <li><b>timestamp</b>: the time the reading was taken, in milliseconds.</li>
+ * </ul>
+ *
+ * <p>This class cannot be instantiated and only contains static methods,
+ * and is final to prevent inheritance.</p>
+ *
+ * @author Ida Soldal
+ * @version 28.10.2025
+ */
+public final class SensorDataPacket {
+
+    /**
+     * <b>Private constructor</b> to prevent instantiation,
+     * as this class only contains static methods.
+     *
+     * <p>This is a common design pattern for utility classes in Java.</p>
+     */
+    private SensorDataPacket() {
+        // Private constructor to prevent instantiation
+    }
+
+    /**
+     * Builds a JSON representation of a sensor data packet.
+     *
+     * @param nodeId The unique identifier of the sensor node.
+     * @param sensor The sensor that produced the reading.
+     * @param value  The sensor's most recent reading.
+     * @return A JSON string representing the sensor data packet, ready for transmission.
+     *
+     * @throws IllegalArgumentException if nodeId is null/blank, sensor is null,
+     *                                  or value is not a finite number.
+     */
+    public static String build(String nodeId, Sensor sensor, double value) {
+        if (nodeId == null || nodeId.isBlank()) {
+            throw new IllegalArgumentException("Node ID cannot be null or blank");
+        }
+        if (sensor == null) {
+            throw new IllegalArgumentException("Sensor cannot be null");
+        }
+        if (!Double.isFinite(value)) {
+            throw new IllegalArgumentException("Value must be finite (was: " + value + ")");
+        }
+        return JsonBuilder.build(
+            "type", Protocol.TYPE_SENSOR_DATA,
+            "nodeId", nodeId,
+            "sensorKey", sensor.getKey(),
+            "value", String.format(Locale.US, "%.2f", value), 
+            // Format to 2 decimal places, Locale.US to ensure dot as decimal separator and not comma
+            "unit", sensor.getUnit(),
+            "timestamp", String.valueOf(System.currentTimeMillis()) // Current time in milliseconds
+        );
+    }
+}
