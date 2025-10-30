@@ -52,6 +52,7 @@ public class NodeAgent {
     private InputStream in;
     private volatile boolean running;
     private Thread listenerThread;
+    private DeviceCatalog catalog;
 
     /**
      * Constructs a NodeAgent with the specified parameters.
@@ -67,6 +68,17 @@ public class NodeAgent {
         this.brokerHost = brokerHost;
         this.brokerPort = brokerPort;
         this.running = false;
+    }
+
+    /**
+     * Sets the device catalog for actuator control.
+     *
+     * <p>Must be called before actuator commands can be processed.</p>
+     *
+     * @param catalog The DeviceCatalog instance to use
+     */
+    public void setCatalog(DeviceCatalog catalog) {
+        this.catalog = catalog;
     }
 
     /**
@@ -94,6 +106,7 @@ public class NodeAgent {
         socket = new Socket();
         socket.connect(new InetSocketAddress(brokerHost, brokerPort), 5000);
         socket.setTcpNoDelay(true);
+        socket.setKeepAlive(true); // Prevents disconnection on idle
         out = socket.getOutputStream();
         in = socket.getInputStream();
 
@@ -123,11 +136,14 @@ public class NodeAgent {
      * <p><b>Phone Analogy:</b> After we say "Hi, I'm sensor node #42",
      * we need to wait for the broker to respond with "OK, registered!".</p>
      *
-     * @throws IOException if ACK is not received or connection fails
+     * @throws IOException if ACK is not received, connection fails or response is null
      */
     private void waitForAck() throws IOException {
         String response = readMessage();
-        
+        if (response == null) {
+            throw new IOException("Connection closed before REGISTER_ACK was received");
+        }
+
         if (!response.contains("\"type\":\"" + Protocol.TYPE_REGISTER_ACK + "\"")) {
             throw new IOException("Expected REGISTER_ACK, got: " + response);
         }
@@ -150,29 +166,23 @@ public class NodeAgent {
      */
     private String readMessage() throws IOException {
         // Read 4-byte length prefix
-        int b1 = in.read(); // first byte
-        int b2 = in.read(); // second byte and so on..
-        int b3 = in.read();
-        int b4 = in.read();
-        
-        if (b1 == -1 || b2 == -1 || b3 == -1 || b4 == -1) {
-            throw new IOException("Connection closed while reading length");
-        } // If any byte is -1, connection is closed
-        
-        int length = (b1 << 24) | (b2 << 16) | (b3 << 8) | b4;
-        
-        // Read JSON payload
-        byte[] buffer = new byte[length]; // buffer to hold the message
-        int totalRead = 0; // total bytes read so far
-        while (totalRead < length) { // while we haven't read the full message
-            int read = in.read(buffer, totalRead, length - totalRead); // read remaining bytes
-            if (read == -1) { // connection closed unexpectedly
-                throw new IOException("Connection closed while reading payload");
-            }
-            totalRead += read; // update total bytes read
+        byte[] header = in.readNBytes(4);
+        if (header.length < 4) {
+            return null; // EOF: broker closed connection
         }
-        return new String(buffer, StandardCharsets.UTF_8); // Return the message as a string
-        // Using StandardCharsets.UTF_8 to decode bytes to string
+
+        int length = ((header[0] & 0xFF) << 24) // 24 bits for the first byte
+                | ((header[1] & 0xFF) << 16) // 16 bits
+                | ((header[2] & 0xFF) << 8) // 8 bits
+                | (header[3] & 0xFF); // 0 bits
+
+        // Read JSON payload
+        byte[] payload = in.readNBytes(length);
+        if (payload.length < length) {
+            throw new IOException("Connection closed while reading payload");
+        }
+
+        return new String(payload, StandardCharsets.UTF_8);
     }
 
     /**
@@ -182,20 +192,26 @@ public class NodeAgent {
      * even while we're doing other things. A separate "listener" pays attention to
      * anything the broker says, so we don't miss commands like "Turn on the heater!"</p>
      *
-     * <p><b>Technical Details:</b> Runs in a daemon thread that continuously reads
-     * messages from the socket while the connection is active.</p>
+     * <p><b>Technical Details:</b> A dedicated thread continuously reads messages from the broker
+     * and processes them. This allows the main thread to focus on sending sensor data
+     * without blocking.</p>
      */
     private void startListening() {
         running = true;
         listenerThread = new Thread(() -> { // Start a new thread for listening
-            try {
-                while (running && isConnected()) {
+            while (running && isConnected()) {
+                try {
                     String message = readMessage();
+                    if (message == null) {
+                        log.warn("Broker closed its output stream (EOF). Listener stopping.");
+                        break;
+                    }
                     handleIncomingMessage(message);
-                }
-            } catch (IOException e) {
-                if (running) {
-                    log.error("Listener thread error: {}", e.getMessage());
+                } catch (IOException e) {
+                    if (running) {
+                        log.warn("Listener stopped: {}", e.getMessage());
+                    }
+                    break; // Exit loop instead of killing connection
                 }
             }
         }, "NodeAgent-Listener-" + nodeId); // Name the thread for easier debugging (Name + Node ID)
@@ -212,14 +228,62 @@ public class NodeAgent {
      * <p><b>Phone Analogy:</b> When the broker says something (like "Turn heater ON"),
      * this method figures out what they said and what to do about it.</p>
      *
-     * <p>PLACEHOLDER: Not implemented yet - would parse and act on different message types.</p>
+     * <p><b>Message Types Handled:</b></p>
+     * <ul>
+     *  <li>Heartbeat: Just logs receipt (broker checking if we're alive)</li
+     * <li>Actuator Command: Parses command and controls the specified actuator</li>
+     * </ul>
+     *
+     * <p>This method is meant primarily for actuator commands; sensor data
+     * is handled separately.</p>
      *
      * @param json The received JSON message from the broker
      */
     private void handleIncomingMessage(String json) {
+        if (json.contains("\"type\":\"" + Protocol.TYPE_HEARTBEAT + "\"")) {
+            log.debug("Heartbeat ← broker");
+            return;
+        }
+        if (json.contains("\"type\":\"" + Protocol.TYPE_ACTUATOR_COMMAND + "\"")) {
+            try {
+                String actuatorKey = extractField(json, "actuatorKey");
+                String valueStr = extractField(json, "value");
+                double value = Double.parseDouble(valueStr);
+
+                if (catalog == null) {
+                    log.warn("Catalog not set! Cannot control actuators.");
+                    return;
+                }
+                var actuator = catalog.getActuator(actuatorKey);
+                if (actuator != null) {
+                    actuator.act(value);
+                    log.info("Actuator '{}' set to {}", actuatorKey, value);
+                } else {
+                    log.warn("Unknown actuator: {}", actuatorKey);
+                }
+            } catch (Exception e) {
+                log.error("Failed to handle ACTUATOR_COMMAND: {}", e.getMessage());
+            }
+            return;
+        }
         log.debug("Received from broker: {}", json);
-        
-        // TODO: Parse and handle different message types
+    }
+
+    /**
+     * Extracts a field from a JSON string.
+     *
+     * <p>The purpose of this method is to retrieve the value associated with a specific key
+     * from a JSON-formatted string. It uses a regular expression to find the key-value
+     * pair and returns the value as a string.</p>
+     *
+     * @param json The JSON string to extract from
+     * @param key  The key of the field to extract
+     * @return The value of the field, or an empty string if not found
+     */
+    private String extractField(String json, String key) {
+        String pattern = "\"" + key + "\"\\s*:\\s*\"([^\"]+)\"";
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile(pattern).matcher(json);
+        return m.find() ? m.group(1) : "";
     }
 
     /**
@@ -230,22 +294,19 @@ public class NodeAgent {
      * then we say exactly those 50 words. This ensures the listener knows exactly
      * where our message ends and the next one begins.</p>
      *
-     * <p>The purpose of this method is to handle the low-level
-     * details of sending a length-prefixed JSON message over the TCP connection.
-     * It ensures the message is properly framed according to the protocol
-     * expected by the broker. Otherwise, we risk message boundary issues where multiple
-     * messages could be split incorrectly.</p>
+     * <p><b>Thread Safety:</b> This method is synchronized to prevent multiple threads
+     * from interleaving their writes, which would corrupt the message framing.</p>
      *
      * @param jsonMessage The message to send (already formatted as JSON)
      * @throws IOException if the connection is closed or the send fails (line went dead)
      */
-    public void send(String jsonMessage) throws IOException {
+    public synchronized void send(String jsonMessage) throws IOException {
         if (socket == null || out == null || socket.isClosed()) {
             throw new IOException("Socket is not connected.");
         }
 
-        byte[] payload = jsonMessage.getBytes(StandardCharsets.UTF_8);
-        int length = payload.length;
+        byte[] payload = jsonMessage.getBytes(StandardCharsets.UTF_8); // Convert message to bytes
+        int length = payload.length; // Get length of message
 
         // Write 4-byte length prefix
         out.write((length >>> 24) & 0xFF);
@@ -293,8 +354,10 @@ public class NodeAgent {
     public void sendHeartbeat() {
         try {
             String heartbeat = JsonBuilder.build(
-                    "type", Protocol.TYPE_HEARTBEAT,
-                    "nodeId", nodeId
+                "type", Protocol.TYPE_HEARTBEAT,
+                "direction", Protocol.HB_CLIENT_TO_SERVER,
+                "protocolVersion", Protocol.PROTOCOL_VERSION,
+                "nodeId", nodeId
             );
             send(heartbeat);
             log.debug("Heartbeat sent");
@@ -319,18 +382,20 @@ public class NodeAgent {
      */
     public void disconnect() {
         running = false;
-        
         try {
-            if (listenerThread != null) {
-                listenerThread.interrupt();
-                listenerThread.join(2000);
-            }
-            if (in != null) in.close();
-            if (out != null) out.close();
+            // Closing the socket/streams wakes up any blocking reads
+            if (in != null) in.close(); // If input stream is open, close it
+            if (out != null) out.close(); // If output stream is open, close it
             if (socket != null && !socket.isClosed()) socket.close();
+
+            if (listenerThread != null) {
+                listenerThread.join(2000); 
+                // If listener thread is running, wait for it to finish
+            }
             log.info("Disconnected from broker.");
         } catch (IOException | InterruptedException e) {
             log.warn("Error while closing connection: {}", e.getMessage());
+            Thread.currentThread().interrupt();
         }
     }
 
