@@ -46,27 +46,38 @@ public class ControlPanelView {
   private HumidityCardBuilder humidityBuilder;
   private PHCardBuilder phBuilder;
   private WindSpeedCardBuilder windSpeedBuilder;
-  private LightCardBuilder lightsBuilder;
+  private LightCardBuilder lightBuilder;
   private WindowsCardBuilder windowsBuilder;
   private FanCardBuilder fanBuilder;
   private HeaterCardBuilder heaterBuilder;
   private ValveCardBuilder valveBuilder;
   private FertilizerCardBuilder fertilizerBuilder;
 
+  private ControlCard temperatureCard;
+  private ControlCard humidityCard;
+  private ControlCard phCard;
+  private ControlCard windSpeedCard;
+  private ControlCard lightCard;
+  private ControlCard windowsCard;
+  private ControlCard fanCard;
+  private ControlCard heaterCard;
+  private ControlCard valveCard;
+  private ControlCard fertilizerCard;
+
   /**
-  * Constructs a new Control Panel View with all sensor and actuator cards.
-  *
-  * <p>This constructor initializes the complete user interface, including:</p>
-  * <ul>
-  *     <li>Header with application title</li>
-  *     <li>Grid layout with three columns</li>
-  *     <li>All sensor and actuator control cards</li>
-  *     <li>Scrollable surface for overflow content</li>
-  * </ul>
-  *
-  * <p>The cards are automatically arranged in a three-column grid layout,
-  * with responsive sizing to accommodate different screen dimensions.</p>
-  */
+   * Constructs a new Control Panel View with all sensor and actuator cards.
+   *
+   * <p>This constructor initializes the complete user interface, including:</p>
+   * <ul>
+   *     <li>Header with application title</li>
+   *     <li>Grid layout with three columns</li>
+   *     <li>All sensor and actuator control cards</li>
+   *     <li>Scrollable surface for overflow content</li>
+   * </ul>
+   *
+   * <p>The cards are automatically arranged in a three-column grid layout,
+   * with responsive sizing to accommodate different screen dimensions.</p>
+   */
   public ControlPanelView() {
     log.info("Initializing ControlPanelView");
     this.rootNode = new BorderPane();
@@ -114,48 +125,57 @@ public class ControlPanelView {
     List<StackPane> cards = new ArrayList<>();
 
     temperatureBuilder = new TemperatureCardBuilder();
-    cards.add(temperatureBuilder.build());
+    temperatureCard = temperatureBuilder.build();
+    cards.add(temperatureCard);
     log.trace("Temperature card created");
 
     humidityBuilder = new HumidityCardBuilder();
-    cards.add(humidityBuilder.build());
+    humidityCard = humidityBuilder.build();
+    cards.add(humidityCard);
     log.trace("Humidity card created");
 
     phBuilder = new PHCardBuilder();
-    cards.add(phBuilder.build());
+    phCard = phBuilder.build();
+    cards.add(phCard);
     log.trace("pH card created");
 
     windSpeedBuilder = new WindSpeedCardBuilder();
-    cards.add(windSpeedBuilder.build());
+    windSpeedCard = windSpeedBuilder.build();
+    cards.add(windSpeedCard);
     log.trace("Wind speed card created");
 
-    lightsBuilder = new LightCardBuilder();
-    cards.add(lightsBuilder.build());
+    lightBuilder = new LightCardBuilder();
+    lightCard = lightBuilder.build();
+    cards.add(lightCard);
     log.trace("Lights card created");
 
     windowsBuilder = new WindowsCardBuilder();
-    cards.add(windowsBuilder.build());
+    windowsCard = windowsBuilder.build();
+    cards.add(windowsCard);
     log.trace("Windows card created");
 
     fanBuilder = new FanCardBuilder();
-    cards.add(fanBuilder.build());
+    fanCard = fanBuilder.build();
+    cards.add(fanCard);
     log.trace("Fan card created");
 
     heaterBuilder = new HeaterCardBuilder();
-    cards.add(heaterBuilder.build());
+    heaterCard = heaterBuilder.build();
+    cards.add(heaterCard);
     log.trace("Heater card created");
 
     valveBuilder = new ValveCardBuilder();
-    cards.add(valveBuilder.build());
+    valveCard = valveBuilder.build();
+    cards.add(valveCard);
     log.trace("Valve card created");
 
     fertilizerBuilder = new FertilizerCardBuilder();
-    cards.add(fertilizerBuilder.build());
+    fertilizerCard = fertilizerBuilder.build();
+    cards.add(fertilizerCard);
     log.trace("Fertilizer card created");
 
     log.debug("All {} control cards created successfully", cards.size());
 
-    // Configure card growth properties
     for (StackPane card : cards) {
       GridPane.setHgrow(card, Priority.ALWAYS);
       GridPane.setVgrow(card, Priority.NEVER);
@@ -192,15 +212,15 @@ public class ControlPanelView {
   }
 
   /**
-  * Adds a list of control cards to a grid pane.
-  *
-  * <p>This method distributes the cards evenly across the specified number
-  * of columns, calculating the appropriate row and column position for each card.</p>
-  *
-  * @param grid the grid pane to add cards to
-  * @param cards the list of cards to add
-  * @param cols the number of columns in the grid
-  */
+   * Adds a list of control cards to a grid pane.
+   *
+   * <p>This method distributes the cards evenly across the specified number
+   * of columns, calculating the appropriate row and column position for each card.</p>
+   *
+   * @param grid  the grid pane to add cards to
+   * @param cards the list of cards to add
+   * @param cols  the number of columns in the grid
+   */
   private void addCardsToGrid(GridPane grid, List<StackPane> cards, int cols) {
     log.debug("Adding {} cards to grid with {} columns", cards.size(), cols);
 
@@ -214,14 +234,14 @@ public class ControlPanelView {
   }
 
   /**
-  * Gets the root node of the control panel view.
-  *
-  * <p>This method provides access to the main BorderPane container
-  * that holds all UI components. The root node can be added to a
-  * Scene for display in a JavaFX application.</p>
-  *
-  * @return the root BorderPane node containing the complete control panel interface
-  */
+   * Gets the root node of the control panel view.
+   *
+   * <p>This method provides access to the main BorderPane container
+   * that holds all UI components. The root node can be added to a
+   * Scene for display in a JavaFX application.</p>
+   *
+   * @return the root BorderPane node containing the complete control panel interface
+   */
   public BorderPane getRootNode() {
     return rootNode;
   }
@@ -229,94 +249,93 @@ public class ControlPanelView {
   //----------------------------- Card getters ----------------------------//
 
   /**
-  * Gets the temperature card builder.
-  *
-  * @return the temperature card builder
-  */
-  public TemperatureCardBuilder getTemperatureBuilder() {
-    return temperatureBuilder;
+   * Gets the wind speed card.
+   *
+   * @return the wind speed ControlCard instance
+   */
+  public ControlCard getWindSpeedCard() {
+    return windSpeedCard;
   }
 
   /**
-  * Gets the humidity card builder.
-  *
-  * @return the humidity card builder
-  */
-  public HumidityCardBuilder getHumidityBuilder() {
-    return humidityBuilder;
+   * Gets the windows card.
+   *
+   * @return the windows ControlCard instance
+   */
+  public ControlCard getWindowsCard() {
+    return windSpeedCard;
   }
 
   /**
-  * Gets the pH card builder.
-  *
-  * @return the pH card builder
-  */
-  public PHCardBuilder getPhBuilder() {
-    return phBuilder;
+   * Gets the valve card.
+   *
+   * @return the valve ControlCard instance
+   */
+  public ControlCard getValveCard() {
+    return valveCard;
   }
 
   /**
-  * Gets the wind speed card builder.
-  *
-  * @return the wind speed card builder
-  */
-  public WindSpeedCardBuilder getWindSpeedBuilder() {
-    return windSpeedBuilder;
+   * Gets the temperature card.
+   *
+   * @return the temperature ControlCard instance
+   */
+  public ControlCard getTemperatureCard() {
+    return temperatureCard;
   }
 
   /**
-  * Gets the lights card builder.
-  *
-  * @return the lights card builder
-  */
-  public LightCardBuilder getLightsBuilder() {
-    return lightsBuilder;
+   * Gets the pH card.
+   *
+   * @return the pH ControlCard instance
+   */
+  public ControlCard getPHCard() {
+    return phCard;
   }
 
   /**
-  * Gets the windows card builder.
-  *
-  * @return the windows card builder
-  */
-  public WindowsCardBuilder getWindowsBuilder() {
-    return windowsBuilder;
+   * Gets the light card.
+   *
+   * @return the light ControlCard instance
+   */
+  public ControlCard getLightCard() {
+    return lightCard;
   }
 
   /**
-  * Gets the fan card builder.
-  *
-  * @return the fan card builder
-  */
-  public FanCardBuilder getFanBuilder() {
-    return fanBuilder;
+   * Gets the humidity card.
+   *
+   * @return the humidity ControlCard instance
+   */
+  public ControlCard getHumidityCard() {
+    return humidityCard;
   }
 
   /**
-  * Gets the heater card builder.
-  *
-  * @return the heater card builder
-  */
-  public HeaterCardBuilder getHeaterBuilder() {
-    return heaterBuilder;
+   * Gets the heater card.
+   *
+   * @return the heater ControlCard instance
+   */
+  public ControlCard getHeaterCard() {
+    return heaterCard;
   }
 
   /**
-  * Gets the valve card builder.
-  *
-  * @return the valve card builder
-  */
-  public ValveCardBuilder getValveBuilder() {
-    return valveBuilder;
+   * Gets the fertilizer card.
+   *
+   * @return the heater ControlCard instance
+   */
+  public ControlCard getFertilizerCard() {
+    return fertilizerCard;
   }
 
   /**
-  * Gets the fertilizer card builder.
-  *
-  * @return the fertilizer card builder
-  */
-  public FertilizerCardBuilder getFertilizerBuilder() {
-    return fertilizerBuilder;
+   * Gets the fan card.
+   *
+   * @return the fan ControlCard instance
+   */
+  public ControlCard getFanCard() {
+    return fanCard;
   }
 }
-
 

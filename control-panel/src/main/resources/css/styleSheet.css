@@ -276,3 +276,424 @@
     -fx-accent: #F44336;
 }
 
+/*--------------- Wind-Speed card ---------------*/
+
+/* Labels */
+
+.current-wind-speed {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+}
+
+.wind-speed-status {
+    -fx-font-size: 12px;
+    -fx-font-style: italic;
+}
+
+.wind-speed-gust {
+    -fx-font-size: 11px;
+}
+
+.wind-speed-stats-title {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+
+.wind-speed-stat {
+    -fx-font-size: 11px;
+}
+
+/* Colors for the Labels */
+
+.wind-speed-calm {
+    -fx-text-fill: #4CAF50;
+}
+.wind-speed-light {
+    -fx-text-fill: #8BC34A;
+}
+
+.wind-speed-breeze {
+    -fx-text-fill: #2196F3;
+}
+
+.wind-speed-moderate {
+    -fx-text-fill: #FF9800;
+}
+
+.wind-speed-strong {
+    -fx-text-fill: #F44336;
+}
+
+.wind-speed-gale {
+    -fx-text-fill: #D32D2F;
+}
+
+/* Progress bar colors */
+
+.progress-bar.wind-speed-calm .bar {
+    -fx-accent: #4CAF50;
+}
+.progress-bar.wind-speed-light .bar {
+    -fx-accent: #8BC34A;
+}
+.progress-bar.wind-speed-breeze .bar {
+    -fx-accent: #2196F3;
+}
+.progress-bar.wind-speed-moderate .bar {
+    -fx-accent: #FF9800;
+}
+.progress-bar.wind-speed-strong .bar {
+    -fx-accent: #F44336;
+}
+.progress-bar.wind-speed-gale .bar {
+    -fx-accent: #D32D2F;
+}
+
+/*--------------- Windows card ---------------*/
+
+.window-auto-info {
+    -fx-font-size: 10px;
+    -fx-text-fill: #888888;
+}
+
+.window-auto-status {
+    -fx-font-size: 11px;
+    -fx-text-fill: #4CAF50
+}
+
+.window-auto-status.active {
+    -fx-text-fill: #4CAF50;
+}
+
+.window-auto-status.standby {
+    -fx-text-fill: #888888;
+}
+
+/*--------------- Valve card ---------------*/
+
+.valve-state {
+    -fx-font-weight: bold;
+}
+
+.valve-state.valve-open {
+    -fx-text-fill: #4CAF50;
+}
+
+.valve-state.valve-closed {
+    -fx-text-fill: #888888;
+}
+
+.valve-flow {
+    -fx-font-size: 11px;
+}
+
+.valve-flow-indicator {
+    -fx-pref-height: 15px;
+}
+
+.valve-flow-indicator.valve-flow-open {
+    -fx-accent: #4CAF50;
+}
+
+.valve-flow-indicator.valve-flow-closed {
+    -fx-accent: #2196F3;
+}
+
+.valve-action-label {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+
+.open-valve-button {
+    -fx-background-color: #4CAF50;
+    -fx-text-fill: white;
+    -fx-font-weight: BOLD;
+}
+
+.open-valve-button:hover {
+    -fx-background-color: #45A049;
+}
+
+.open-valve-button:disabled {
+    -fx-opacity: 0.5;
+}
+
+.close-valve-button {
+    -fx-background-color: #F44336;
+    -fx-text-fill: white;
+    -fx-font-weight: BOLD;
+}
+
+.close-valve-button:hover {
+    -fx-background-color: #DA190B;
+}
+
+.close-valve-button:disabled {
+    -fx-opacity: 0.5;
+}
+
+.valve-action-label {
+    -fx-font-size: 11px;
+    -fx-font-weight: BOLD;
+}
+
+
+/*--------------- pH Card ---------------*/
+
+/* Current pH label */
+.ph-current {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+}
+
+/* Status label - base style */
+.ph-status {
+    -fx-font-size: 12px;
+    -fx-font-style: italic;
+}
+
+/* pH zone colors for status label */
+.ph-status.ph-very-acidic {
+    -fx-text-fill: #f44336; /* Red */
+}
+
+.ph-status.ph-acidic {
+    -fx-text-fill: #ff9800; /* Orange */
+}
+
+.ph-status.ph-slightly-acidic {
+    -fx-text-fill: #8bc34a; /* Light green */
+}
+
+.ph-status.ph-neutral {
+    -fx-text-fill: #4caf50; /* Green */
+}
+
+.ph-status.ph-slightly-alkaline {
+    -fx-text-fill: #2196f3; /* Blue */
+}
+
+.ph-status.ph-alkaline {
+    -fx-text-fill: #3f51b5; /* Dark blue */
+}
+
+.ph-status.ph-very-alkaline {
+    -fx-text-fill: #9c27b0; /* Purple */
+}
+
+/* pH progress bar - base style */
+.ph-bar {
+    -fx-pref-height: 20px;
+}
+
+/* pH zone colors for progress bar */
+.progress-bar.ph-very-acidic .bar {
+    -fx-accent: #f44336;
+}
+
+.progress-bar.ph-acidic .bar {
+    -fx-accent: #ff9800;
+}
+
+.progress-bar.ph-slightly-acidic .bar {
+    -fx-accent: #8bc34a;
+}
+
+.progress-bar.ph-neutral .bar {
+    -fx-accent: #4caf50;
+}
+
+.progress-bar.ph-slightly-alkaline .bar {
+    -fx-accent: #2196f3;
+}
+
+.progress-bar.ph-alkaline .bar {
+    -fx-accent: #3f51b5;
+}
+
+.progress-bar.ph-very-alkaline .bar {
+    -fx-accent: #9c27b0;
+}
+
+/* Statistics */
+.ph-stat {
+    -fx-font-size: 11px;
+}
+
+.ph-stats-title {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+
+/*--------------- Light Card ---------------*/
+
+.light-intensity-label {
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+}
+
+.light-intensity-slider {
+    -fx-pref-width: 200px;
+}
+
+.light-intensity-slider .track {
+    -fx-background-color: #e0e0e0;
+}
+
+.light-intensity-slider .thumb {
+    -fx-background-color: #ffc107;
+}
+
+.light-intensity-slider .thumb:hover {
+    -fx-background-color: #ffb300;
+}
+
+.light-intensity-slider .bar {
+    -fx-background-color: linear-gradient(to right, #555555, #ffc107);
+}
+
+/*--------------- Humidity Card ---------------*/
+
+.humidity-current {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+}
+
+.humidity-bar {
+    -fx-pref-height: 20px;
+}
+
+.progress-bar.humidity-very-dry .bar {
+    -fx-accent: #f44336;
+}
+
+.progress-bar.humidity-dry .bar {
+    -fx-accent: #ff9800;
+}
+
+.progress-bar.humidity-optimal .bar {
+    -fx-accent: #4caf50;
+}
+
+.progress-bar.humidity-slightly-humid .bar {
+    -fx-accent: #2196f3;
+}
+
+.progress-bar.humidity-humid .bar {
+    -fx-accent: #3f51b5;
+}
+
+.progress-bar.humidity-very-humid .bar {
+    -fx-accent: #9c27b0;
+}
+
+.humidity-stat {
+    -fx-font-size: 11px;
+}
+
+.humidity-stats-title {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+
+/*--------------- Heater Card ---------------*/
+
+.heater-target {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+}
+
+.heater-spinner {
+    -fx-pref-width: 80px;
+}
+
+.heater-spinner .text-field {
+    -fx-alignment: center;
+}
+
+.heater-presets-title {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+
+.heater-preset-button {
+    -fx-background-color: #e3f2fd;
+    -fx-text-fill: #1976d2;
+}
+
+.heater-preset-button:hover {
+    -fx-background-color: #bbdefb;
+}
+
+/*--------------- Fertilizer Card ---------------*/
+
+.fertilizer-status {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+}
+
+.fertilizer-last-dose {
+    -fx-font-size: 11px;
+}
+
+.fertilizer-spinner {
+    -fx-pref-width: 100px;
+}
+
+.fertilizer-spinner .text-field {
+    -fx-alignment: center;
+}
+
+.fertilizer-presets-title {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+
+.fertilizer-quick-button {
+    -fx-background-color: #e8f5e9;
+    -fx-text-fill: #2e7d32;
+}
+
+.fertilizer-quick-button:hover {
+    -fx-background-color: #c8e6c9;
+}
+
+/*--------------- Fan Card ---------------*/
+
+.fan-speed {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+}
+
+.fan-slider-label {
+    -fx-font-size: 11px;
+}
+
+.fan-slider {
+    -fx-pref-height: 20px;
+}
+
+.fan-auto-info {
+    -fx-font-size: 10px;
+    -fx-text-fill: #888;
+}
+
+.fan-auto-spinner {
+    -fx-pref-width: 75px;
+}
+
+.fan-auto-spinner .text-field {
+    -fx-alignment: center;
+}
+
+.fan-auto-status {
+    -fx-font-size: 11px;
+    -fx-text-fill: #4caf50;
+    -fx-font-weight: bold;
+}
+
+.fan-auto-note {
+    -fx-font-size: 10px;
+    -fx-font-style: italic;
+    -fx-text-fill: #888;
+}

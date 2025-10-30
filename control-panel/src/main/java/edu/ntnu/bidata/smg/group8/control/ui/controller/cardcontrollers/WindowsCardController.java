@@ -1,13 +1,24 @@
 package edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers;
 
 import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
-import edu.ntnu.bidata.smg.group8.control.ui.view.cards.WindowsCardBuilder;
+import edu.ntnu.bidata.smg.group8.control.ui.view.ControlCard;
+import javafx.application.Platform;
+import javafx.beans.value.ChangeListener;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.RadioButton;
+import javafx.scene.control.Slider;
+import javafx.scene.control.Spinner;
+import javafx.scene.control.ToggleGroup;
+import javafx.scene.layout.VBox;
 import org.slf4j.Logger;
 
 /**
-* Controller for the Windows control card.
-* This controller coordinates the interaction between the WindowsCardBuilder UI
-* and the underlying logic it is responsible for.
+* Controller class responsible for managing the "Windows" control card UI.
+*
+* <p>Handles switching between manual and automatic control modes,
+* updating slider and preset button states, reacting to sensor inputs,
+* and updating the visual state of the window control card.</p>
 
 * @author Andrea Sandnes
 * @version 28.10.2025
@@ -15,17 +26,94 @@ import org.slf4j.Logger;
 public class WindowsCardController {
   private static final Logger log = AppLogger.get(WindowsCardController.class);
 
-  WindowsCardBuilder builder;
+  public static final int POSITION_CLOSED = 0;
+  public static final int POSITION_SLIGHT = 25;
+  public static final int POSITION_HALF   = 50;
+  public static final int POSITION_MOSTLY = 75;
+  public static final int POSITION_OPEN   = 100;
 
+  private int currentPosition = 0;
+
+  private final ControlCard card;
+  private Label openingLabel;
+  private RadioButton manualMode;
+  private RadioButton autoMode;
+  private ToggleGroup modeGroup;
+
+  // Manual mode controls
+  private Button closedButton;
+  private Button slightButton;
+  private Button halfButton;
+  private Button mostlyButton;
+  private Button openButton;
+  private Slider openingSlider;
+  private Label sliderLabel;
+
+  private final VBox manualBox;
+  private final VBox autoBox;
+
+  // Auto mode controls
+  private Spinner<Integer> tempSpinner;
+  private Spinner<Integer> windSpinner;
+  private Label autoStatusLabel;
+
+  private Button scheduleButton;
+
+  private ChangeListener<Object> modeListener;
+  private ChangeListener<Number> sliderListener;
 
   /**
-  * Creates new WindowsCardController for the given builder.
+   * Creates new WindowsCardController with the specified UI components.
+   * This constructor wires together all UI elements that the controller
+   * will manage throughout its lifecycle. The components are typically created
+   * by the WindowsCardBuilder and passed to this controller for coordinated
+   * updates and event handling.
+   *
+   * @param card the main card container
+   * @param openingLabel label displaying current window opening percentage
+   * @param manualMode radio button for manual control mode
+   * @param autoMode radio button for automatic control mode
+   * @param modeGroup toggle group managing mode radio buttons
+   * @param closedButton preset button for fully closed position (0%)
+   * @param slightButton preset button for slightly open position (25%)
+   * @param halfButton preset button for half open position (50%)
+   * @param mostlyButton preset button for mostly open position (75%)
+   * @param openButton preset button for fully open position (100%)
+   * @param openingSlider continuous slider for custom positions (0-100%)
+   * @param sliderLabel label showing current slider value
+   * @param tempSpinner spinner for temperature threshold in auto mode (20-35°C)
+   * @param windSpinner spinner for wind speed limit in auto mode (5-20 m/s)
+   * @param autoStatusLabel label displaying automation status and reason
+   * @param scheduleButton button for accessing schedule configuration
+   */
+  public WindowsCardController(ControlCard card, Label openingLabel,
+                               RadioButton manualMode, RadioButton autoMode, ToggleGroup modeGroup,
+                               Button closedButton, Button slightButton, Button halfButton,
+                               Button mostlyButton, Button openButton,
+                               Slider openingSlider, Label sliderLabel,
+                               Spinner<Integer> tempSpinner, Spinner<Integer> windSpinner,
+                               Label autoStatusLabel, Button scheduleButton, VBox manualBox,
+                               VBox autoBox) {
+    this.card = card;
+    this.openingLabel = openingLabel;
+    this.manualMode = manualMode;
+    this.autoMode = autoMode;
+    this.modeGroup = modeGroup;
+    this.closedButton = closedButton;
+    this.slightButton = slightButton;
+    this.halfButton = halfButton;
+    this.mostlyButton = mostlyButton;
+    this.openButton = openButton;
+    this.openingSlider = openingSlider;
+    this.sliderLabel = sliderLabel;
+    this.tempSpinner = tempSpinner;
+    this.windSpinner = windSpinner;
+    this.autoStatusLabel = autoStatusLabel;
+    this.manualBox = manualBox;
+    this.autoBox = autoBox;
+    this.scheduleButton = scheduleButton;
 
-  * @param builder the Windows card builder instance to control.
-  */
-  public WindowsCardController(WindowsCardBuilder builder) {
-    this.builder = builder;
-    log.debug("WindowsCardController created for builder: {}", builder);
+    log.debug("WindowsCardController wired");
   }
 
   /**
@@ -33,6 +121,38 @@ public class WindowsCardController {
   */
   public void start() {
     log.info("Starting WindowsCardController");
+
+    modeListener = (obs, oldToggle, newToggle) -> {
+      boolean manual = manualMode.isSelected();
+      fx(() -> applyMode(manual));
+      log.debug("Mode changed to {}", manual ? "MANUAL" : "AUTO");
+    };
+
+    modeGroup.selectedToggleProperty().addListener(modeListener);
+
+    sliderListener = (obs, oldVal, newVal) -> {
+      int pos = clampToPercent(newVal.intValue());
+      fx(() -> applyPositionFromSlider(pos));
+      log.trace("Slider moved to {]%", pos);
+    };
+    openingSlider.valueProperty().addListener(sliderListener);
+
+    closedButton.setOnAction(e -> setManualPosition(POSITION_CLOSED));
+    slightButton.setOnAction(e -> setManualPosition(POSITION_SLIGHT));
+    halfButton.setOnAction(e -> setManualPosition(POSITION_HALF));
+    mostlyButton.setOnAction(e -> setManualPosition(POSITION_MOSTLY));
+    openButton.setOnAction(e -> setManualPosition(POSITION_OPEN));
+
+    scheduleButton.setOnAction(e -> {
+      log.info("Schedule button clicked");
+      //TODO: Implement actions
+    });
+
+    fx(() -> {
+      applyMode(true); // Manual by default
+      applyPosition(currentPosition);
+    });
+
     // TODO: Add initialization logic here
     log.debug("WindowsCardController started successfully");
   }
@@ -42,7 +162,212 @@ public class WindowsCardController {
   */
   public void stop() {
     log.info("Stopping WindowsCardController");
-    // TODO: Add cleanup logic here
+
+    if (modeListener != null) {
+      modeGroup.selectedToggleProperty().removeListener(modeListener);
+      modeListener = null;
+    }
+    if (sliderListener != null) {
+      openingSlider.valueProperty().removeListener(sliderListener);
+      sliderListener = null;
+    }
+
+    closedButton.setOnAction(null);
+    slightButton.setOnAction(null);
+    halfButton.setOnAction(null);
+    mostlyButton.setOnAction(null);
+    openButton.setOnAction(null);
+    scheduleButton.setOnAction(null);
+
     log.debug("WindowsCardController stopped successfully");
   }
+
+  /**
+   * Updates the window position display in the UI.
+   *
+   * @param position the current window opening percentage (0-100)
+   */
+  public void updateWindowPosition(int position) {
+    int clamped = clampToPercent(position);
+    fx(() -> applyPosition(clamped));
+    log.debug("Window position updated to {}%", clamped);
+  }
+
+  /**
+  * Processes sensor reading and updates window position in automatic mode.
+  * This method implements the automatic control logic that responds to environmental
+  * conditions.
+
+  * @param currentTemp current temperature reading in degrees Celsius
+  * @param currentWind current wind speed reading in m/s
+  */
+  public void updateFromSensors(double currentTemp, double currentWind) {
+    if (!autoMode.isSelected()) {
+      log.trace("Ignoring sensor update - not in auto mode");
+      return;
+    }
+
+    int tempThreshold = tempSpinner.getValue();
+    int windLimit = windSpinner.getValue();
+
+    log.debug("Processing sensor data - Temp: {}°C (threshold: {}°C), Wind: {} m/s (limit: {} m/s)",
+            String.format("%.1f", currentTemp), tempThreshold,
+            String.format("%.1f", currentWind), windLimit);
+
+    int target;
+    if (currentWind > windLimit) {
+      target = POSITION_CLOSED;
+      updateAutoStatus(true, "Strong wind");
+    } else if (currentTemp >= tempThreshold) {
+      target = POSITION_OPEN;
+      updateAutoStatus(true, "High temperature");
+    } else {
+      target = currentPosition;
+      updateAutoStatus(false, "Within threshold");
+    }
+  }
+
+  /**
+  * Gets the current selected control mode.
+  *
+  * @return MANUAL if manual mode is selected, AUTO if auto mode is selected
+  */
+  public String getCurrentMode() {
+    return manualMode.isSelected() ? "MANUAL" : "AUTO";
+  }
+
+  /**
+  * Gets the current window opening position from the slider.
+  *
+  * @return the current position percentage (0-100)
+  */
+  public int getCurrentPosition() {
+    return (int) openingSlider.getValue();
+  }
+
+  /**
+  * Gets the temperature threshold for automatic window opening.
+  *
+  * @return the temperature threshold in degrees Celsius (°C), range 20-35
+  */
+  public int getTemperatureThreshold() {
+    return tempSpinner.getValue();
+  }
+
+  /**
+  * Gets the wind speed limit for automatic window closing.
+
+  * @return the wind speed limit in m/s
+  */
+  public int getWindSpeedLimit() {
+    return windSpinner.getValue();
+  }
+
+  /**
+  * Updates the auto control status label.
+  * This method updates the status indicator to show the current state
+  * of the automation system. It is typically called when the automation
+  * system takes action based on sensor readings.
+  *
+  * @param isActive true if auto control is actively adjusting windows
+  * @param reason the reason for the current state (e.g., "High temperature", "Strong wind")
+   */
+  public void updateAutoStatus(boolean isActive, String reason) {
+    log.debug("Auto control status update - Active: {}, Reason: {}", isActive, reason);
+
+    fx(() -> {
+      if (isActive) {
+        autoStatusLabel.setText("Auto-control: " + reason);
+        autoStatusLabel.getStyleClass().remove("standby");
+        if (!autoStatusLabel.getStyleClass().contains("active")) {
+          autoStatusLabel.getStyleClass().add("active");
+        }
+      } else {
+        autoStatusLabel.setText("Auto-control: Standby");
+        autoStatusLabel.getStyleClass().remove("active");
+        if (autoStatusLabel.getStyleClass().contains("standby")) {
+          autoStatusLabel.getStyleClass().add("standby");
+        }
+      }
+    });
+  }
+
+  /**
+  * Sets a specific manual position if manual mode is active.
+  *
+  * @param position target window position (0-100)
+  */
+  private void setManualPosition(int position) {
+    if (!manualMode.isSelected()) {
+      log.trace("Preset ignored: not in manual mode");
+      return;
+    }
+    updateWindowPosition(position);
+    // TODO: Send command to backend here if desired
+  }
+
+  /**
+  * Applies position changes triggered by the slider component.
+  *
+  * @param pos slider value in percent
+  */
+  private void applyPositionFromSlider(int pos) {
+    applyPosition(pos);
+  }
+
+  /**
+  * Applies a new window position to both UI labels and card display.
+  *
+  * @param pos target position in percent
+  */
+  private void applyPosition(int pos) {
+    currentPosition = clampToPercent(pos);
+
+    openingSlider.setValue(currentPosition);
+    openingLabel.setText("Opening: " + currentPosition + "%");
+    sliderLabel.setText("Custom: " + currentPosition + "%");
+
+    if (currentPosition == 0) {
+      card.setValueText("CLOSED");
+    } else {
+      card.setValueText("OPEN " + currentPosition + "%");
+    }
+  }
+
+  /**
+  * Switches between manual and automatic modes in the UI.
+  *
+  * @param manual true to activate manual controls, false to activate automatic
+  */
+  private void applyMode(boolean manual) {
+    manualBox.setDisable(!manual);
+    manualBox.setVisible(manual);
+
+    autoBox.setDisable(manual);
+    autoBox.setVisible(!manual);
+  }
+
+  /**
+  * Clamps a value to the valid range [0,100].
+  *
+  * @param v input value
+  * @return clamped value
+  */
+  private static int clampToPercent(int v) {
+    return Math.max(0, Math.min(100, v));
+  }
+
+  /**
+  * Ensures the given runnable executes on the JavaFX Application Thread.
+  *
+  * @param r the runnable to execute on the FX thread
+  */
+  private static void fx(Runnable r) {
+    if (Platform.isFxApplicationThread()) {
+      r.run();
+    } else {
+      Platform.runLater(r);
+    }
+  }
 }
+
