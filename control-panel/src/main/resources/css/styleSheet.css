@@ -348,3 +348,23 @@
 .progress-bar.wind-speed-gale .bar {
     -fx-accent: #D32D2F;
 }
+
+/*--------------- Windows card ---------------*/
+
+.window-auto-info {
+    -fx-font-size: 10px;
+    -fx-text-fill: #888888;
+}
+
+.window-auto-status {
+    -fx-font-size: 11px;
+    -fx-text-fill: #4CAF50
+}
+
+.window-auto-status.active {
+    -fx-text-fill: #4CAF50;
+}
+
+.window-auto-status.standby {
+    -fx-text-fill: #888888;
+}

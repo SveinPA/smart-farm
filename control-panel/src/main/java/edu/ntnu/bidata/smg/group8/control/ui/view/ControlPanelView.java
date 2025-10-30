@@ -249,6 +249,15 @@ public class ControlPanelView {
   }
 
   /**
+   * Gets the windows card.
+   *
+   * @return the windows ControlCard instance
+   */
+  public ControlCard getWindowsCard() {
+    return windSpeedCard;
+  }
+
+  /**
   * Gets the temperature card builder.
   *
   * @return the temperature card builder
