@@ -438,7 +438,7 @@
 }
 
 
-/*--------------- PH CARD ---------------*/
+/*--------------- pH Card ---------------*/
 
 /* Current pH label */
 .ph-current {
@@ -523,4 +523,31 @@
 .ph-stats-title {
     -fx-font-size: 11px;
     -fx-font-weight: bold;
+}
+
+/*--------------- Light Card ---------------*/
+
+.light-intensity-label {
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+}
+
+.light-intensity-slider {
+    -fx-pref-width: 200px;
+}
+
+.light-intensity-slider .track {
+    -fx-background-color: #e0e0e0;
+}
+
+.light-intensity-slider .thumb {
+    -fx-background-color: #ffc107;
+}
+
+.light-intensity-slider .thumb:hover {
+    -fx-background-color: #ffb300;
+}
+
+.light-intensity-slider .bar {
+    -fx-background-color: linear-gradient(to right, #555555, #ffc107);
 }

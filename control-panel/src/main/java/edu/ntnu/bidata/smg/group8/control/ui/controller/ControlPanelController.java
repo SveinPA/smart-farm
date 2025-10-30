@@ -72,8 +72,8 @@ public class ControlPanelController {
             view.getHeaterBuilder());
     humidityController = new HumidityCardController(
             view.getHumidityBuilder());
-    lightController = new LightCardController(
-            view.getLightsBuilder());
+    lightController = getControllerFromCard(
+            view.getLightCard(), LightCardController.class);
     pHController = getControllerFromCard(
             view.getPHCard(), PHCardController.class);
     temperatureController = getControllerFromCard(
@@ -133,7 +133,7 @@ public class ControlPanelController {
     fertilizerController.start();
     heaterController.start();
     humidityController.start();
-    lightController.start();
+    safeStart(lightController, "LightCardController");
     safeStart(pHController, "PHCardController");
     safeStart(temperatureController, "TemperatureCardController");
     safeStart(valveController, "ValveCardController");
@@ -172,7 +172,7 @@ public class ControlPanelController {
     fertilizerController.stop();
     heaterController.stop();
     humidityController.stop();
-    lightController.stop();
+    safeStop(lightController, "LightCardController");
     safeStop(pHController, "PHCardController");
     safeStop(temperatureController, "TemperatureCardController");
     safeStop(valveController, "ValveCardController");
@@ -209,7 +209,7 @@ public class ControlPanelController {
   /**
    * Returns the instance managed by this controller.
 
-   * @return the wind speed controller
+   * @return the windows controller
    */
   public WindowsCardController getWindowsController() {
     return windowsController;
@@ -218,7 +218,7 @@ public class ControlPanelController {
   /**
    * Returns the instance managed by this controller.
 
-   * @return the wind speed controller
+   * @return the valve controller
    */
   public ValveCardController getValveController() {
     return valveController;
@@ -227,7 +227,7 @@ public class ControlPanelController {
   /**
    * Returns the instance managed by this controller.
 
-   * @return the wind speed controller
+   * @return the temperature controller
    */
   public TemperatureCardController getTemperatureController() {
     return temperatureController;
@@ -236,10 +236,19 @@ public class ControlPanelController {
   /**
    * Returns the instance managed by this controller.
 
-   * @return the wind speed controller
+   * @return the pH controller
    */
   public PHCardController getPHController() {
     return pHController;
+  }
+
+  /**
+   * Returns the instance managed by this controller.
+
+   * @return the light controller
+   */
+  public LightCardController getLightController() {
+    return lightController;
   }
 
 
