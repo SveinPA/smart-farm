@@ -134,7 +134,8 @@ public class ControlPanelView {
     log.trace("Humidity card created");
 
     phBuilder = new PHCardBuilder();
-    cards.add(phBuilder.build());
+    phCard = phBuilder.build();
+    cards.add(phCard);
     log.trace("pH card created");
 
     windSpeedBuilder = new WindSpeedCardBuilder();
@@ -279,13 +280,15 @@ public class ControlPanelView {
   }
 
   /**
-  * Gets the temperature card builder.
-  *
-  * @return the temperature card builder
-  */
-  public TemperatureCardBuilder getTemperatureBuilder() {
-    return temperatureBuilder;
+   * Gets the temperature card.
+   *
+   * @return the temperature ControlCard instance
+   */
+  public ControlCard getPHCard() {
+    return phCard;
   }
+
+
 
   /**
   * Gets the humidity card builder.
@@ -294,15 +297,6 @@ public class ControlPanelView {
   */
   public HumidityCardBuilder getHumidityBuilder() {
     return humidityBuilder;
-  }
-
-  /**
-  * Gets the pH card builder.
-  *
-  * @return the pH card builder
-  */
-  public PHCardBuilder getPhBuilder() {
-    return phBuilder;
   }
 
   /**

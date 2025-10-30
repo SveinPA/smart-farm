@@ -436,3 +436,91 @@
     -fx-font-size: 11px;
     -fx-font-weight: BOLD;
 }
+
+
+/*--------------- PH CARD ---------------*/
+
+/* Current pH label */
+.ph-current {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+}
+
+/* Status label - base style */
+.ph-status {
+    -fx-font-size: 12px;
+    -fx-font-style: italic;
+}
+
+/* pH zone colors for status label */
+.ph-status.ph-very-acidic {
+    -fx-text-fill: #f44336; /* Red */
+}
+
+.ph-status.ph-acidic {
+    -fx-text-fill: #ff9800; /* Orange */
+}
+
+.ph-status.ph-slightly-acidic {
+    -fx-text-fill: #8bc34a; /* Light green */
+}
+
+.ph-status.ph-neutral {
+    -fx-text-fill: #4caf50; /* Green */
+}
+
+.ph-status.ph-slightly-alkaline {
+    -fx-text-fill: #2196f3; /* Blue */
+}
+
+.ph-status.ph-alkaline {
+    -fx-text-fill: #3f51b5; /* Dark blue */
+}
+
+.ph-status.ph-very-alkaline {
+    -fx-text-fill: #9c27b0; /* Purple */
+}
+
+/* pH progress bar - base style */
+.ph-bar {
+    -fx-pref-height: 20px;
+}
+
+/* pH zone colors for progress bar */
+.progress-bar.ph-very-acidic .bar {
+    -fx-accent: #f44336;
+}
+
+.progress-bar.ph-acidic .bar {
+    -fx-accent: #ff9800;
+}
+
+.progress-bar.ph-slightly-acidic .bar {
+    -fx-accent: #8bc34a;
+}
+
+.progress-bar.ph-neutral .bar {
+    -fx-accent: #4caf50;
+}
+
+.progress-bar.ph-slightly-alkaline .bar {
+    -fx-accent: #2196f3;
+}
+
+.progress-bar.ph-alkaline .bar {
+    -fx-accent: #3f51b5;
+}
+
+.progress-bar.ph-very-alkaline .bar {
+    -fx-accent: #9c27b0;
+}
+
+/* Statistics */
+.ph-stat {
+    -fx-font-size: 11px;
+}
+
+.ph-stats-title {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
