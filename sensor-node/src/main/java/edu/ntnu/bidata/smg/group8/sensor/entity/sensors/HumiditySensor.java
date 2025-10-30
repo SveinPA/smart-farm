@@ -96,7 +96,7 @@ public class HumiditySensor extends AbstractSensor {
      *
      * @param catalog The DeviceCatalog containing actuators
      */
-    public void setDeviceCatalog(DeviceCatalog catalog) {
+    public void setCatalog(DeviceCatalog catalog) {
         this.catalog = catalog;
     }
 }
