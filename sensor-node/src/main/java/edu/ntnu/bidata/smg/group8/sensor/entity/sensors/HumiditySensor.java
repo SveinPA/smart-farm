@@ -1,6 +1,9 @@
 package edu.ntnu.bidata.smg.group8.sensor.entity.sensors;
 
 import edu.ntnu.bidata.smg.group8.common.sensor.AbstractSensor;
+import edu.ntnu.bidata.smg.group8.sensor.entity.actuators.ValveActuator;
+import edu.ntnu.bidata.smg.group8.sensor.entity.actuators.WindowActuator;
+import edu.ntnu.bidata.smg.group8.sensor.logic.DeviceCatalog;
 
 /**
  * <h3>Simulated Humidity Sensor</h3>
@@ -30,6 +33,7 @@ public class HumiditySensor extends AbstractSensor {
     private static final double MIN_HUMIDITY = 30.0; // Minimum realistic humidity
     private static final double MAX_HUMIDITY = 90.0; // Maximum realistic humidity
     private static final double DRIFT_FACTOR = 0.02; // 2% drift factor (variation) for humidity
+    private DeviceCatalog catalog;
 
     /**
      * Constructor for HumiditySensor. Initializes the humidity sensor
@@ -48,10 +52,51 @@ public class HumiditySensor extends AbstractSensor {
     /**
      * Retrieves the current humidity reading from the sensor.
      *
-     * @return The current humidity reading in percentage (%).
+     * <p>The reading is influenced by:
+     * <ul>
+     *   <li>Valve actuator: Adds ~15% when watering (ON)</li>
+     *   <li>Window actuator: Reduces ~10% when OPEN (ventilation)</li>
+     *   <li>Natural drift: 2% variation to simulate environmental changes</li>
+     * </ul>
+     *
+     * @return The current humidity reading in percentage (%)
      */
     @Override
     public double getReading() {
-        return varyReading(DRIFT_FACTOR);
+        // Start with natural reading (includes base value + natural drift)
+        double humidity = varyReading(DRIFT_FACTOR);
+        
+        // Apply actuator effects if catalog is available
+        if (catalog != null) {
+            var valve = catalog.getActuator("valve");
+            if (valve instanceof ValveActuator) {
+                ValveActuator v = (ValveActuator) valve;
+                if (v.isOpen()) {
+                    humidity += 15.0; // Watering significantly increases humidity
+                }
+            }
+            var window = catalog.getActuator("window");
+            if (window instanceof WindowActuator) {
+                WindowActuator w = (WindowActuator) window;
+                if (w.isOpen()) {
+                    humidity -= 10.0; // Ventilation dries out the air
+                }
+            }
+        }
+        // Clamp to valid humidity range (0-100%)
+        humidity = Math.max(0, Math.min(100, humidity));
+        return Math.round(humidity * 10.0) / 10.0; // Round to 1 decimal
+    }
+
+    /**
+     * Sets the device catalog for the sensor to access actuators.
+     *
+     * <p>This allows the sensor to consider the state of actuators
+     * (like valves and windows) when calculating its readings.</p>
+     *
+     * @param catalog The DeviceCatalog containing actuators
+     */
+    public void setDeviceCatalog(DeviceCatalog catalog) {
+        this.catalog = catalog;
     }
 }
