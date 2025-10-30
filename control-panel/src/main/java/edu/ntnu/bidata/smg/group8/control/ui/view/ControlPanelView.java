@@ -155,7 +155,8 @@ public class ControlPanelView {
     log.trace("Windows card created");
 
     fanBuilder = new FanCardBuilder();
-    cards.add(fanBuilder.build());
+    fanCard = fanBuilder.build();
+    cards.add(fanCard);
     log.trace("Fan card created");
 
     heaterBuilder = new HeaterCardBuilder();
@@ -328,15 +329,13 @@ public class ControlPanelView {
     return fertilizerCard;
   }
 
-
   /**
-   * Gets the fan card builder.
+   * Gets the fan card.
    *
-   * @return the fan card builder
+   * @return the fan ControlCard instance
    */
-  public FanCardBuilder getFanBuilder() {
-    return fanBuilder;
+  public ControlCard getFanCard() {
+    return fanCard;
   }
 }
-
 

@@ -657,3 +657,43 @@
 .fertilizer-quick-button:hover {
     -fx-background-color: #c8e6c9;
 }
+
+/*--------------- Fan Card ---------------*/
+
+.fan-speed {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+}
+
+.fan-slider-label {
+    -fx-font-size: 11px;
+}
+
+.fan-slider {
+    -fx-pref-height: 20px;
+}
+
+.fan-auto-info {
+    -fx-font-size: 10px;
+    -fx-text-fill: #888;
+}
+
+.fan-auto-spinner {
+    -fx-pref-width: 75px;
+}
+
+.fan-auto-spinner .text-field {
+    -fx-alignment: center;
+}
+
+.fan-auto-status {
+    -fx-font-size: 11px;
+    -fx-text-fill: #4caf50;
+    -fx-font-weight: bold;
+}
+
+.fan-auto-note {
+    -fx-font-size: 10px;
+    -fx-font-style: italic;
+    -fx-text-fill: #888;
+}

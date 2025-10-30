@@ -64,8 +64,8 @@ public class ControlPanelController {
   * an active controller linked to its visual component.
   */
   private void initializeControllers() {
-    fanController = new FanCardController(
-            view.getFanBuilder());
+    fanController = getControllerFromCard(
+            view.getFanCard(), FanCardController.class);
     fertilizerController = getControllerFromCard(
             view.getFertilizerCard(), FertilizerCardController.class);
     heaterController = getControllerFromCard(
@@ -129,7 +129,7 @@ public class ControlPanelController {
   public void start() {
     log.info("Starting ControlPanelController and all card controllers");
 
-    fanController.start();
+    safeStart(fanController, "FanCardController");
     safeStart(fertilizerController, "FertilizerCardController");
     safeStart(heaterController, "HeaterCardController");
     safeStart(humidityController, "HumidityCardController");
@@ -168,7 +168,7 @@ public class ControlPanelController {
   public void stop() {
     log.info("Stopping ControlPanelController and all card controllers");
 
-    fanController.stop();
+    safeStop(fanController, "FanCardController");
     safeStop(fertilizerController, "FertilizerCardController");
     safeStop(heaterController, "HeaterCardController");
     safeStop(humidityController, "HumidityCardController");
@@ -276,6 +276,15 @@ public class ControlPanelController {
    */
   public FertilizerCardController getFertilizerController() {
     return fertilizerController;
+  }
+
+  /**
+   * Returns the instance managed by this controller.
+
+   * @return the fan controller
+   */
+  public FanCardController getFanController() {
+    return fanController;
   }
 
 
