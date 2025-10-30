@@ -16,6 +16,7 @@ public final class Protocol {
   public static final String TYPE_REGISTER_CONTROL_PANEL = "REGISTER_CONTROL_PANEL";
   public static final String TYPE_REGISTER_ACK = "REGISTER_ACK";
   public static final String TYPE_SENSOR_DATA = "SENSOR_DATA";
+  public static final String TYPE_ACTUATOR_COMMAND = "ACTUATOR_COMMAND";
   public static final String TYPE_HEARTBEAT = "HEARTBEAT";
   public static final String TYPE_ERROR = "ERROR";
 
