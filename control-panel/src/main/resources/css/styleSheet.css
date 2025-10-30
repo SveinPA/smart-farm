@@ -551,3 +551,48 @@
 .light-intensity-slider .bar {
     -fx-background-color: linear-gradient(to right, #555555, #ffc107);
 }
+
+/*--------------- Humidity Card ---------------*/
+
+.humidity-current {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+}
+
+.humidity-bar {
+    -fx-pref-height: 20px;
+}
+
+.progress-bar.humidity-very-dry .bar {
+    -fx-accent: #f44336;
+}
+
+.progress-bar.humidity-dry .bar {
+    -fx-accent: #ff9800;
+}
+
+.progress-bar.humidity-optimal .bar {
+    -fx-accent: #4caf50;
+}
+
+.progress-bar.humidity-slightly-humid .bar {
+    -fx-accent: #2196f3;
+}
+
+.progress-bar.humidity-humid .bar {
+    -fx-accent: #3f51b5;
+}
+
+.progress-bar.humidity-very-humid .bar {
+    -fx-accent: #9c27b0;
+}
+
+.humidity-stat {
+    -fx-font-size: 11px;
+}
+
+.humidity-stats-title {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+

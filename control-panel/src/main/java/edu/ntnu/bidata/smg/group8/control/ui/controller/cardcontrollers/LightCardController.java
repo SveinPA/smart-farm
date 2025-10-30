@@ -47,8 +47,17 @@ public class LightCardController {
 
   /**
   * Creates new LightCardController with the specified UI components.
+  *
+  * @param card the main card container
+  * @param ambientLabel label displaying ambient light level in lux
+  * @param onButton radio button to turn lights ON
+  * @param offButton radio button to turn lights OFF
+  * @param stateGroup toggle group for ON/OFF state
+  * @param intensitySlider slider controlling light intensity (0-100%)
+  * @param intensityLabel label displaying current intensity percentage
+  * @param intensityBox container for intensity controls
+  * @param scheduleButton button to access scheduling configuration
   */
-
   public LightCardController(ControlCard card, Label ambientLabel, RadioButton onButton,
                              RadioButton offButton, ToggleGroup stateGroup, Slider intensitySlider,
                              Label intensityLabel, VBox intensityBox, Button scheduleButton) {
