@@ -76,8 +76,8 @@ public class ControlPanelController {
             view.getLightsBuilder());
     pHController = new PHCardController(
             view.getPhBuilder());
-    temperatureController = new TemperatureCardController(
-            view.getTemperatureBuilder());
+    temperatureController = getControllerFromCard(
+            view.getTemperatureCard(), TemperatureCardController.class);
     valveController = getControllerFromCard(
             view.getValveCard(), ValveCardController.class);
     windowsController = getControllerFromCard(
@@ -135,7 +135,7 @@ public class ControlPanelController {
     humidityController.start();
     lightController.start();
     pHController.start();
-    temperatureController.start();
+    safeStart(temperatureController, "TemperatureCardController");
     safeStart(valveController, "ValveCardController");
     safeStart(windowsController, "WindowsCardController");
     safeStart(windSpeedController, "WindSpeedCardController");
@@ -174,7 +174,7 @@ public class ControlPanelController {
     humidityController.stop();
     lightController.stop();
     pHController.stop();
-    temperatureController.stop();
+    safeStop(temperatureController, "TemperatureCardController");
     safeStop(valveController, "ValveCardController");
     safeStart(windowsController, "WindowsCardController");
     safeStop(windSpeedController, "WindSpeedCardController");
@@ -223,5 +223,17 @@ public class ControlPanelController {
   public ValveCardController getValveController() {
     return valveController;
   }
+
+  /**
+   * Returns the instance managed by this controller.
+
+   * @return the wind speed controller
+   */
+  public TemperatureCardController getTemperatureController() {
+    return temperatureController;
+  }
+
+
+
 }
 

@@ -125,7 +125,8 @@ public class ControlPanelView {
     List<StackPane> cards = new ArrayList<>();
 
     temperatureBuilder = new TemperatureCardBuilder();
-    cards.add(temperatureBuilder.build());
+    temperatureCard = temperatureBuilder.build();
+    cards.add(temperatureCard);
     log.trace("Temperature card created");
 
     humidityBuilder = new HumidityCardBuilder();
@@ -260,12 +261,21 @@ public class ControlPanelView {
   }
 
   /**
-   * Gets the windows card.
+   * Gets the valve card.
    *
-   * @return the windows ControlCard instance
+   * @return the valve ControlCard instance
    */
   public ControlCard getValveCard() {
     return valveCard;
+  }
+
+  /**
+   * Gets the temperature card.
+   *
+   * @return the temperature ControlCard instance
+   */
+  public ControlCard getTemperatureCard() {
+    return temperatureCard;
   }
 
   /**
