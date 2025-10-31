@@ -96,7 +96,9 @@ public class PanelAgent implements AutoCloseable {
         if (socket != null) {
           socket.close();
         }
-      } catch (Exception ignored) {}
+      } catch (IOException closeEx) {
+        log.debug("Failed to close socket during cleanup: {}", closeEx.getMessage());
+      }
       throw e;
     }
   }
@@ -268,17 +270,23 @@ public class PanelAgent implements AutoCloseable {
       if (in != null) {
         in.close();
       }
-    } catch (Exception ignored) {}
+    } catch (Exception e) {
+      log.debug("Error closing input stream: {}", e.getMessage());
+    }
     try {
       if (out != null) {
         out.close();
       }
-    } catch (Exception ignored) {}
+    } catch (Exception e) {
+      log.debug("Error closing output stream: {}", e.getMessage());
+    }
     try {
       if (socket != null) {
         socket.close();
       }
-    } catch (Exception ignored) {}
+    } catch (Exception e) {
+      log.debug("Error closing socket: {}", e.getMessage());
+    }
   }
 }
 
