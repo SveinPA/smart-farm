@@ -3,6 +3,7 @@ package edu.ntnu.bidata.smg.group8.broker.infra.network;
 import edu.ntnu.bidata.smg.group8.common.protocol.Protocol;
 import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
 import edu.ntnu.bidata.smg.group8.common.util.JsonBuilder;
+import edu.ntnu.bidata.smg.group8.common.protocol.FrameCodec;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;

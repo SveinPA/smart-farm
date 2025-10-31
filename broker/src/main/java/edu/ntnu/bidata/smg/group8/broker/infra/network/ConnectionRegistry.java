@@ -1,6 +1,7 @@
 package edu.ntnu.bidata.smg.group8.broker.infra.network;
 
 import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
+import edu.ntnu.bidata.smg.group8.common.protocol.FrameCodec;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Iterator;
