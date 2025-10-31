@@ -35,7 +35,7 @@ public class PanelAgent implements AutoCloseable {
 
   private final String host;
   private final int port;
-  private final String panelId;
+  private final String nodeId;
   private final StateStore state;
 
   private final AtomicBoolean running = new AtomicBoolean(false);
@@ -50,14 +50,14 @@ public class PanelAgent implements AutoCloseable {
   *
   * @param host the hostname or IP address of the broker server
   * @param port the port number on which the broker is listening
-  * @param panelId the unique identifier for this control panel
+  * @param nodeId the unique identifier for this control panel
   * @param state the state store for managing sensor data and system state
-  * @throws NullPointerException if host, panelId, or state is null
+  * @throws NullPointerException if host, nodeId, or state is null
   */
-  public PanelAgent(String host, int port, String panelId, StateStore state) {
+  public PanelAgent(String host, int port, String nodeId, StateStore state) {
     this.host = Objects.requireNonNull(host);
     this.port = port;
-    this.panelId = Objects.requireNonNull(panelId);
+    this.nodeId = Objects.requireNonNull(nodeId);
     this.state = Objects.requireNonNull(state);
   }
 
@@ -82,10 +82,10 @@ public class PanelAgent implements AutoCloseable {
               "type", Protocol.TYPE_REGISTER_CONTROL_PANEL,
               "protocolVersion", Protocol.PROTOCOL_VERSION,
               "role", Protocol.ROLE_CONTROL_PANEL,
-              "panelId", panelId);
+              "nodeId", nodeId);
 
       ClientFrameCodec.writeFrame(out, ClientFrameCodec.utf8(reg));
-      log.info("REGISTER_CONTROL_PANEL sent for {}", panelId);
+      log.info("REGISTER_CONTROL_PANEL sent for {}", nodeId);
 
       reader = new Thread(this::readLoop, "panel-agent-reader");
       reader.setDaemon(true);
@@ -140,20 +140,29 @@ public class PanelAgent implements AutoCloseable {
   */
   private void handleIncoming(String json) {
     Map<String, String> msg = FlatJson.parse(json);
+    if (msg.isEmpty()) {
+      log.warn("Invalid/unsupported JSON frame, ignoring: {}", json);
+      return;
+    }
     String type = msg.get("type");
     if (type == null) {
-      log.debug("Ignoring message without type: {}", json);
+      log.debug("Missing 'type' in message, ignoring: {}", json);
       return;
     }
 
     switch (type) {
       case Protocol.TYPE_SENSOR_DATA ->  {
-        String nodeId = msg.get("nodeId");
+        String srcNodeId = msg.get("nodeId");
         String sensorKey = msg.get("sensorKey");
         String value = msg.get("value");
         String unit = msg.get("unit");
         long ts = parseLong(msg.get("timestamp"), System.currentTimeMillis());
-        state.applySensor(nodeId, sensorKey, value, unit, Instant.ofEpochMilli(ts));
+
+        if (srcNodeId == null || sensorKey == null || value == null) {
+          log.warn("Missing required fields in SENSOR_DATA: {}", json);
+          return;
+        }
+        state.applySensor(srcNodeId, sensorKey, value, unit, Instant.ofEpochMilli(ts));
       }
 
       case Protocol.TYPE_HEARTBEAT -> {
@@ -209,7 +218,7 @@ public class PanelAgent implements AutoCloseable {
     String payload = (valueOrNull != null)
             ? JsonBuilder.build(
                     "type", Protocol.TYPE_ACTUATOR_COMMAND,
-            "panelId", panelId,
+            "panelId", this.nodeId,
             "nodeId", nodeId,
             "actuator", actuator,
             "action", action,
@@ -217,7 +226,7 @@ public class PanelAgent implements AutoCloseable {
     )
             : JsonBuilder.build(
                     "type", Protocol.TYPE_ACTUATOR_COMMAND,
-            "panelId", panelId,
+            "panelId", this.nodeId,
             "nodeId", nodeId,
             "actuator", actuator,
             "action", action
