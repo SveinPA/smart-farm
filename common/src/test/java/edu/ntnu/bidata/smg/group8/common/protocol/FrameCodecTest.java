@@ -1,4 +1,4 @@
-package edu.ntnu.bidata.smg.group8.broker.infra.network;
+package edu.ntnu.bidata.smg.group8.common.protocol;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;

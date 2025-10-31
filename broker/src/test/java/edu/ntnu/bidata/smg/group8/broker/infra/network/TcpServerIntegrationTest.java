@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import edu.ntnu.bidata.smg.group8.common.protocol.Protocol;
 import edu.ntnu.bidata.smg.group8.common.util.JsonBuilder;
+import edu.ntnu.bidata.smg.group8.common.protocol.FrameCodec;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;

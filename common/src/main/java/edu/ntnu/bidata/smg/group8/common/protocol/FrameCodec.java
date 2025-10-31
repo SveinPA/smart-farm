@@ -1,4 +1,4 @@
-package edu.ntnu.bidata.smg.group8.broker.infra.network;
+package edu.ntnu.bidata.smg.group8.common.protocol;
 
 import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
 import java.io.DataInputStream;
@@ -21,7 +21,7 @@ import org.slf4j.Logger;
  * @see FrameCodec#readFrame(InputStream)
  * @see FrameCodec#writeFrame(OutputStream, byte[])
  */
-final class FrameCodec {
+public final class FrameCodec {
   private static final Logger log = AppLogger.get(FrameCodec.class);
   static final int MAX_FRAME_BYTES = 1_048_576; // 1 MB
 
@@ -35,7 +35,7 @@ final class FrameCodec {
    * @param in the input stream
    * @return the frame payload bytes
    */
-  static byte[] readFrame(InputStream in) throws IOException {
+  public static byte[] readFrame(InputStream in) throws IOException {
     DataInputStream din = (in instanceof DataInputStream) 
         ? (DataInputStream) in 
         : new DataInputStream(in);
@@ -55,7 +55,7 @@ final class FrameCodec {
    * @param out the output stream
    * @param payload the frame payload bytes
    */
-  static void writeFrame(OutputStream out, byte[] payload) throws IOException {
+  public static void writeFrame(OutputStream out, byte[] payload) throws IOException {
     if (payload == null) {
       payload = new byte[0];
     } 
@@ -75,7 +75,7 @@ final class FrameCodec {
    * @param bytes the bytes to decode
    * @return the decoded string
    */
-  static String utf8(byte[] bytes) {
+  public static String utf8(byte[] bytes) {
     return new String(bytes, StandardCharsets.UTF_8);
   }
   
