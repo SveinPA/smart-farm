@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
+
 /**
 * Manages network communication between a control panel and a broker server.
 * This agent handles registration, sensor data reception, and actuator command
@@ -165,6 +166,20 @@ public class PanelAgent implements AutoCloseable {
         state.applySensor(srcNodeId, sensorKey, value, unit, Instant.ofEpochMilli(ts));
       }
 
+      case Protocol.TYPE_ACTUATOR_STATE -> {
+        String srcNodeId = msg.get("nodeId");
+        String actuatorKey = msg.get("actuator");
+        String current = msg.get("state");
+        long ts = parseLong(msg.get("timestamp"), System.currentTimeMillis());
+
+        if (srcNodeId == null || actuatorKey == null || current == null) {
+          log.warn("Missing required fields in ACTUATOR_STATE: {}", json);
+          return;
+        }
+        state.applyActuator(srcNodeId, actuatorKey, current, Instant.ofEpochMilli(ts));
+        log.debug("ACTUATOR_STATE applied nodeId={} actuator={} state={}", srcNodeId, actuatorKey, current);
+      }
+
       case Protocol.TYPE_HEARTBEAT -> {
         log.trace("HEARTBEAT received: {}", json);
       }
@@ -232,9 +247,22 @@ public class PanelAgent implements AutoCloseable {
             "action", action
     );
 
-    ClientFrameCodec.writeFrame(out, ClientFrameCodec.utf8(payload));
-    log.debug("ACTUATOR_COMMAND sent: {}", payload);
+    log.info("Sending ACTUATOR_COMMAND: {}", payload);
+
+    if (out == null) {
+      throw new IOException("OutputStream is null - not connected");
+    }
+
+    try {
+      ClientFrameCodec.writeFrame(out, ClientFrameCodec.utf8(payload));
+      out.flush();
+      log.info("ACTUATOR_COMMAND sent successfully");
+    } catch (IOException e) {
+      log.error("Failed to send ACTUATOR_COMMAND: {}", payload, e);
+      throw e;
+    }
   }
+
 
   /**
   * Sends an actuator command with an integer value to a specific node
