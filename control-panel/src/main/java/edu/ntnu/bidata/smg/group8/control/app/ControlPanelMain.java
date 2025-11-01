@@ -1,6 +1,6 @@
 package edu.ntnu.bidata.smg.group8.control.app;
-
 import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
+import edu.ntnu.bidata.smg.group8.control.console.DisplayManager;
 import edu.ntnu.bidata.smg.group8.control.infra.network.PanelAgent;
 import edu.ntnu.bidata.smg.group8.control.logic.command.CommandInputHandler;
 import edu.ntnu.bidata.smg.group8.control.logic.state.StateStore;
@@ -26,6 +26,8 @@ public final class ControlPanelMain extends Application {
 
   private PanelAgent agent;
   private ControlPanelController controller;
+
+  private DisplayManager consoleDisplay;
 
 
   /**
@@ -64,6 +66,10 @@ public final class ControlPanelMain extends Application {
       controller = new ControlPanelController(view, cmdHandler, stateStore, NODE_ID());
 
       controller.start();
+
+      consoleDisplay = new edu.ntnu.bidata.smg.group8.control.console.DisplayManager(stateStore);
+      consoleDisplay.setClearScreen(true); // eller false hvis ANSI ikke funker i din terminal
+      consoleDisplay.start();
 
       // TEST DATA INJECTION (for development/testing)
 
@@ -149,12 +155,17 @@ public final class ControlPanelMain extends Application {
   */
   private void shutdown() {
     log.info("Shutting down Control Panel");
+
     if (controller != null) {
       try {
         controller.stop();
       } catch (Exception e) {
         log.error("Error stopping controller", e);
       }
+    }
+    if (consoleDisplay != null) {
+      try { consoleDisplay.stop(); } catch (Exception ignore) {}
+      consoleDisplay = null;
     }
     if (agent != null) {
       try {
@@ -165,6 +176,7 @@ public final class ControlPanelMain extends Application {
     }
     log.info("Control Panel stopped");
   }
+
 
   /**
   * Displays error dialog with a title and message.
