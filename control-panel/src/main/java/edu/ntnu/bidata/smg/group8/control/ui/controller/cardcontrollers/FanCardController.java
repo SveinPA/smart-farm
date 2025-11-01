@@ -1,14 +1,21 @@
 package edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers;
 
 import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
+import edu.ntnu.bidata.smg.group8.control.logic.command.CommandInputHandler;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlCard;
-import edu.ntnu.bidata.smg.group8.control.ui.view.cards.FanCardBuilder;
+import java.io.IOException;
+import java.util.Objects;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
-import javafx.scene.control.*;
-import javafx.scene.layout.VBox;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.RadioButton;
+import javafx.scene.control.Slider;
+import javafx.scene.control.Spinner;
+import javafx.scene.control.Toggle;
+import javafx.scene.control.ToggleGroup;
 import org.slf4j.Logger;
 
 /**
@@ -59,6 +66,14 @@ public class FanCardController {
   private EventHandler<ActionEvent> highHandler;
   private EventHandler<ActionEvent> fullHandler;
   private EventHandler<ActionEvent> offHandler;
+
+  private CommandInputHandler cmdHandler;
+  private String nodeId;
+  private final String actuatorKey = "fan";
+
+  private volatile boolean suppressSend = false;
+
+  private Integer lastSentSpeed = null;
 
   /**
    * Creates a new FanCardController with the specified UI components.
@@ -129,9 +144,14 @@ public class FanCardController {
     sliderChangeListener = (obs, oldVal, newVal) -> {
       int value = newVal.intValue();
       sliderLabel.setText("Custom: " + value + "%");
-      setFanSpeed(value);
     };
     speedSlider.valueProperty().addListener(sliderChangeListener);
+
+    speedSlider.setOnMouseReleased(e -> {
+      int finalValue = (int) speedSlider.getValue();
+      setFanSpeed(finalValue);
+    });
+
 
     lowHandler = e -> setFanSpeed(SPEED_LOW);
     lowButton.setOnAction(lowHandler);
@@ -234,15 +254,48 @@ public class FanCardController {
    * @param speed the speed percentage (0-100)
    */
   private void setFanSpeed(int speed) {
-    log.info("Fan speed set to: {}%", speed);
+    final int s = Math.max(0, Math.min(100, speed));
+
+    if (suppressSend) {
+      log.debug("Fan speed set internally to: {}% (external update, no send)", s);
+    } else {
+      log.info("Fan speed set to: {}%", s);
+    }
 
     fx(() -> {
-      currentSpeed = speed;
-      speedSlider.setValue(speed);
-      updateCardValue(speed);
+      currentSpeed = s;
+      speedSlider.setValue(s);
+      updateCardValue(s);
     });
 
-    // TODO: Send command to backend
+    if (!suppressSend && cmdHandler != null && nodeId != null) {
+      if (lastSentSpeed != null && lastSentSpeed == s) {
+        log.debug("Skipping duplicate fan speed send ({}%)", s);
+        return;
+      }
+      sendFanSpeedAsync(s);
+    }
+  }
+
+  /**
+  * This method sends a fan speed command asynchronously to the connected node.
+  *  It creates a new background thread to avoid blocking the JavaFX UI thread
+  *  during network or I/O operations. It communicates the desired fan speed
+  *  to the system through CommandInputHandler.
+  *
+  * @param speed the fan speed percentage (0–100) to send to the backend node
+  */
+  private void sendFanSpeedAsync(int speed) {
+    new Thread(() -> {
+      try {
+        log.debug("Attempting to send fan speed command nodeId={} speed={}", nodeId, speed);
+        cmdHandler.setValue(nodeId, actuatorKey, speed);
+        lastSentSpeed = speed;
+        log.info("Fan speed command sent successfully nodeId={} speed={}", nodeId, speed);
+      } catch (IOException e) {
+        log.error("Failed to send fan speed command nodeId={} speed={}", nodeId, speed, e);
+      }
+    }, "fan-cmd-send").start();
   }
 
   /**
@@ -277,8 +330,21 @@ public class FanCardController {
    * @param speed the speed percentage (0-100)
    */
   public void updateFanSpeed(int speed) {
-    log.debug("External fan speed update: {}%", speed);
-    setFanSpeed(speed);
+    log.info("External fan speed update: {}%", speed);
+    Platform.runLater(() -> {
+      suppressSend = true;
+      setFanSpeed(speed);
+
+      new Thread(() -> {
+        try {
+          Thread.sleep(100);
+        } catch (InterruptedException e) {
+          log.warn("FanCardController sleep was interrupted before completion", e);
+          Thread.currentThread().interrupt();
+        }
+        suppressSend = false;
+      }).start();
+    });
   }
 
   /**
@@ -331,6 +397,22 @@ public class FanCardController {
    */
   public int getHumidityThreshold() {
     return humiditySpinner.getValue();
+  }
+
+  /**
+  * Injects required dependencies for this fan card controller.
+  * This method must be called before the controller can be used, typically during
+  * initialization or setup phase. Both parameters are required and cannot be null.
+  *
+  * @param cmdHandler the command input handler used to process user commands
+  *                   and interactions with the fan card
+  * @param nodeId the unique identifier for the node this controller manages
+  * @throws NullPointerException if either cmdHandler or nodeId is null
+  */
+  public void setDependencies(CommandInputHandler cmdHandler, String nodeId) {
+    this.cmdHandler = Objects.requireNonNull(cmdHandler, "cmdHandler");
+    this.nodeId = Objects.requireNonNull(nodeId, "nodeId");
+    log.debug("FanCardController dependencies injected (nodeId={})", nodeId);
   }
 
   /**

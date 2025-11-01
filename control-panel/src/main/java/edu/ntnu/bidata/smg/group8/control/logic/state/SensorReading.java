@@ -7,7 +7,7 @@ import java.time.Instant;
 *
 * <p> A sensor measures physical conditions in the greenhouse, such as temperature,
 * humidity, light level, or soil quality. This class stores the measured value
-* along with its unit abd the timestamp of the measurement.</p>
+* along with its unit and the timestamp of the measurement.</p>
 *
 * <p>As a record, this class is immutable, making it safe to share between
 * threads without additional synchronization.</p>

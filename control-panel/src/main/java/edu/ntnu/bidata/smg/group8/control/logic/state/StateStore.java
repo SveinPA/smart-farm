@@ -4,6 +4,8 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Consumer;
 
 /**
 * Thread-safe storage for the current state of sensors and actuators
@@ -23,6 +25,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public class StateStore {
   private final Map<String, SensorReading> sensors = new ConcurrentHashMap<>();
   private final Map<String, ActuatorReading> actuators = new ConcurrentHashMap<>();
+  private final CopyOnWriteArrayList<Consumer<ActuatorReading>> actuatorSinks =
+          new CopyOnWriteArrayList<>();
 
   /**
   * Updates or stores a new sensor reading in the state store.
@@ -54,7 +58,11 @@ public class StateStore {
   * @param ts the timestamp when the state was recorded
   */
   public void applyActuator(String nodeId, String type, String state, Instant ts) {
-    actuators.put(nodeId + ":" + type, new ActuatorReading(nodeId, type, state, ts));
+    ActuatorReading ar = new ActuatorReading(nodeId, type, state, ts);
+    actuators.put(nodeId + ":" + type, ar);
+    for (Consumer<ActuatorReading> sink : actuatorSinks) {
+      sink.accept(ar);
+    }
   }
 
   /**
@@ -70,4 +78,25 @@ public class StateStore {
   public StateSnapshot snapshot() {
     return new StateSnapshot(List.copyOf(sensors.values()), List.copyOf(actuators.values()));
   }
+
+  /**
+  * Registers a new listener (sink) that will be notified whenever
+  * an actuator reading is called.
+  *
+  * @param sink a consumer that handles actuator updates, must not be null
+  */
+  public void addActuatorSink(Consumer<ActuatorReading> sink) {
+    actuatorSinks.add(sink);
+  }
+
+  /**
+  * Unregisters a previously added actuator listener.
+  *
+  * @param sink a consumer that handles actuator updates, must not be null
+  */
+  public void removeActuatorSink(Consumer<ActuatorReading> sink) {
+    actuatorSinks.remove(sink);
+  }
+
+
 }

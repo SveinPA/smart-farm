@@ -1,6 +1,9 @@
 package edu.ntnu.bidata.smg.group8.control.ui.controller;
 
 import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
+import edu.ntnu.bidata.smg.group8.control.logic.command.CommandInputHandler;
+import edu.ntnu.bidata.smg.group8.control.logic.state.ActuatorReading;
+import edu.ntnu.bidata.smg.group8.control.logic.state.StateStore;
 import edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers.FanCardController;
 import edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers.FertilizerCardController;
 import edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers.HeaterCardController;
@@ -12,6 +15,8 @@ import edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers.ValveCar
 import edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers.WindSpeedCardController;
 import edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers.WindowsCardController;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlPanelView;
+import java.util.Objects;
+import java.util.function.Consumer;
 import org.slf4j.Logger;
 
 /**
@@ -34,6 +39,9 @@ public class ControlPanelController {
   private static final Logger log = AppLogger.get(ControlPanelController.class);
 
   private final ControlPanelView view;
+  private final CommandInputHandler cmdHandler;
+  private final StateStore stateStore;
+  private final String nodeId;
 
   private FanCardController fanController;
   private FertilizerCardController fertilizerController;
@@ -46,15 +54,24 @@ public class ControlPanelController {
   private WindowsCardController windowsController;
   private WindSpeedCardController windSpeedController;
 
+  private Consumer<ActuatorReading> fanSink;
 
   /**
   * Creates a new ControlPanelController for the given view.
-
+   *
   * @param view the ControlPanelView instance to control
+  * @param cmdHandler handler for sending actuator commands
+  * @param stateStore state store for subscribing to backend updates
+  * @param nodeId the node ID this panel controls
   */
-  public ControlPanelController(ControlPanelView view) {
+  public ControlPanelController(ControlPanelView view, CommandInputHandler cmdHandler,
+                                StateStore stateStore, String nodeId) {
     this.view = view;
-    log.debug("ControlPanelController created for view: {}", view);
+    this.cmdHandler = Objects.requireNonNull(cmdHandler, "cmdHandler");
+    this.stateStore = Objects.requireNonNull(stateStore, "stateStore");
+    this.nodeId = Objects.requireNonNull(nodeId, "nodeId");
+
+    log.debug("ControlPanelController created for view: {} nodeId: {}", view, nodeId);
     initializeControllers();
   }
 
@@ -129,6 +146,26 @@ public class ControlPanelController {
   public void start() {
     log.info("Starting ControlPanelController and all card controllers");
 
+    injectDependencies();
+
+    fanSink = ar -> {
+      if (!nodeId.equals(ar.nodeId())) {
+        return;
+      }
+      if (!"fan".equalsIgnoreCase(ar.type())) {
+        return;
+      }
+      try {
+        int speed = Integer.parseInt(ar.state());
+        if (fanController != null) {
+          fanController.updateFanSpeed(speed);
+        }
+      } catch (NumberFormatException e) {
+        log.warn("Invalid fan state '{}' for nodeId={}", ar.state(), ar.nodeId());
+      }
+    };
+    stateStore.addActuatorSink(fanSink);
+
     safeStart(fanController, "FanCardController");
     safeStart(fertilizerController, "FertilizerCardController");
     safeStart(heaterController, "HeaterCardController");
@@ -162,11 +199,61 @@ public class ControlPanelController {
   }
 
   /**
+   * Injects dependencies (cmdHandler, nodeId) into all card controllers
+   * that support setDependencies().
+   */
+  private void injectDependencies() {
+    log.debug("Injecting dependencies into card controllers (nodeId={})", nodeId);
+
+    safeInject(fanController, "FanCardController");
+    safeInject(fertilizerController, "FertilizerCardController");
+    safeInject(heaterController, "HeaterCardController");
+    safeInject(humidityController, "HumidityCardController");
+    safeInject(lightController, "LightCardController");
+    safeInject(pHController, "PHCardController");
+    safeInject(temperatureController, "TemperatureCardController");
+    safeInject(valveController, "ValveCardController");
+    safeInject(windowsController, "WindowsCardController");
+    safeInject(windSpeedController, "WindSpeedCardController");
+
+    log.debug("Dependency injection completed");
+  }
+
+  /**
+   * Safely invokes setDependencies(cmdHandler, nodeId) on a controller if it exists.
+   *
+   * @param controller the controller instance
+   * @param name the descriptive name for logging
+   */
+  private void safeInject(Object controller, String name) {
+    if (controller != null) {
+      try {
+        controller.getClass()
+                .getMethod("setDependencies", CommandInputHandler.class, String.class)
+                .invoke(controller, cmdHandler, nodeId);
+        log.debug("{} dependencies injected", name);
+      } catch (NoSuchMethodException e) {
+
+        log.trace("{} does not have setDependencies method (read-only)", name);
+      } catch (Exception e) {
+        log.error("Failed to inject dependencies into {}", name, e);
+      }
+    } else {
+      log.warn("{} is null, skipping dependency injection", name);
+    }
+  }
+
+  /**
   * Stops all subsystem controllers and release associated resources.
   * Should be called when the control panel is being closed or refreshed.
   */
   public void stop() {
     log.info("Stopping ControlPanelController and all card controllers");
+
+    if (fanSink != null) {
+      stateStore.removeActuatorSink(fanSink);
+      fanSink = null;
+    }
 
     safeStop(fanController, "FanCardController");
     safeStop(fertilizerController, "FertilizerCardController");
