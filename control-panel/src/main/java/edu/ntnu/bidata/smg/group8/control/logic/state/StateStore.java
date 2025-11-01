@@ -1,11 +1,13 @@
 package edu.ntnu.bidata.smg.group8.control.logic.state;
 
+import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
+import org.slf4j.Logger;
 
 /**
 * Thread-safe storage for the current state of sensors and actuators
@@ -23,8 +25,13 @@ import java.util.function.Consumer;
 * @version 30.10.25
 */
 public class StateStore {
+  private static final Logger log = AppLogger.get(StateStore.class);
+
   private final Map<String, SensorReading> sensors = new ConcurrentHashMap<>();
   private final Map<String, ActuatorReading> actuators = new ConcurrentHashMap<>();
+
+  private final CopyOnWriteArrayList<Consumer<SensorReading>> sensorSinks =
+          new CopyOnWriteArrayList<>();
   private final CopyOnWriteArrayList<Consumer<ActuatorReading>> actuatorSinks =
           new CopyOnWriteArrayList<>();
 
@@ -42,7 +49,17 @@ public class StateStore {
   * @param ts the timestamp when the reading was taken
   */
   public void applySensor(String nodeId, String type, String value, String unit, Instant ts) {
-    sensors.put(nodeId + ":" + type, new SensorReading(nodeId, type, value, unit, ts));
+    SensorReading sr = new SensorReading(nodeId, type, value, unit, ts);
+    sensors.put(nodeId + ":" + type, sr);
+
+    // Notify all sensor sinks
+    for (Consumer<SensorReading> sink : sensorSinks) {
+      try {
+        sink.accept(sr);
+      } catch (Exception e) {
+        log.error("Error in sensor sink for nodeId={} type={}", nodeId, type, e);
+      }
+    }
   }
 
   /**
@@ -60,8 +77,14 @@ public class StateStore {
   public void applyActuator(String nodeId, String type, String state, Instant ts) {
     ActuatorReading ar = new ActuatorReading(nodeId, type, state, ts);
     actuators.put(nodeId + ":" + type, ar);
+
+    // Notify all actuator sinks
     for (Consumer<ActuatorReading> sink : actuatorSinks) {
-      sink.accept(ar);
+      try {
+        sink.accept(ar);
+      } catch (Exception e) {
+        log.error("Error in actuator sink for nodeId={} type={}", nodeId, type, e);
+      }
     }
   }
 
@@ -87,6 +110,7 @@ public class StateStore {
   */
   public void addActuatorSink(Consumer<ActuatorReading> sink) {
     actuatorSinks.add(sink);
+    log.debug("Actuator sink added. Total sinks: {}", actuatorSinks.size());
   }
 
   /**
@@ -96,7 +120,27 @@ public class StateStore {
   */
   public void removeActuatorSink(Consumer<ActuatorReading> sink) {
     actuatorSinks.remove(sink);
+    log.debug("Actuator sink removed. Total sinks: {}", actuatorSinks.size());
   }
 
+  /**
+  * Registers a new listener (sink) that will be notified whenever
+  * a sensor reading is called.
+  *
+  * @param sink a consumer that handles sensor updates, must not be null
+  */
+  public void addSensorSink(Consumer<SensorReading> sink) {
+    sensorSinks.add(sink);
+    log.debug("Sensor sink added. Total sinks: {}", sensorSinks.size());
+  }
 
+  /**
+  * Unregisters a previously added sensor listener.
+  *
+  * @param sink a consumer that handles sensor updates, must not be null
+  */
+  public void removeSensorSink(Consumer<SensorReading> sink) {
+    sensorSinks.remove(sink);
+    log.debug("Sensor sink removed. Total sinks: {}", sensorSinks.size());
+  }
 }

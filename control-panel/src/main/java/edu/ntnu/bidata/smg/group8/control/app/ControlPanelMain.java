@@ -8,6 +8,7 @@ import edu.ntnu.bidata.smg.group8.control.ui.controller.ControlPanelController;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlPanelView;
 import edu.ntnu.bidata.smg.group8.control.ui.view.DashboardView;
 import java.io.IOException;
+import java.time.Instant;
 import java.util.Objects;
 import javafx.application.Application;
 import javafx.scene.Scene;
@@ -64,22 +65,46 @@ public final class ControlPanelMain extends Application {
 
       controller.start();
 
+      // TEST DATA INJECTION (for development/testing)
+
       new Thread(() -> {
         try {
-          Thread.sleep(3000);  // Vent til controller er fullstendig startet
-        } catch (InterruptedException ignored) {}
+          String testNodeId = NODE_ID();
 
-        String nodeId = System.getProperty("node.id", "node-1");
-        java.time.Instant now = java.time.Instant.now();
+          // Wait for UI to initialize
+          Thread.sleep(3000);
 
-        // testing
-        log.info("🧪 Injecting test actuator states...");
-        stateStore.applyActuator(nodeId, "fan", "37", now);
-        stateStore.applyActuator(nodeId, "heater", "22", now);
-        stateStore.applyActuator(nodeId, "valve", "1", now);
-        stateStore.applyActuator(nodeId, "window", "75", now);
-        log.info("✅ Test actuator states injected");
-      }, "test-actuators").start();
+          // TEST ACTUATORS
+          log.info("🧪 Injecting test actuator readings...");
+          Instant now = Instant.now();
+          stateStore.applyActuator(testNodeId, "fan", "75", now);
+          stateStore.applyActuator(testNodeId, "heater", "22", now);
+          stateStore.applyActuator(testNodeId, "valve", "1", now);
+          stateStore.applyActuator(testNodeId, "window", "50", now);
+          log.info("✅ Test actuator readings injected");
+
+          // TEST SENSORS
+          Thread.sleep(2000);
+          log.info("🧪 Injecting test sensor readings...");
+          stateStore.applySensor(testNodeId, "temperature", "24.5", "°C", Instant.now());
+          stateStore.applySensor(testNodeId, "humidity", "65.0", "%", Instant.now());
+          stateStore.applySensor(testNodeId, "wind", "3.2", "m/s", Instant.now());
+          stateStore.applySensor(testNodeId, "fertilizer", "125.0", "ppm", Instant.now());
+          stateStore.applySensor(testNodeId, "light", "850.0", "lux", Instant.now());
+          stateStore.applySensor(testNodeId, "ph", "6.5", "", Instant.now());
+          log.info("✅ Test sensor readings injected");
+
+          // TEST ARTIFICIAL LIGHTS
+          Thread.sleep(2000);
+          log.info("🧪 Injecting artificial light commands...");
+          stateStore.applyActuator(testNodeId, "artificial_light", "75", Instant.now());
+          log.info("✅ Artificial lights set to 75%");
+
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          log.warn("Test data injection interrupted");
+        }
+      }, "test-data-injector").start();
 
       log.debug("Creating Scene with dimensions 1000x700");
       Scene scene = new Scene(view.getRootNode(), 1000, 700);

@@ -1,7 +1,9 @@
 package edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers;
 
 import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
+import edu.ntnu.bidata.smg.group8.control.logic.command.CommandInputHandler;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlCard;
+import java.io.IOException;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.event.ActionEvent;
@@ -14,7 +16,6 @@ import javafx.scene.control.Toggle;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.VBox;
 import org.slf4j.Logger;
-
 
 
 
@@ -43,6 +44,9 @@ public class LightCardController {
   private EventHandler<javafx.event.ActionEvent> offButtonHandler;
   private ChangeListener<Toggle> stateChangeListener;
   private ChangeListener<Number> intensityChangeListener;
+
+  private CommandInputHandler cmdHandler;
+  private String nodeId;
 
 
   /**
@@ -75,59 +79,108 @@ public class LightCardController {
   }
 
   /**
+  * Injects backend dependencies into this controller.
+  *
+  * @param cmdHandler the command handler for sending commands
+  * @param nodeId the node ID this controller manages
+  */
+  private void setDependencies(CommandInputHandler cmdHandler, String nodeId) {
+    this.cmdHandler = cmdHandler;
+    this.nodeId = nodeId;
+    log.debug("LightCardController dependencies injected (nodeId={})", nodeId);
+  }
+
+  /**
   * Initializes event handlers and starts any listeners required by this controller.
   */
   public void start() {
     log.info("Starting LightCardController");
 
+    // Artificial light
     onButtonHandler = e -> {
+      int intensity = (int) intensitySlider.getValue();
+
       fx(() -> {
-        card.setValueText("ON");
-        log.debug("Light turned ON");
+        card.setValueText("On (" + intensity + "%)");
+        log.debug("Artificial lights turned ON at {}%", intensity);
       });
-      //TODO! Send command to backend
+
+      if (cmdHandler != null && nodeId != null) {
+        try {
+          cmdHandler.setValue(nodeId, "artificial_light", intensity);
+          log.info("Artificial light ON command sent (nodeId={}, "
+                  + "intensity={}%)", nodeId, intensity);
+        } catch (IOException ex) {
+          log.error("Failed to send artificial light ON command (nodeId={})", nodeId, ex);
+        }
+      }
     };
     onButton.setOnAction(onButtonHandler);
+
 
     offButtonHandler = e -> {
       fx(() -> {
         card.setValueText("OFF");
-        log.debug("Light turned OFF");
+        log.debug("Artificial lights turned OFF");
       });
-      //TODO! Send command to backend
+      if (cmdHandler != null && nodeId != null) {
+        try {
+          cmdHandler.setValue(nodeId, "artificial_light", 0);
+          log.info("Artificial light OFF command sent (nodeId={})", nodeId);
+        } catch (IOException ex) {
+          log.error("Failed to send artificial light OFF command (nodeId={})", nodeId, ex);
+        }
+      }
     };
     offButton.setOnAction(offButtonHandler);
 
     stateChangeListener = (obs, oldToggle, newToggle) -> {
       if (newToggle == onButton) {
-        fx(() ->
-                card.setValueText("ON"));
+        int intensity = (int) intensitySlider.getValue();
+        fx(() -> card.setValueText("ON (" + intensity + "%)"));
       } else if (newToggle == offButton) {
-        fx(() ->
-                card.setValueText("OFF"));
+        fx(() -> card.setValueText("OFF"));
       }
     };
     stateGroup.selectedToggleProperty().addListener(stateChangeListener);
-    log.debug("LightCardController started successfully");
 
     intensityChangeListener = (obs, oldVal, newVal) -> {
       int newIntensity = newVal.intValue();
       int oldIntensity = oldVal.intValue();
 
-      fx(() ->
-              intensityLabel.setText("Intensity: " + newIntensity + "%"));
+      fx(() -> {
+        intensityLabel.setText("Intensity: " + newIntensity + "%");
+
+        // Update card value text if lights are ON
+        if (onButton.isSelected()) {
+          card.setValueText("ON (" + newIntensity + "%)");
+        }
+      });
 
       if (Math.abs(newIntensity - oldIntensity) >= 5 || newIntensity == 0 || newIntensity == 100) {
-        log.debug("Light intensity adjusted: {}% -> {}%", oldIntensity, newIntensity);
+        log.debug("Artificial light intensity adjusted: {}% -> {}%", oldIntensity, newIntensity);
+
+        if (onButton.isSelected() && cmdHandler != null && nodeId != null) {
+          try {
+            cmdHandler.setValue(nodeId, "artificial_light", newIntensity);
+            log.info("Artificial light intensity command sent (nodeId={}, intensity={}%)",
+                    nodeId, newIntensity);
+          } catch (IOException ex) {
+            log.error("Failed to send artificial light intensity command "
+                            + "(nodeId={}, intensity={}%)",
+                    nodeId, newIntensity, ex);
+          }
+        }
       }
-      // TODO: Send intensity command to backend
     };
     intensitySlider.valueProperty().addListener(intensityChangeListener);
+
 
     scheduleButton.setOnAction(e -> {
       log.info("Schedule button clicked (not implemented)");
       // TODO: Open scheduling dialog
     });
+
     log.debug("LightCardController started successfully");
   }
 
@@ -169,16 +222,42 @@ public class LightCardController {
   * @param lux the ambient light level in lux
   */
   public void updateAmbientLight(double lux) {
-    log.debug("Updating ambient light to: {} lx", String.format("%.0f", lux));
+    log.info("Updating ambient light to: {} lx", String.format("%.0f", lux));
 
-    fx(() ->
-            ambientLabel.setText(String.format("Ambient: %.0f lx", lux)));
+    fx(() -> {
+      ambientLabel.setText(String.format("Ambient: %.0f lux", lux));
+
+      String lightLevel = getLightLevelDescription(lux);
+      log.debug("Ambient light level: {} ({})", lightLevel, String.format("%.0f", lux));
+    });
   }
 
   /**
-  * Sets the light state programmatically.
+  * Gets a readable description of light level.
   *
-  * @param isOn true to turn lights ON, false to turn OFF
+  * @param lux the light level in lux
+  * @return description of the light level
+  */
+  private String getLightLevelDescription(double lux) {
+    if (lux < 100) {
+      return "Dark";
+    }
+    if (lux < 300) {
+      return "Low";
+    }
+    if (lux < 1000) {
+      return "Medium";
+    }
+    if (lux < 10000) {
+      return "Bright";
+    }
+    return "Very Bright";
+  }
+
+  /**
+  * Sets the artificial light state programmatically.
+  *
+  * @param isOn true to turn artificial lights ON, false to turn OFF
   */
   public void setLightState(boolean isOn) {
     log.info("Setting light state to: {}", isOn ? "ON" : "OFF");
@@ -193,9 +272,9 @@ public class LightCardController {
   }
 
   /**
-  * Sets the light intensity programmatically.
+  * Sets the artificial light intensity programmatically.
   *
-  * @param intensity the intensity percentage (0-100)
+  * @param intensity the  intensity percentage (0-100)
   */
   public void setIntensity(int intensity) {
     int clamped = Math.max(0, Math.min(100, intensity));
@@ -205,16 +284,16 @@ public class LightCardController {
   }
 
   /**
-  * Gets the current light state.
+  * Gets the current artificial light state.
   *
-  * @return true if lights are ON, false if OFF
+  * @return true if artificial lights are ON, false if OFF
   */
   public boolean isLightOn() {
     return onButton.isSelected();
   }
 
   /**
-  * Gets the current intensity percentage.
+  * Gets the current artificial light intensity percentage.
   *
   * @return intensity value (0-100)
   */

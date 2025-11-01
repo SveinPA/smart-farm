@@ -3,6 +3,7 @@ package edu.ntnu.bidata.smg.group8.control.ui.controller;
 import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
 import edu.ntnu.bidata.smg.group8.control.logic.command.CommandInputHandler;
 import edu.ntnu.bidata.smg.group8.control.logic.state.ActuatorReading;
+import edu.ntnu.bidata.smg.group8.control.logic.state.SensorReading;
 import edu.ntnu.bidata.smg.group8.control.logic.state.StateStore;
 import edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers.FanCardController;
 import edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers.FertilizerCardController;
@@ -58,6 +59,15 @@ public class ControlPanelController {
   private Consumer<ActuatorReading> heaterSink;
   private Consumer<ActuatorReading> valveSink;
   private Consumer<ActuatorReading> windowSink;
+  private Consumer<ActuatorReading> artificialLightSink;
+
+  private Consumer<SensorReading> fertilizerSink;
+  private Consumer<SensorReading> temperatureSink;
+  private Consumer<SensorReading> humiditySink;
+  private Consumer<SensorReading> windSpeedSink;
+  private Consumer<SensorReading> lightSink;
+  private Consumer<SensorReading> phSink;
+
 
   /**
   * Creates a new ControlPanelController for the given view.
@@ -170,8 +180,12 @@ public class ControlPanelController {
     stateStore.addActuatorSink(fanSink);
 
     heaterSink = ar -> {
-      if (!nodeId.equals(ar.nodeId())) return;
-      if (!"heater".equalsIgnoreCase(ar.type())) return;
+      if (!nodeId.equals(ar.nodeId())) {
+        return;
+      }
+      if (!"heater".equalsIgnoreCase(ar.type())) {
+        return;
+      }
       try {
         int temp = Integer.parseInt(ar.state());
         if (heaterController != null) {
@@ -184,8 +198,12 @@ public class ControlPanelController {
     stateStore.addActuatorSink(heaterSink);
 
     valveSink = ar -> {
-      if (!nodeId.equals(ar.nodeId())) return;
-      if (!"valve".equalsIgnoreCase(ar.type())) return;
+      if (!nodeId.equals(ar.nodeId())) {
+        return;
+      }
+      if (!"valve".equalsIgnoreCase(ar.type())) {
+        return;
+      }
       try {
         int state = Integer.parseInt(ar.state());
         if (valveController != null) {
@@ -198,8 +216,12 @@ public class ControlPanelController {
     stateStore.addActuatorSink(valveSink);
 
     windowSink = ar -> {
-      if (!nodeId.equals(ar.nodeId())) return;
-      if (!"window".equalsIgnoreCase(ar.type())) return;
+      if (!nodeId.equals(ar.nodeId())) {
+        return;
+      }
+      if (!"window".equalsIgnoreCase(ar.type())) {
+        return;
+      }
       try {
         int position = Integer.parseInt(ar.state());
         if (windowsController != null) {
@@ -210,6 +232,147 @@ public class ControlPanelController {
       }
     };
     stateStore.addActuatorSink(windowSink);
+
+    temperatureSink = sr -> {
+      if (!nodeId.equals(sr.nodeId())) {
+        return;
+      }
+      if (!"temperature".equalsIgnoreCase(sr.type())) {
+        return;
+      }
+      if (temperatureController != null) {
+        try {
+          double temp = Double.parseDouble(sr.value());
+          temperatureController.updateTemperature(temp);
+        } catch (NumberFormatException e) {
+          log.warn("Invalid temperature value '{}' for nodeId={}", sr.value(), sr.nodeId());
+        }
+      }
+    };
+    stateStore.addSensorSink(temperatureSink);
+
+    humiditySink = sr -> {
+      if (!nodeId.equals(sr.nodeId())) {
+        return;
+      }
+      if (!"humidity".equalsIgnoreCase(sr.type())) {
+        return;
+      }
+      if (humidityController != null) {
+        try {
+          double humidity = Double.parseDouble(sr.value());
+          humidityController.updateHumidity(humidity);
+        } catch (NumberFormatException e) {
+          log.warn("Invalid humidity value '{}' for nodeId={}", sr.value(), sr.nodeId());
+        }
+      }
+    };
+    stateStore.addSensorSink(humiditySink);
+
+    windSpeedSink = sr -> {
+      if (!nodeId.equals(sr.nodeId())) {
+        return;
+      }
+      if (!"wind".equalsIgnoreCase(sr.type())) {
+        return;
+      }
+      if (windSpeedController != null) {
+        try {
+          double windSpeed = Double.parseDouble(sr.value());
+          windSpeedController.updateWindSpeed(windSpeed);
+        } catch (NumberFormatException e) {
+          log.warn("Invalid wind speed value '{}' for nodeId={}", sr.value(), sr.nodeId());
+        }
+      }
+    };
+    stateStore.addSensorSink(windSpeedSink);
+
+    // Natural light
+    lightSink = sr -> {
+      if (!nodeId.equals(sr.nodeId())) {
+        return;
+      }
+      if (!"light".equalsIgnoreCase(sr.type())
+              && !"ambient_light".equalsIgnoreCase(sr.type())) {
+        return;
+      }
+      if (lightController != null) {
+        try {
+          double lux = Double.parseDouble(sr.value());
+          lightController.updateAmbientLight(lux);
+          log.debug("Ambient light sensor updated: {} lux (nodeId={})", lux, nodeId);
+        } catch (NumberFormatException e) {
+          log.warn("Invalid ambient light value '{}' for nodeId={}", sr.value(), sr.nodeId());
+        }
+      }
+    };
+    stateStore.addSensorSink(lightSink);
+
+    // Artificial light
+    artificialLightSink = ar -> {
+      if (!nodeId.equals(ar.nodeId())) {
+        return;
+      }
+      if (!"artificial_light".equalsIgnoreCase(ar.type())
+              && !"grow_light".equalsIgnoreCase(ar.type())) {
+        return;
+      }
+      if (lightController != null) {
+        try {
+          int intensity = Integer.parseInt(ar.state());
+          if (intensity > 0) {
+            lightController.setLightState(true);
+            lightController.setIntensity(intensity);
+            log.info("Artificial lights turned ON at {}% (nodeId={})", intensity, nodeId);
+          } else {
+            lightController.setLightState(false);
+            log.info("Artificial lights turned OFF (nodeId={})", nodeId);
+          }
+        } catch (NumberFormatException e) {
+          log.warn("Invalid artificial light state '{}' for nodeId={}", ar.state(), ar.nodeId());
+        }
+      }
+    };
+    stateStore.addActuatorSink(artificialLightSink);
+
+    // pH sensor sink
+    phSink = sr -> {
+      if (!nodeId.equals(sr.nodeId())) {
+        return;
+      }
+      if (!"ph".equalsIgnoreCase(sr.type())) {
+        return;
+      }
+      if (pHController != null) {
+        try {
+          double ph = Double.parseDouble(sr.value());
+          pHController.updatePH(ph);
+        } catch (NumberFormatException e) {
+          log.warn("Invalid pH value '{}' for nodeId={}", sr.value(), sr.nodeId());
+        }
+      }
+    };
+    stateStore.addSensorSink(phSink);
+
+    log.info("All sensor sinks registered successfully");
+
+    fertilizerSink = sr -> {
+      if (!nodeId.equals(sr.nodeId())) {
+        return;
+      }
+      if (!"fertilizer".equalsIgnoreCase(sr.type())) {
+        return;
+      }
+      if (fertilizerController != null) {
+        try {
+          double nitrogenPpm = Double.parseDouble(sr.value());
+          fertilizerController.updateNitrogenLevel(nitrogenPpm);
+        } catch (NumberFormatException e) {
+          log.warn("Invalid fertilizer value '{}' for nodeId={}", sr.value(), sr.nodeId());
+        }
+      }
+    };
+    stateStore.addSensorSink(fertilizerSink);
 
     safeStart(fanController, "FanCardController");
     safeStart(fertilizerController, "FertilizerCardController");
@@ -310,6 +473,35 @@ public class ControlPanelController {
     if (windowSink != null) {
       stateStore.removeActuatorSink(windowSink);
       windowSink = null;
+    }
+
+    if (temperatureSink != null) {
+      stateStore.removeSensorSink(temperatureSink);
+      temperatureSink = null;
+    }
+    if (humiditySink != null) {
+      stateStore.removeSensorSink(humiditySink);
+      humiditySink = null;
+    }
+    if (windSpeedSink != null) {
+      stateStore.removeSensorSink(windSpeedSink);
+      windSpeedSink = null;
+    }
+    if (lightSink != null) {
+      stateStore.removeSensorSink(lightSink);
+      lightSink = null;
+    }
+    if (artificialLightSink != null) {
+      stateStore.removeActuatorSink(artificialLightSink);
+      artificialLightSink = null;
+    }
+    if (phSink != null) {
+      stateStore.removeSensorSink(phSink);
+      phSink = null;
+    }
+    if (fertilizerSink != null) {
+      stateStore.removeSensorSink(fertilizerSink);
+      fertilizerSink = null;
     }
 
 
