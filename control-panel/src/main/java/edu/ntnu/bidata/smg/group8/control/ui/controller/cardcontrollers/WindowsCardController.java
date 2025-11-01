@@ -1,7 +1,11 @@
 package edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers;
 
 import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
+import edu.ntnu.bidata.smg.group8.control.logic.command.CommandInputHandler;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlCard;
+import java.io.IOException;
+import java.util.Objects;
+
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.scene.control.Button;
@@ -12,6 +16,8 @@ import javafx.scene.control.Spinner;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.VBox;
 import org.slf4j.Logger;
+
+
 
 /**
 * Controller class responsible for managing the "Windows" control card UI.
@@ -61,6 +67,13 @@ public class WindowsCardController {
 
   private ChangeListener<Object> modeListener;
   private ChangeListener<Number> sliderListener;
+
+  private CommandInputHandler cmdHandler;
+  private String nodeId;
+  private final String actuatorKey = "window";
+
+  private volatile boolean suppressSend = false;
+  private Integer lastSentPosition = null;
 
   /**
    * Creates new WindowsCardController with the specified UI components.
@@ -132,10 +145,17 @@ public class WindowsCardController {
 
     sliderListener = (obs, oldVal, newVal) -> {
       int pos = clampToPercent(newVal.intValue());
+      if (!suppressSend) {
+        log.trace("Slider moved to {}%", pos);
+      }
       fx(() -> applyPositionFromSlider(pos));
-      log.trace("Slider moved to {]%", pos);
     };
     openingSlider.valueProperty().addListener(sliderListener);
+
+    openingSlider.setOnMouseReleased(e -> {
+      int finalPosition = (int) openingSlider.getValue();
+      sendWindowPositionIfNeeded(finalPosition);
+    });
 
     closedButton.setOnAction(e -> setManualPosition(POSITION_CLOSED));
     slightButton.setOnAction(e -> setManualPosition(POSITION_SLIGHT));
@@ -178,19 +198,42 @@ public class WindowsCardController {
     mostlyButton.setOnAction(null);
     openButton.setOnAction(null);
     scheduleButton.setOnAction(null);
+    openingSlider.setOnMouseReleased(null);
 
     log.debug("WindowsCardController stopped successfully");
   }
 
   /**
-   * Updates the window position display in the UI.
-   *
-   * @param position the current window opening percentage (0-100)
-   */
+  * Updates the window position display in the UI.
+  *
+  * @param position the current window opening percentage (0-100)
+  */
   public void updateWindowPosition(int position) {
     int clamped = clampToPercent(position);
+    if (!suppressSend) {
+      log.debug("Window position updated to {}%", clamped);
+    }
     fx(() -> applyPosition(clamped));
-    log.debug("Window position updated to {}%", clamped);
+  }
+
+  /**
+  * Updates the window position externally (e.g., from backend).
+  * Does not trigger a new command send (prevents echo).
+  *
+  * @param position window opening percentage (0-100)
+  */
+  public void updateWindowPositionExternal(int position) {
+    log.info("External window position update: {}%", position);
+    Platform.runLater(() -> {
+      suppressSend = true;
+      updateWindowPosition(position);
+      new Thread(() -> {
+        try {
+          Thread.sleep(100);
+        } catch (InterruptedException ignored) {}
+        suppressSend = false;
+      }).start();
+    });
   }
 
   /**
@@ -302,8 +345,47 @@ public class WindowsCardController {
       log.trace("Preset ignored: not in manual mode");
       return;
     }
+    if (!suppressSend) {
+      log.info("Window position set to: {}%", position);
+    }
     updateWindowPosition(position);
-    // TODO: Send command to backend here if desired
+    sendWindowPositionIfNeeded(position);
+  }
+
+  /**
+  * Sends window command asynchronously to avoid blocking UI thread.
+  *
+  * @param position window opening percentage (0-100)
+  */
+  private void sendWindowCommandAsync(int position) {
+    new Thread(() -> {
+      try {
+        log.debug("Attempting to send window command nodeId={} "
+                + "position={}%", nodeId, position);
+        cmdHandler.setValue(nodeId, actuatorKey, position);
+        lastSentPosition = position;
+        log.info("Window command sent successfully nodeId={} "
+                + "position={}%", nodeId, position);
+      } catch (IOException e) {
+        log.error("Failed to send window command nodeId={} "
+                + "position={}%", nodeId, position, e);
+      }
+    }, "window-cmd-send").start();
+  }
+
+  /**
+  * Sends window position command if conditions are met.
+  *
+  * @param position target position (0-100)
+  */
+  private void sendWindowPositionIfNeeded(int position) {
+    if (!suppressSend && cmdHandler != null && nodeId != null) {
+      if (lastSentPosition != null && lastSentPosition == position) {
+        log.debug("Skipping duplicate window position send ({}%)", position);
+        return;
+      }
+      sendWindowCommandAsync(position);
+    }
   }
 
   /**
@@ -355,6 +437,18 @@ public class WindowsCardController {
   */
   private static int clampToPercent(int v) {
     return Math.max(0, Math.min(100, v));
+  }
+
+  /**
+  * Injects required dependencies for this window card controller.
+  *
+  * @param cmdHandler the command input handler
+  * @param nodeId the node ID this controller manages
+  */
+  public void setDependencies(CommandInputHandler cmdHandler, String nodeId) {
+    this.cmdHandler = Objects.requireNonNull(cmdHandler, "cmdHandler");
+    this.nodeId = Objects.requireNonNull(nodeId, "nodeId");
+    log.debug("WindowsCardController dependencies injected (nodeId={})", nodeId);
   }
 
   /**

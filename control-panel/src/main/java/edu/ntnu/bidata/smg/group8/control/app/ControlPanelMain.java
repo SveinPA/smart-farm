@@ -60,19 +60,26 @@ public final class ControlPanelMain extends Application {
 
       ControlPanelView view = new ControlPanelView();
 
-      new Thread(() -> {
-        try {
-          Thread.sleep(1500);
-        } catch (InterruptedException ignored) {
-
-        }
-        stateStore.applyActuator(System.getProperty("node.id", "node-1"),
-            "fan", "37", java.time.Instant.now());
-      }).start();
-
       controller = new ControlPanelController(view, cmdHandler, stateStore, NODE_ID());
 
       controller.start();
+
+      new Thread(() -> {
+        try {
+          Thread.sleep(3000);  // Vent til controller er fullstendig startet
+        } catch (InterruptedException ignored) {}
+
+        String nodeId = System.getProperty("node.id", "node-1");
+        java.time.Instant now = java.time.Instant.now();
+
+        // testing
+        log.info("🧪 Injecting test actuator states...");
+        stateStore.applyActuator(nodeId, "fan", "37", now);
+        stateStore.applyActuator(nodeId, "heater", "22", now);
+        stateStore.applyActuator(nodeId, "valve", "1", now);
+        stateStore.applyActuator(nodeId, "window", "75", now);
+        log.info("✅ Test actuator states injected");
+      }, "test-actuators").start();
 
       log.debug("Creating Scene with dimensions 1000x700");
       Scene scene = new Scene(view.getRootNode(), 1000, 700);

@@ -55,6 +55,9 @@ public class ControlPanelController {
   private WindSpeedCardController windSpeedController;
 
   private Consumer<ActuatorReading> fanSink;
+  private Consumer<ActuatorReading> heaterSink;
+  private Consumer<ActuatorReading> valveSink;
+  private Consumer<ActuatorReading> windowSink;
 
   /**
   * Creates a new ControlPanelController for the given view.
@@ -166,6 +169,48 @@ public class ControlPanelController {
     };
     stateStore.addActuatorSink(fanSink);
 
+    heaterSink = ar -> {
+      if (!nodeId.equals(ar.nodeId())) return;
+      if (!"heater".equalsIgnoreCase(ar.type())) return;
+      try {
+        int temp = Integer.parseInt(ar.state());
+        if (heaterController != null) {
+          heaterController.updateHeaterTemperature(temp);
+        }
+      } catch (NumberFormatException e) {
+        log.warn("Invalid heater state '{}' for nodeId={}", ar.state(), ar.nodeId());
+      }
+    };
+    stateStore.addActuatorSink(heaterSink);
+
+    valveSink = ar -> {
+      if (!nodeId.equals(ar.nodeId())) return;
+      if (!"valve".equalsIgnoreCase(ar.type())) return;
+      try {
+        int state = Integer.parseInt(ar.state());
+        if (valveController != null) {
+          valveController.updateValveState(state == 1);
+        }
+      } catch (NumberFormatException e) {
+        log.warn("Invalid valve state '{}' for nodeId={}", ar.state(), ar.nodeId());
+      }
+    };
+    stateStore.addActuatorSink(valveSink);
+
+    windowSink = ar -> {
+      if (!nodeId.equals(ar.nodeId())) return;
+      if (!"window".equalsIgnoreCase(ar.type())) return;
+      try {
+        int position = Integer.parseInt(ar.state());
+        if (windowsController != null) {
+          windowsController.updateWindowPositionExternal(position);
+        }
+      } catch (NumberFormatException e) {
+        log.warn("Invalid window state '{}' for nodeId={}", ar.state(), ar.nodeId());
+      }
+    };
+    stateStore.addActuatorSink(windowSink);
+
     safeStart(fanController, "FanCardController");
     safeStart(fertilizerController, "FertilizerCardController");
     safeStart(heaterController, "HeaterCardController");
@@ -254,6 +299,19 @@ public class ControlPanelController {
       stateStore.removeActuatorSink(fanSink);
       fanSink = null;
     }
+    if (heaterSink != null) {
+      stateStore.removeActuatorSink(heaterSink);
+      heaterSink = null;
+    }
+    if (valveSink != null) {
+      stateStore.removeActuatorSink(valveSink);
+      valveSink = null;
+    }
+    if (windowSink != null) {
+      stateStore.removeActuatorSink(windowSink);
+      windowSink = null;
+    }
+
 
     safeStop(fanController, "FanCardController");
     safeStop(fertilizerController, "FertilizerCardController");
