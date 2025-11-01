@@ -4,6 +4,8 @@ import edu.ntnu.bidata.smg.group8.common.protocol.Protocol;
 import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
 import edu.ntnu.bidata.smg.group8.common.util.JsonBuilder;
 import edu.ntnu.bidata.smg.group8.common.protocol.FrameCodec;
+import edu.ntnu.bidata.smg.group8.common.protocol.MessageParser;
+import edu.ntnu.bidata.smg.group8.common.protocol.dto.RegisterMessage;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -12,8 +14,6 @@ import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import org.slf4j.Logger;
 
 
@@ -117,15 +117,17 @@ final class ClientHandler implements Runnable {
    * @throws IOException on I/O errors
    */
   private boolean handleHandshake(String msg, OutputStream out, String who) throws IOException {
-    final String firstType = getType(msg);
+    final RegisterMessage register = MessageParser.parseRegister(msg);
+    final String firstType = register.getType();
+
     if (!(Protocol.TYPE_REGISTER_NODE.equals(firstType)
-          || Protocol.TYPE_REGISTER_CONTROL_PANEL.equals(firstType))) {
+            || Protocol.TYPE_REGISTER_CONTROL_PANEL.equals(firstType))) {
       log.warn("First message from {} was not a REGISTER_* message: {}", who, msg);
       return false;
     }
 
-    role = getField(msg, "role");
-    nodeId = getField(msg, "nodeId");
+    role = register.getRole();
+    nodeId = register.getNodeId();
     if (role == null || nodeId == null) {
       log.warn("REGISTER_* missing role/nodeId from {}: {}", who, msg);
       return false;
@@ -156,7 +158,7 @@ final class ClientHandler implements Runnable {
    * @throws IOException on I/O errors
    */
   private void processMessage(String msg, OutputStream out, String who) throws IOException {
-    final String type = getType(msg);
+    final String type = MessageParser.getType(msg);
 
     if (Protocol.TYPE_HEARTBEAT.equals(type)) {
       handleHeartbeat(who);
@@ -285,16 +287,5 @@ final class ClientHandler implements Runnable {
   private String remote() {
     return socket.getRemoteSocketAddress() != null ? socket.getRemoteSocketAddress().toString()
                 : "unknown";
-  }
-
-  // --------- JSON helpers (temporary until real parser) ---------
-  private static String getType(String json) {
-    return getField(json, "type");
-  }
-
-  private static String getField(String json, String key) {
-    Pattern p = Pattern.compile("\"" + key + "\"\\s*:\\s*\"([^\"]+)\"");
-    Matcher m = p.matcher(json);
-    return m.find() ? m.group(1) : null;
   }
 }
