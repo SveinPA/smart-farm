@@ -1,6 +1,9 @@
 package edu.ntnu.bidata.smg.group8.sensor.logic;
 
+import edu.ntnu.bidata.smg.group8.common.actuator.AbstractActuator;
+import edu.ntnu.bidata.smg.group8.common.protocol.MessageParser;
 import edu.ntnu.bidata.smg.group8.common.protocol.Protocol;
+import edu.ntnu.bidata.smg.group8.common.protocol.dto.ActuatorCommandMessage;
 import edu.ntnu.bidata.smg.group8.common.sensor.Sensor;
 import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
 import edu.ntnu.bidata.smg.group8.common.util.JsonBuilder;
@@ -225,66 +228,91 @@ public class NodeAgent {
     /**
      * Handles incoming messages from the broker.
      *
-     * <p><b>Phone Analogy:</b> When the broker says something (like "Turn heater ON"),
-     * this method figures out what they said and what to do about it.</p>
+     * <p><b>Phone Analogy:</b> When the broker says something, we need to understand
+     * what they mean and respond appropriately. This method listens for messages
+     * like "Turn the fan ON" and figures out what to do. If it's just a "Mhm, are you there?" (heartbeat),
+     * we simply acknowledge it.</p>
+     *
+     * <p>Uses {@link MessageParser} to decode JSON messages into DTOs.</p>
      *
      * <p><b>Message Types Handled:</b></p>
      * <ul>
-     *  <li>Heartbeat: Just logs receipt (broker checking if we're alive)</li
-     * <li>Actuator Command: Parses command and controls the specified actuator</li>
+     *   <li>HEARTBEAT → Logged acknowledgement (broker checking if we're alive)</li>
+     *   <li>ACTUATOR_COMMAND → Parses and executes actuator control</li>
      * </ul>
-     *
-     * <p>This method is meant primarily for actuator commands; sensor data
-     * is handled separately.</p>
      *
      * @param json The received JSON message from the broker
      */
     private void handleIncomingMessage(String json) {
-        if (json.contains("\"type\":\"" + Protocol.TYPE_HEARTBEAT + "\"")) {
-            log.debug("Heartbeat ← broker");
-            return;
-        }
-        if (json.contains("\"type\":\"" + Protocol.TYPE_ACTUATOR_COMMAND + "\"")) {
-            try {
-                String actuatorKey = extractField(json, "actuatorKey");
-                String valueStr = extractField(json, "value");
-                double value = Double.parseDouble(valueStr);
-
-                if (catalog == null) {
-                    log.warn("Catalog not set! Cannot control actuators.");
-                    return;
-                }
-                var actuator = catalog.getActuator(actuatorKey);
-                if (actuator != null) {
-                    actuator.act(value);
-                    log.info("Actuator '{}' set to {}", actuatorKey, value);
-                } else {
-                    log.warn("Unknown actuator: {}", actuatorKey);
-                }
-            } catch (Exception e) {
-                log.error("Failed to handle ACTUATOR_COMMAND: {}", e.getMessage());
+        try { // Try to parse and handle the message
+            String type = MessageParser.getType(json); // Extract message type
+            if (type == null) {
+                log.warn("Received malformed message: {}", json);
+                return;
             }
-            return;
+
+            switch (type) { // Handle based on message type
+                case Protocol.TYPE_HEARTBEAT -> { // Heartbeat message
+                    log.debug("← HEARTBEAT from broker");
+                }
+
+                case Protocol.TYPE_ACTUATOR_COMMAND -> { // Actuator command message
+                    var msg = MessageParser.parseActuatorCommand(json);
+                    handleActuatorCommand(msg);
+                }
+
+                default -> log.debug("Unhandled message type '{}': {}", type, json);
+                // Ignore unknown types
+            }
+        } catch (Exception e) {
+            log.error("Error processing message: {}", e.getMessage(), e);
+            // Log parsing/handling errors
         }
-        log.debug("Received from broker: {}", json);
     }
+
 
     /**
-     * Extracts a field from a JSON string.
+     * Handles an actuator command received from the broker.
      *
-     * <p>The purpose of this method is to retrieve the value associated with a specific key
-     * from a JSON-formatted string. It uses a regular expression to find the key-value
-     * pair and returns the value as a string.</p>
+     * <p><b>Phone Analogy:</b> When the broker says "Turn the fan ON",
+     * this method figures out what they mean and makes it happen. It checks
+     * which actuator they want to control and what action to perform.</p>
      *
-     * @param json The JSON string to extract from
-     * @param key  The key of the field to extract
-     * @return The value of the field, or an empty string if not found
+     * <p>Parses the actuator and numeric value, then invokes the actuator's {@link AbstractActuator#act(double)} method.</p>
+     *
+     * @param msg The parsed {@link ActuatorCommandMessage} containing actuator and action fields
      */
-    private String extractField(String json, String key) {
-        String pattern = "\"" + key + "\"\\s*:\\s*\"([^\"]+)\"";
-        java.util.regex.Matcher m = java.util.regex.Pattern.compile(pattern).matcher(json);
-        return m.find() ? m.group(1) : "";
+    private void handleActuatorCommand(ActuatorCommandMessage msg) {
+        if (catalog == null) { // Ensure catalog is set
+            log.warn("No device catalog set — cannot execute actuator command.");
+            return;
+        }
+
+        String actuatorKey = msg.getActuator(); // e.g., "fan", "window"
+        String action = msg.getAction(); // e.g., "ON", "OFF", "open", "close", "75.0"
+
+        if (actuatorKey == null || action == null) { // Validate fields
+            log.warn("Invalid ACTUATOR_COMMAND (missing actuator or action): {}", msg);
+            return;
+        }
+
+        var actuator = catalog.getActuator(actuatorKey); // Lookup actuator by key
+        if (actuator == null) { // Unknown actuator
+            log.warn("Unknown actuator '{}'", actuatorKey);
+            return;
+        }
+
+        try { // Try to parse action as a numeric value
+            double value = Double.parseDouble(action); // e.g., "75.0" → 75.0
+            actuator.act(value); // Execute actuator command
+            log.info("Actuator '{}' set to {}", actuatorKey, value);
+        } catch (NumberFormatException e) { // Non-numeric action
+            log.error("Invalid numeric value '{}' for actuator '{}'", action, actuatorKey);
+        } catch (Exception e) { // Actuator execution error
+            log.error("Failed to execute actuator command for '{}': {}", actuatorKey, e.getMessage());
+        }
     }
+
 
     /**
      * Sends a prebuilt message to the broker.
