@@ -16,6 +16,7 @@ final class ConnectionRegistry {
   private static final Logger log = AppLogger.get(ConnectionRegistry.class);
 
   private final Map<OutputStream, String> controlPanels = new ConcurrentHashMap<>();
+  private final Map<String, OutputStream> sensorNodes = new ConcurrentHashMap<>();
 
   /**
    * Register a control panel connection.
@@ -29,6 +30,41 @@ final class ConnectionRegistry {
   }
 
   /**
+   * Register a sensor node connection.
+   * 
+   * @param nodeId the unique identifier of the sensor node
+   * @param out the output stream of the sensor node
+   * @param who the identifier of the sensor node (for logging)
+   */
+  void registerSensorNode(String nodeId, OutputStream out, String who) {
+    sensorNodes.put(nodeId, out);
+    log.info("Registered SENSOR_NODE {} ({})", nodeId, who);
+  }
+
+  /**
+   * Unregister a sensor node connection.
+   * 
+   * @param nodeId the unique identifier of the sensor node
+   * @param who the identifier of the sensor node (for logging)
+   */
+  void unregisterSensorNode(String nodeId, String who) {
+    if (nodeId != null) {
+      sensorNodes.remove(nodeId);
+      log.info("Unregistered SENSOR_NODE {} ({})", nodeId, who);
+    }
+  }
+
+  /**
+   * Get the output stream for a sensor node by its node ID.
+   * 
+   * @param nodeId the unique identifier of the sensor node
+   * @return the output stream, or {@code null} if the node is not connected
+   */
+  OutputStream getSensorNodeStream(String nodeId) {
+    return sensorNodes.get(nodeId);
+  }
+
+  /**
    * Unregister a control panel connection.
    *
    * @param out the output stream of the control panel
@@ -39,7 +75,13 @@ final class ConnectionRegistry {
       controlPanels.remove(out);
       log.info("Unregistered CONTROL_PANEL {}", who);
     }
-    
+  }
+
+  /**
+   * Get the number of registered sensor nodes.
+   */
+  int sensorNodeCount() {
+    return sensorNodes.size();
   }
 
   /**

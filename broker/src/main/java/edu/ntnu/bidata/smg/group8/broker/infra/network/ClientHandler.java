@@ -6,6 +6,7 @@ import edu.ntnu.bidata.smg.group8.common.util.JsonBuilder;
 import edu.ntnu.bidata.smg.group8.common.protocol.FrameCodec;
 import edu.ntnu.bidata.smg.group8.common.protocol.MessageParser;
 import edu.ntnu.bidata.smg.group8.common.protocol.dto.RegisterMessage;
+import edu.ntnu.bidata.smg.group8.common.protocol.dto.ActuatorCommandMessage;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -38,6 +39,7 @@ final class ClientHandler implements Runnable {
   private String role = null;
   private String nodeId = null;
   private OutputStream registeredPanelOut;
+  private OutputStream registeredSensorOut;
 
   private long lastSeen = System.currentTimeMillis();
   private int idleMisses = 0;
@@ -146,6 +148,11 @@ final class ClientHandler implements Runnable {
       registeredPanelOut = out;
       log.info("Panels connected: {}", registry.controlPanelCount());
     }
+    if (Protocol.ROLE_SENSOR_NODE.equalsIgnoreCase(role)) {
+      registry.registerSensorNode(nodeId, out, who);
+      registeredSensorOut = out;
+      log.info("Sensor nodes connected: {}", registry.sensorNodeCount());
+    }
     return true;
   }
 
@@ -171,6 +178,12 @@ final class ClientHandler implements Runnable {
       handleSensorData(msg, who);
       return;
     }
+
+    if (Protocol.TYPE_ACTUATOR_COMMAND.equals(type)) {
+      handleActuatorCommand(msg, who);
+      return;
+    }
+
     // unknown type -> ERROR handling could be added here
     log.warn("Unknown message type from {}: {}", who, type);
   }
@@ -196,6 +209,47 @@ final class ClientHandler implements Runnable {
       return;
     }
     registry.broadcastToPanels(msg.getBytes(StandardCharsets.UTF_8));
+  }
+
+  /**
+   * Handle an actuator command message.
+   * Routes the command from a control panel to the target sensor node.
+   * 
+   * @param msg the received message
+   * @param who the client identifier
+   */
+  private void handleActuatorCommand(String msg, String who) {
+    // Only control panels should send actuator commands
+    if (!Protocol.ROLE_CONTROL_PANEL.equalsIgnoreCase(role)) {
+      log.warn("Rejected ACTUATOR_COMMAND from non-panel {} ({})", who, role);
+      return;
+    }
+
+    // Parse the command to extract the target node
+    ActuatorCommandMessage cmd = MessageParser.parseActuatorCommand(msg);
+    String targetNode = cmd.getTargetNode();
+
+    if (targetNode == null || targetNode.trim().isEmpty()) {
+      log.warn("ACTUATOR_COMMAND from {} missing targetNode: {}", who, msg);
+      return;
+    }
+
+    // Look up the sensor node's output stream
+    OutputStream targetOut = registry.getSensorNodeStream(targetNode);
+    if (targetOut == null) {
+      log.warn("ACTUATOR_COMMAND from {} to unknown/disconnected node {}", who, targetNode);
+      // TODO: Send ERROR response to control panel
+      return;
+    }
+
+    // Forward the command to the sensor node
+    try {
+      FrameCodec.writeFrame(targetOut, msg.getBytes(StandardCharsets.UTF_8));
+      log.info("Routed ACTUATOR_COMMAND from {} to sensor node {}", who, targetNode);
+    } catch (IOException e) {
+      log.error("Failed to forward ACTUATOR_COMMAND to {}: {}", targetNode, e.getMessage());
+      // TODO: Send ERROR response to control panel
+    }
   }
 
   /**
@@ -249,6 +303,12 @@ final class ClientHandler implements Runnable {
         registry.unregisterPanel(registeredPanelOut, who); // <-- use the same stream
         registeredPanelOut = null;
         log.info("Panels connected: {}", registry.controlPanelCount());
+      }
+
+      if (Protocol.ROLE_SENSOR_NODE.equalsIgnoreCase(role) && registeredSensorOut != null) {
+        registry.unregisterSensorNode(nodeId, who);
+        registeredSensorOut = null;
+        log.info("Sensor nodes connected: {}", registry.sensorNodeCount());
       }
     } catch (Exception ignored) {
       // ignore

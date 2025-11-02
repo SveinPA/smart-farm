@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import edu.ntnu.bidata.smg.group8.common.protocol.dto.HeartbeatMessage;
 import edu.ntnu.bidata.smg.group8.common.protocol.dto.RegisterMessage;
 import edu.ntnu.bidata.smg.group8.common.protocol.dto.SensorDataMessage;
+import edu.ntnu.bidata.smg.group8.common.protocol.dto.ActuatorCommandMessage;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -214,5 +215,72 @@ class MessageParserTest {
 
     assertNotNull(msg);
     assertEquals("true", msg.getValue());  // Should convert boolean to string
+  }
+
+  // =========== parseActuatorCommand() Tests ==========
+
+  @Test
+  void testParseActuatorCommand_AllFields() {
+    // Arrange
+    String json = "{\"type\":\"ACTUATOR_COMMAND\",\"targetNode\":\"42\",\"actuator\":\"fan\",\"action\":\"ON\"}";
+
+    // Act
+    ActuatorCommandMessage msg = MessageParser.parseActuatorCommand(json);
+
+    // Assert
+    assertNotNull(msg);
+    assertEquals("ACTUATOR_COMMAND", msg.getType());
+    assertEquals("42", msg.getTargetNode());
+    assertEquals("fan", msg.getActuator());
+    assertEquals("ON", msg.getAction());
+  }
+
+  @Test
+  void testParseActuatorCommand_NoTargetNode() {
+    // Arrange - simulates message forwarded to sensor node
+    String json = "{\"type\":\"ACTUATOR_COMMAND\",\"actuator\":\"window\",\"action\":\"open\"}";
+
+    // Act
+    ActuatorCommandMessage msg = MessageParser.parseActuatorCommand(json);
+
+    // Assert
+    assertNotNull(msg);
+    assertEquals("ACTUATOR_COMMAND", msg.getType());
+    assertNull(msg.getTargetNode());
+    assertEquals("window", msg.getActuator());
+    assertEquals("open", msg.getAction());
+  }
+
+  @Test
+  void testParseActuatorCommand_DifferentActuators() {
+    // Arrange
+    String json1 = "{\"type\":\"ACTUATOR_COMMAND\",\"targetNode\":\"1\",\"actuator\":\"heater\",\"action\":\"OFF\"}";
+    String json2 = "{\"type\":\"ACTUATOR_COMMAND\",\"targetNode\":\"2\",\"actuator\":\"valve\",\"action\":\"close\"}";
+
+    // Act
+    ActuatorCommandMessage msg1 = MessageParser.parseActuatorCommand(json1);
+    ActuatorCommandMessage msg2 = MessageParser.parseActuatorCommand(json2);
+
+    // Assert
+    assertEquals("heater", msg1.getActuator());
+    assertEquals("OFF", msg1.getAction());
+    assertEquals("valve", msg2.getActuator());
+    assertEquals("close", msg2.getAction());
+  }
+
+  @Test
+  void testParseActuatorCommand_ExtraWhiteSpace() {
+    // Arrange
+    String json = "{ \"type\" : \"ACTUATOR_COMMAND\" , \"targetNode\" : \"42\" , \"actuator\" : \"fan\" , \"action\" : \"ON\" }";
+
+    // Act
+    ActuatorCommandMessage msg = MessageParser.parseActuatorCommand(json);
+
+    // Assert
+    assertNotNull(json);
+    assertEquals("ACTUATOR_COMMAND", msg.getType());
+    assertEquals("42", msg.getTargetNode());
+    assertEquals("fan", msg.getActuator());
+    assertEquals("ON", msg.getAction());
   }
 }

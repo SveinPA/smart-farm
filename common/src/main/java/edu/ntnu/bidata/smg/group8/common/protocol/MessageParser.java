@@ -1,5 +1,6 @@
 package edu.ntnu.bidata.smg.group8.common.protocol;
 
+import edu.ntnu.bidata.smg.group8.common.protocol.dto.ActuatorCommandMessage;
 import edu.ntnu.bidata.smg.group8.common.protocol.dto.HeartbeatMessage;
 import edu.ntnu.bidata.smg.group8.common.protocol.dto.RegisterMessage;
 import edu.ntnu.bidata.smg.group8.common.protocol.dto.SensorDataMessage;
@@ -21,6 +22,7 @@ import java.util.regex.Pattern;
  * @see RegisterMessage
  * @see SensorDataMessage
  * @see HeartbeatMessage
+ * @see ActuatorCommandMessage
  */
 public final class MessageParser {
 
@@ -39,6 +41,9 @@ public final class MessageParser {
   private static final String FIELD_UNIT = "unit";
   private static final String FIELD_TIMESTAMP = "timestamp";
   private static final String FIELD_DIRECTION = "direction";
+  private static final String FIELD_TARGET_NODE = "targetNode";
+  private static final String FIELD_ACTUATOR = "actuator";
+  private static final String FIELD_ACTION = "action";
 
   private MessageParser() {
     // Util class - no instances allowed
@@ -103,6 +108,24 @@ public final class MessageParser {
     String nodeId = getField(json, FIELD_NODE_ID);
 
     return new HeartbeatMessage(type, direction, protocolVersion, nodeId);
+  }
+
+  /**
+   * Parses an actuator command message (ACTUATOR_COMMAND).
+   * <p>
+   * The {@code targetNode} field is used by the broker for routing,
+   * but may be {@code null} in messages forwarded to sensor nodes.
+   * 
+   * @param json the JSON message string
+   * @return an ActuatorCommandMessage DTO containing the parsed fields
+   */
+  public static ActuatorCommandMessage parseActuatorCommand(String json) {
+    String type = getField(json, FIELD_TYPE);
+    String targetNode = getField(json, FIELD_TARGET_NODE);
+    String actuator = getField(json, FIELD_ACTUATOR);
+    String action = getField(json, FIELD_ACTION);
+
+    return new ActuatorCommandMessage(type, targetNode, actuator, action);
   }
 
   /**
