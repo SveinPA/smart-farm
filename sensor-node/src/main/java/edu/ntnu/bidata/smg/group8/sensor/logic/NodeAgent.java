@@ -340,6 +340,33 @@ public class NodeAgent {
     }
 
     /**
+     * Sends an averaged sensor reading to the broker.
+     *
+     * <p><b>Phone Analogy:</b> Instead of saying "The temperature is 22.5°C" every second,
+     * we say "The average temperature over the last minute is 22.3°C". This reduces
+     * the number of messages we send, making our conversation more efficient.</p>
+     *
+     * <p><b>Current configuration:</b></p>
+     * <ul>
+     *   <li>The last 5 readings (approximately 1-minute aggregate) are averaged before transmission</li>
+     *   <li>Demonstrates support for aggregated data at a coarser resolution</li>
+     * </ul>
+     *
+     * @param sensor The sensor
+     * @param averagedValue The averaged value (from multiple samples)
+     */
+    public void sendAveragedSensorData(Sensor sensor, double averagedValue) {
+        try {
+            String json = SensorDataPacket.build(nodeId, sensor, averagedValue);
+            send(json);
+            log.debug("Sent averaged sensor data: {}", json);
+        } catch (IOException e) {
+            log.error("Failed to send averaged sensor data: {}", e.getMessage());
+        }
+    }
+
+
+    /**
      * Sends a heartbeat message to the broker.
      *
      * <p><b>Phone Analogy:</b> This is like saying "Mhm, I'm still here" on a phone call.
