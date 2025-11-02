@@ -17,13 +17,14 @@ import edu.ntnu.bidata.smg.group8.sensor.logic.NodeAgent;
 import org.slf4j.Logger;
 
 import java.io.IOException;
+import java.util.Map;
 import java.util.Scanner;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-  /**
-   * <h3>Sensor Node Main - Entry Point for Sensor/Actuator Nodes</h3>
+ /**
+   * <h3>Sensor Node Main - Entry Point for Sensor & Actuator Nodes</h3>
    *
    * <p>This class orchestrates all components of a sensor node, including device catalog,
    * network communication, and periodic tasks.</p>
@@ -39,8 +40,25 @@ import java.util.concurrent.TimeUnit;
    *
    * <p><b>Usage:</b></p>
    * <pre>
-   * java SensorNodeMain [brokerHost] [brokerPort] [nodeId]
+   * # Quick start with defaults (no configuration needed)
+   * mvn exec:java -pl sensor-node
+   *
+   * # Custom configuration
+   * mvn exec:java -pl sensor-node -Dexec.args="[brokerHost] [brokerPort] [nodeId]"
+   *
+   * # Example with custom values
+   * mvn exec:java -pl sensor-node -Dexec.args="localhost 23048 greenhouse-1"
+   *
+   * # If you get dependency errors, build the project first:
+   * mvn clean install
    * </pre>
+   *
+   * <p><b>Default Configuration:</b></p>
+   * <ul>
+   *   <li><b>Broker Host:</b> localhost</li>
+   *   <li><b>Broker Port:</b> 23048</li>
+   *   <li><b>Node ID:</b> Auto-generated (e.g., sensor-node-a3f2)</li>
+   * </ul>
    *
    * <p><b>Important Notes:</b></p>
    * <ul>
@@ -56,23 +74,27 @@ import java.util.concurrent.TimeUnit;
   public final class SensorNodeMain {
 
   private static final Logger log = AppLogger.get(SensorNodeMain.class);
+  private static final Map<String, java.util.Deque<Double>> recentReadings = new java.util.HashMap<>();
 
   // ============================================================
   // CONFIGURATION CONSTANTS
 
-  // Default broker hostname if not specified via command line.
+  // Default broker hostname if not specified via command line
   private static final String DEFAULT_BROKER_HOST = "localhost";
 
-  // Default broker port if not specified via command line.
+  // Default broker port if not specified via command line
   private static final int DEFAULT_BROKER_PORT = 23048;
 
-  // Default node ID if not specified via command line.
+  // Default node ID if not specified via command line
   private static final String DEFAULT_NODE_ID = "sensor-node";
 
-  // Interval for sending sensor data to the broker (in seconds).
-  private static final int SENSOR_DATA_INTERVAL_SECONDS = 5;
+  // Interval for sending sensor data to the broker (how often)
+  private static final int SENSOR_DATA_INTERVAL_SECONDS = 12; // in seconds
 
-  // Interval for sending heartbeat messages to the broker (in seconds).
+  // Number of samples to average for sensor data (how much data)
+  private static final int AVERAGE_SAMPLE_COUNT = 5;
+
+  // Interval for sending heartbeat messages to the broker (in seconds)
   private static final int HEARTBEAT_INTERVAL_SECONDS = 30;
 
   /**
@@ -170,6 +192,8 @@ import java.util.concurrent.TimeUnit;
 
       log.info("Periodic tasks started (sensor data every {}s, heartbeat every {}s)",
           SENSOR_DATA_INTERVAL_SECONDS, HEARTBEAT_INTERVAL_SECONDS);
+      log.info("Averaging enabled: keeping {} samples per sensor (~1 minute window).",
+          AVERAGE_SAMPLE_COUNT);
 
       // Step 5: Set up graceful shutdown
       final NodeAgent shutdownAgent = agent;
@@ -225,34 +249,36 @@ import java.util.concurrent.TimeUnit;
    */
   private static void sendAllSensorData(NodeAgent agent, DeviceCatalog catalog) {
     try {
-      // Check if still connected before sending
-      if (!agent.isConnected()) {
+      if (!agent.isConnected()) { // Pre-check connection
         log.error("Connection to broker lost! Shutting down...");
         System.exit(1);
       }
 
-        for (Sensor sensor : catalog.getAllSensors()) {
-            try { // Try-catch per sensor to continue on individual failures
-                agent.sendSensorData(sensor);
-            } catch (Exception e) {
-                log.warn("Failed to send data for sensor {}: {}", sensor.getKey(), e.getMessage());
-                // Continue with remaining sensors
-            }
+      for (Sensor sensor : catalog.getAllSensors()) {
+        double value = sensor.getReading();
+        // Keep 5 most recent readings for averaging
+        recentReadings
+            .computeIfAbsent(sensor.getKey(), k -> new java.util.ArrayDeque<>())
+            .add(value);
+
+        if (recentReadings.get(sensor.getKey()).size() > AVERAGE_SAMPLE_COUNT) {
+          recentReadings.get(sensor.getKey()).removeFirst();
         }
-      log.debug("Sent data for {} sensors", catalog.getSensorCount());
+        double avg = recentReadings.get(sensor.getKey())
+            .stream()
+            .mapToDouble(Double::doubleValue)
+            .average()
+            .orElse(value);
+
+        // Send the average reading
+        agent.sendAveragedSensorData(sensor, avg);
+      }
+      log.debug("Sent averaged data for {} sensors", catalog.getSensorCount());
     } catch (Exception e) {
       log.error("Error sending sensor data: {}", e.getMessage());
-
-      // If it's a connection error, exit immediately
-      String errorMsg = e.getMessage();
-      if (errorMsg != null && (errorMsg.contains("Broken pipe")
-          || errorMsg.contains("Connection reset")
-          || errorMsg.contains("Socket closed"))) {
-        log.error("Fatal connection error! Broker connection lost. Exiting...");
-        System.exit(1);
-      }
     }
   }
+
 
   // ============================================================
   // INITIALIZATION METHODS
