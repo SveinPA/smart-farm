@@ -21,6 +21,7 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
+import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -69,7 +70,7 @@ import java.util.concurrent.TimeUnit;
  * @see DeviceCatalog
  * @see NodeAgent
  */
-  public final class SensorNodeMain {
+public final class SensorNodeMain {
 
   private static final Logger log = AppLogger.get(SensorNodeMain.class);
   private static final Map<String, Deque<Double>> recentReadings = new HashMap<>();
@@ -128,70 +129,102 @@ import java.util.concurrent.TimeUnit;
   public static void main(String[] args) {
     log.info("=== Smart Farm Sensor Node Starting ===");
 
-    // Parse command line arguments with defaults
+    // Step 1-2: Parse arguments and log configuration
+    NodeConfiguration cfg = parseArguments(args);
+    logStartupInfo(cfg);
+
+    // Step 3-6: Initialize components, start tasks, and wait for shutdown
+    try {
+        DeviceCatalog catalog = createDeviceCatalog(cfg.sensorConfig); // Step 3: Create catalog
+        NodeAgent agent = initializeAgent(cfg, catalog); // Step 4: Connect agent
+        ScheduledExecutorService scheduler = startScheduledTasks(agent, catalog); // Step 5: Start tasks
+
+        setupShutdownHook(agent, scheduler); // Step 6: Setup shutdown hook
+        waitForUserInput(); // Wait for user to press ENTER
+        shutdown(agent, scheduler); // Clean shutdown
+
+    } catch (Exception e) { // Step 3-6 error handling
+        handleFatalError(e);
+    }
+  }
+
+  /**
+   * Parses command line arguments and builds a configuration object.
+   *
+   * <p>Expected order: {@code [brokerHost] [brokerPort] [nodeId] [sensorConfig]}.
+   * If any argument is missing, defaults are applied automatically.</p>
+   *
+   * @param args Command line arguments array
+   * @return Populated {@link NodeConfiguration} with resolved defaults
+   */
+  private static NodeConfiguration parseArguments(String[] args) {
     String brokerHost = args.length > 0 ? args[0] : DEFAULT_BROKER_HOST;
     int brokerPort = args.length > 1 ? Integer.parseInt(args[1]) : DEFAULT_BROKER_PORT;
-    String nodeId = args.length > 2 // Check if node ID provided, length has to be > 2
-        ? args[2] // Use provided node ID, 2nd argument
-        : DEFAULT_NODE_ID + "-" + java.util.UUID.randomUUID().toString().substring(0, 4);
+    String nodeId = args.length > 2
+        ? args[2]
+        : DEFAULT_NODE_ID + "-" + UUID.randomUUID().toString().substring(0, 4);
         // Generate unique node ID if not provided - default name + random 4-char suffix
         // Example: sensor-node-1234
     String sensorConfig = args.length > 3 ? args[3] : null;
     // Optional sensor configuration (comma-separated types), or null for all sensors (default)
 
+    return new NodeConfiguration(brokerHost, brokerPort, nodeId, sensorConfig);
+  }
+
+  /**
+   * Logs the startup configuration in a readable format.
+   *
+   * @param cfg The configuration object containing node parameters
+   */
+  private static void logStartupInfo(NodeConfiguration cfg) {
     log.info("Configuration:");
-    log.info("  Node ID: {}", nodeId);
-    log.info("  Broker: {}:{}", brokerHost, brokerPort);
-    if (sensorConfig != null) { // Guard Condition:
-      log.info("  Sensors: {}", sensorConfig);
-    } else {
-      log.info("  Sensors: all (default)");
-    }
+    log.info("  Node ID: {}", cfg.nodeId);
+    log.info("  Broker: {}:{}", cfg.brokerHost, cfg.brokerPort);
+    log.info("  Sensors: {}", cfg.sensorConfig != null ? cfg.sensorConfig : "all (default)");
+  }
 
-    ScheduledExecutorService scheduler = null;
-    NodeAgent agent = null;
+  /**
+   * Initializes the NodeAgent and establishes connection to the broker.
+   *
+   * <p>This method encapsulates connection setup and error handling for clarity.</p>
+   *
+   * @param cfg     Node configuration object
+   * @param catalog The DeviceCatalog to associate with the agent
+   * @return Initialized and connected {@link NodeAgent}
+   * @throws IOException if connection fails
+   */
+  private static NodeAgent initializeAgent(NodeConfiguration cfg, DeviceCatalog catalog) throws IOException {
+    NodeAgent agent = new NodeAgent(cfg.nodeId, cfg.brokerHost, cfg.brokerPort);
+    agent.setCatalog(catalog);
+    log.info("Connecting to broker at {}:{}...", cfg.brokerHost, cfg.brokerPort);
+    agent.connect();
+    log.info("Successfully connected to broker!");
+    return agent;
+  }
 
-    try {
-      // Step 1: Create and populate device catalog
-      DeviceCatalog catalog = createDeviceCatalog(sensorConfig);
-      log.info("Device catalog created: {}", catalog.summary());
+  /**
+   * Starts periodic background tasks for sensor data updates and heartbeats.
+   *
+   * @param agent   Connected {@link NodeAgent}
+   * @param catalog Device catalog for reading sensors
+   * @return Scheduled executor service managing background tasks
+   */
+  private static ScheduledExecutorService startScheduledTasks(NodeAgent agent, DeviceCatalog catalog) {
+      ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
 
-      // Step 2: Create node agent for communication
-      agent = new NodeAgent(nodeId, brokerHost, brokerPort);
-      agent.setCatalog(catalog); // Link catalog to agent
-      log.info("NodeAgent created for node '{}'", nodeId);
-
-      // Step 3: Connect to broker
-      log.info("Connecting to broker at {}:{}...", brokerHost, brokerPort);
-      agent.connect();
-      log.info("Successfully connected to broker!");
-
-      // Step 4: Start periodic tasks
-      scheduler = Executors.newScheduledThreadPool(2);
-
-      // Task 1: Send sensor data periodically
-      final NodeAgent finalAgent = agent;
+      scheduler.scheduleAtFixedRate(() ->
+          sendAllSensorData(agent, catalog),
+          0, SENSOR_DATA_INTERVAL_SECONDS, TimeUnit.SECONDS
+      );
       scheduler.scheduleAtFixedRate(() -> {
-        sendAllSensorData(finalAgent, catalog);
-      }, 0, SENSOR_DATA_INTERVAL_SECONDS, TimeUnit.SECONDS);
-
-      // Task 2: Send heartbeat periodically with error detection
-      scheduler.scheduleAtFixedRate(() -> {
-        try {
-          // Check connection before sending heartbeat
-          if (!finalAgent.isConnected()) {
-            log.error("Lost connection during heartbeat check! Exiting...");
-            System.exit(1);
+      try {
+          if (!agent.isConnected()) {
+              log.error("Lost connection during heartbeat check! Exiting...");
+              System.exit(1);
           }
-          finalAgent.sendHeartbeat();
+          agent.sendHeartbeat();
         } catch (Exception e) {
-          log.error("Heartbeat failed: {}", e.getMessage());
-          // If connection error, exit
-          String errorMsg = e.getMessage();
-          if (errorMsg != null && errorMsg.contains("Broken pipe")) {
-            log.error("Connection lost! Exiting...");
-            System.exit(1);
-          }
+            log.error("Heartbeat failed: {}", e.getMessage());
         }
       }, HEARTBEAT_INTERVAL_SECONDS, HEARTBEAT_INTERVAL_SECONDS, TimeUnit.SECONDS);
 
@@ -199,41 +232,60 @@ import java.util.concurrent.TimeUnit;
           SENSOR_DATA_INTERVAL_SECONDS, HEARTBEAT_INTERVAL_SECONDS);
       log.info("Averaging enabled: keeping {} samples per sensor (~1 minute window).",
           AVERAGE_SAMPLE_COUNT);
+      return scheduler;
+  }
 
-      // Step 5: Set up graceful shutdown
-      final NodeAgent shutdownAgent = agent;
-      final ScheduledExecutorService shutdownScheduler = scheduler;
-      setupShutdownHook(shutdownAgent, shutdownScheduler);
-
-      // Step 6: Keep running and wait for user to stop
-      log.info("Sensor node '{}' is now running. Press ENTER to stop.", nodeId);
-      waitForUserInput();
-
-      // Step 7: Clean shutdown
-      log.info("Shutting down sensor node '{}'...", nodeId);
-      scheduler.shutdown();
-      if (!scheduler.awaitTermination(5, TimeUnit.SECONDS)) {
-        scheduler.shutdownNow();
-      }
-      agent.disconnect();
-      log.info("Sensor node stopped successfully.");
-
-    } catch (IOException e) {
-      log.error("Connection error: {}", e.getMessage(), e);
-      System.exit(1);
-    } catch (Exception e) {
-      log.error("Fatal error in sensor node: {}", e.getMessage(), e);
-      System.exit(1);
-    } finally {
-      // Cleanup in case of unexpected errors
-      if (scheduler != null && !scheduler.isShutdown()) {
-        scheduler.shutdownNow();
-      }
-      if (agent != null && agent.isConnected()) {
+  /**
+   * Shuts down scheduler and disconnects agent cleanly.
+   *
+   * <p>This method ensures that all resources are released properly
+   * before the application exits.</p>
+   *
+   * @param agent     The NodeAgent
+   * @param scheduler The task scheduler
+   */
+  private static void shutdown(NodeAgent agent, ScheduledExecutorService scheduler) {
+    try {
+        log.info("Shutting down sensor node...");
+        scheduler.shutdown();
+        if (!scheduler.awaitTermination(5, TimeUnit.SECONDS)) {
+            scheduler.shutdownNow();
+        }
         agent.disconnect();
-      }
+        log.info("Sensor node stopped successfully.");
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        log.warn("Shutdown interrupted: {}", e.getMessage());
     }
   }
+
+  /**
+   * Handles fatal exceptions that occur during startup or runtime.
+   *
+   * <p>This method logs the error and exits the application.</p>
+   *
+   * @param e Exception that caused failure
+   */
+  private static void handleFatalError(Exception e) {
+    log.error("Fatal error in sensor node: {}", e.getMessage(), e);
+    System.exit(1);
+  }
+
+  /**
+   * Immutable configuration holder for node startup parameters.
+   *
+   * <p>Holds:</p>
+   * <ul>
+   *  <li><b>Broker hostname</b></li>
+   * <li><b>Broker port</b></li>
+   * <li><b>Node identifier</b></li>
+   * <li><b>Sensor configuration string</b></li>
+   * </ul>
+   *
+   * <p>A record is used for simplicity and immutability.</p>
+   */
+  private record NodeConfiguration(String brokerHost, int brokerPort, String nodeId, String sensorConfig){}
+
 
   // ============================================================
   // PERIODIC TASK METHODS
