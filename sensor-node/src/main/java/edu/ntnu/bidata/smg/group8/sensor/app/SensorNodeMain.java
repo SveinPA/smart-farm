@@ -22,38 +22,38 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-/**
- * <h3>Sensor Node Main - Entry Point for Sensor/Actuator Nodes</h3>
- *
- * <p>This class orchestrates all components of a sensor node, including device catalog,
- * network communication, and periodic tasks.</p>
- *
- * <p><b>Key Responsibilities:</b></p>
- * <ul>
- *   <li>Initialization of sensors and actuators</li>
- *   <li>Establishing TCP connection to the broker via {@link NodeAgent}</li>
- *   <li>Periodic broadcasting of sensor readings</li>
- *   <li>Sending heartbeat messages to maintain connection</li>
- *   <li>Graceful shutdown management</li>
- * </ul>
- *
- * <p><b>Usage:</b></p>
- * <pre>
- * java SensorNodeMain [brokerHost] [brokerPort] [nodeId]
- * </pre>
- *
- * <p><b>Important Notes:</b></p>
- * <ul>
- *   <li>Broker must be running before starting sensor nodes</li>
- *   <li>Each node is given a unique node ID</li>
- * </ul>
- *
- * @author Ida Soldal
- * @version 29.10.2025
- * @see DeviceCatalog
- * @see NodeAgent
- */
-public final class SensorNodeMain {
+  /**
+   * <h3>Sensor Node Main - Entry Point for Sensor/Actuator Nodes</h3>
+   *
+   * <p>This class orchestrates all components of a sensor node, including device catalog,
+   * network communication, and periodic tasks.</p>
+   *
+   * <p><b>Key Responsibilities:</b></p>
+   * <ul>
+   *   <li>Initialization of sensors and actuators</li>
+   *   <li>Establishing TCP connection to the broker via {@link NodeAgent}</li>
+   *   <li>Periodic broadcasting of sensor readings</li>
+   *   <li>Sending heartbeat messages to maintain connection</li>
+   *   <li>Graceful shutdown management</li>
+   * </ul>
+   *
+   * <p><b>Usage:</b></p>
+   * <pre>
+   * java SensorNodeMain [brokerHost] [brokerPort] [nodeId]
+   * </pre>
+   *
+   * <p><b>Important Notes:</b></p>
+   * <ul>
+   *   <li>Broker must be running before starting sensor nodes</li>
+   *   <li>Each node is given a unique node ID</li>
+   * </ul>
+   *
+   * @author Ida Soldal
+   * @version 29.10.2025
+   * @see DeviceCatalog
+   * @see NodeAgent
+   */
+  public final class SensorNodeMain {
 
   private static final Logger log = AppLogger.get(SensorNodeMain.class);
 
@@ -91,28 +91,17 @@ public final class SensorNodeMain {
   /**
    * Main entry point for the sensor node application.
    *
-   * <p>This method orchestrates the entire lifecycle of a sensor node:</p>
+   * <p><b>Lifecycle:</b></p>
    * <ol>
-   *   <li>Parse command line arguments</li>
-   *   <li>Initialize device catalog with sensors and actuators</li>
-   *   <li>Create and connect NodeAgent to broker</li>
-   *   <li>Start periodic tasks for data transmission and heartbeat</li>
-   *   <li>Wait for user termination signal</li>
-   *   <li>Perform clean shutdown</li>
+   *   <li>Parse command line arguments (with defaults)</li>
+   *   <li>Create device catalog with sensors/actuators</li>
+   *   <li>Connect NodeAgent to broker</li>
+   *   <li>Start periodic tasks (sensor data + heartbeat)</li>
+   *   <li>Wait for user termination (ENTER key)</li>
+   *   <li>Clean shutdown</li>
    * </ol>
    *
-   * <p><b>Command Line Arguments:</b></p>
-   * <ul>
-   *   <li><code>args[0]</code> - Broker hostname (default: localhost)</li>
-   *   <li><code>args[1]</code> - Broker port (default: 23048)</li>
-   *   <li><code>args[2]</code> - Node ID (default: node-1)</li>
-   * </ul>
-   *
-   * <p><b>Exit Codes:</b></p>
-   * <ul>
-   *   <li><code>0</code> - Normal shutdown</li>
-   *   <li><code>1</code> - Connection error or fatal exception</li>
-   * </ul>
+   * <p><b>Usage:</b> {@code java SensorNodeMain [brokerHost] [brokerPort] [nodeId]}</p>
    *
    * @param args Command line arguments: [brokerHost] [brokerPort] [nodeId]
    */
