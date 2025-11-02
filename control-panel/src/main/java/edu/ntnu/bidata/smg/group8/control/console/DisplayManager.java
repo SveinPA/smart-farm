@@ -5,6 +5,8 @@ import edu.ntnu.bidata.smg.group8.control.logic.state.ActuatorReading;
 import edu.ntnu.bidata.smg.group8.control.logic.state.SensorReading;
 import edu.ntnu.bidata.smg.group8.control.logic.state.StateSnapshot;
 import edu.ntnu.bidata.smg.group8.control.logic.state.StateStore;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.concurrent.Executors;
@@ -53,18 +55,18 @@ import org.slf4j.Logger;
 public class DisplayManager {
   private static final Logger log = AppLogger.get(DisplayManager.class);
 
-  private static final String CLEAR_HOME = "\u001b[H\u001b[2J";
+  private static final DateTimeFormatter TIME_FORMATTER =
+          DateTimeFormatter.ofPattern("HH:mm:ss").withZone(ZoneId.systemDefault());
+
+  private static final DateTimeFormatter TIMESTAMP_FORMATTER =
+          DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.systemDefault());
 
   private final StateStore stateStore;
-
-  private final ScheduledExecutorService scheduler =
-      Executors.newSingleThreadScheduledExecutor(r -> {
-        Thread t = new Thread(r, "console-display");
-        t.setDaemon(true);
-        return t;
-      });
+  private final ScheduledExecutorService scheduler;
 
   private volatile boolean clearScreen = true;
+  private volatile boolean paused = false;
+  private volatile Instant lastUpdate = Instant.EPOCH;
 
   /**
   * Creates a new DisplayManager bound to the given StateStore.
@@ -74,6 +76,52 @@ public class DisplayManager {
   */
   public DisplayManager(StateStore stateStore) {
     this.stateStore = stateStore;
+    this.scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+      Thread t = new Thread(r, "console-display");
+      t.setDaemon(true);
+      return t;
+    });
+  }
+
+  /**
+  * Starts the periodic console display updates.
+  */
+  public void start() {
+    log.info("Starting DisplayManager");
+    scheduler.scheduleAtFixedRate(this::refresh, 0, 1, TimeUnit.SECONDS);
+  }
+
+  /**
+  * Stops the display updates and shuts down the background thread.
+  */
+  public void stop() {
+    log.info("Stopping DisplayManager");
+    scheduler.shutdown();
+    try {
+      if (!scheduler.awaitTermination(2, TimeUnit.SECONDS)) {
+        scheduler.shutdownNow();
+      }
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      scheduler.shutdownNow();
+    }
+  }
+
+  /**
+  * Pauses the rendering process temporarily.
+  * This method sets the internal state to paused, which prevents
+  * any ongoing rendering updates or visual refreshes from occurring while
+  * the user is typing or performing another input sensitive action.
+  */
+  public void pause() {
+    this.paused = true;
+  }
+
+  /**
+  * Resumes the rendering process after it has been paused.
+  */
+  public void resume() {
+    this.paused = false;
   }
 
   /**
@@ -86,138 +134,128 @@ public class DisplayManager {
   }
 
   /**
-  * Starts the periodic console display updates.
+  * Refreshes the console display with the current state snapshot.
+  * This method is called periodically by the scheduler.
   */
-  public void start() {
-    log.info("Starting DisplayManager");
-    scheduler.scheduleAtFixedRate(this::renderSafe, 0, 1, TimeUnit.SECONDS);
-  }
-
-  /**
-  * Stops the console display updates and terminates the scheduler thred.
-  */
-  public void stop() {
-    log.info("Stopping DisplayManager");
-    scheduler.shutdownNow();
-  }
-
-  /**
-  * Renders the current state safely, catching any exceptions
-  * to prevent scheduler thread from crashing.
-  */
-  private void renderSafe() {
-    try {
-      render();
-    } catch (Exception e) {
-      log.warn("Display render failed", e);
+  public void refresh() {
+    if (paused) {
+      return;
     }
-  }
 
-  /**
-  * Retrieves the latest StateSnapshot and prints its contents
-  * to the console. The output includes all sensor and actuator
-  * readings in a tabular format, sorted by type and node ID.
-  */
-  private void render() {
     StateSnapshot snap = stateStore.snapshot();
+    lastUpdate = Instant.now();
 
     if (clearScreen) {
-      System.out.print(CLEAR_HOME);
-      System.out.flush();
-    } else {
-      System.out.println("\n--------------------------------------------------------------");
+      clearScreen();
     }
-    System.out.println("Smart Greenhouse - Console Control Panel (read-only view)");
-    System.out.println("Timestamp format: ISO_INSTANT");
-    System.out.println("--------------------------------------------------------------");
 
-    // Sensors
-    System.out.println("\nSensors:");
-    System.out.printf("%-12s %-16s %-14s %-26s%n",
-        "NodeId", "Type", "Value", "Timestamp");
-
-    snap.sensors().stream().map(sr -> new Object[] {
-        sr.nodeId(),
-        canonicalType(sr.type()),
-        sr.value(),
-        normalizeUnit(canonicalType(sr.type()), sr.unit()),
-        sr.ts()
-        })
-        .collect(java.util.stream.Collectors.toMap(
-            o -> o[0] + ":" + o[1],
-            o -> o,
-            (a, b) -> ((java.time.Instant) a[4]).isAfter((java.time.Instant) b[4]) ? a : b))
-            .values().stream()
-            .sorted(Comparator
-            .<Object[], String>comparing(o -> (String) o[1])
-            .thenComparing(o -> (String) o[0]))
-            .forEach(o -> System.out.printf("%-12s %-16s %-14s %-26s%n",
-                 o[0],
-                 o[1],
-                 o[2] + (((String) o[3]).isBlank() ? "" : " " + o[3]),
-                 DateTimeFormatter.ISO_INSTANT.format((java.time.Instant) o[4])
-            ));
-
-    // Actuators
-    System.out.println("\nActuators:");
-    System.out.printf("%-12s %-16s %-14s %-26s%n",
-        "NodeId", "Type", "State", "Timestamp");
-    snap.actuators().stream()
-        .sorted(Comparator.comparing(ActuatorReading::type).thenComparing(ActuatorReading::nodeId))
-        .forEach(ar -> System.out.printf("%-12s %-16s %-14s %-26s%n",
-        ar.nodeId(),
-        ar.type(),
-        ar.state(),
-        DateTimeFormatter.ISO_INSTANT.format(ar.ts())));
+    printHeader();
+    printSensors(snap);
+    printActuators(snap);
+    printFooter();
   }
 
   /**
-  * Converts a shorthand or inconsistent sensor type string into
-  * its canonical form.
-  *
-  * <p>For example:
-  * <ul>
-  *   <li> "temp" → "temperature"</li>
-  *   <li> "hum" → "humidity"</li>
-  *</ul>
-  * This ensures that the system treats equivalent abbreviations as the same logical type.
-  * </p>
-  *
-  * @param t the raw or shorthand sensor type
-  * @return the canonicalized, lowercase sensor type name
+  * Prints the display header with timestamp information.
   */
-  private static String canonicalType(String t) {
-    if (t == null) {
+  private void printHeader() {
+    System.out.println("--------------------------------------------------------------");
+    System.out.println("Smart Greenhouse - Console Control Panel (live view)");
+    System.out.printf("Last updated: %s%n", TIMESTAMP_FORMATTER.format(lastUpdate));
+    System.out.println("--------------------------------------------------------------");
+  }
+
+  /**
+  * Prints the sensor reading table.
+  *
+  * @param snap the current StateSnapshot containing all available
+  *             SensorReading objects to display
+  */
+  private void printSensors(StateSnapshot snap) {
+    System.out.println("\nSensors:");
+    System.out.printf("%-12s %-16s %-18s %-12s%n",
+            "NodeId", "Type", "Value", "Time");
+
+    snap.sensors().stream()
+            .sorted(Comparator.comparing(SensorReading::nodeId)
+                    .thenComparing(SensorReading::type))
+            .forEach(sr -> System.out.printf("%-12s %-16s %-18s %-12s%n",
+                    sr.nodeId(),
+                    expandSensorType(sr.type()),
+                    sr.type(),
+                    sr.value() + " " + sr.unit(),
+                    TIME_FORMATTER.format(sr.ts())));
+  }
+
+  /**
+  * Prints the actuator states table.
+  *
+  * @param snap the current StateSnapshot containing all available
+  *             Actuator state objects to display
+  */
+  private void printActuators(StateSnapshot snap) {
+    System.out.println("\nActuators:");
+    System.out.printf("%-12s %-16s %-18s %-12s%n",
+            "NodeId", "Type", "State", "Time");
+
+    var actuators = snap.actuators();
+    if (actuators.isEmpty()) {
+      System.out.println("  (no actuator states yet)");
+    } else {
+      actuators.stream()
+            .sorted(Comparator.comparing(ActuatorReading::nodeId)
+                    .thenComparing(ActuatorReading::type))
+            .forEach(ar -> System.out.printf("%-12s %-16s %-18s %-12s%n",
+                    ar.nodeId(),
+                    ar.type(),
+                    ar.state(),
+                    TIME_FORMATTER.format(ar.ts())));
+    }
+  }
+
+  /**
+  * Prints the display footer with helpful hints.
+  */
+  private void printFooter() {
+    System.out.println("\n--------------------------------------------------------------");
+    System.out.println("Press Enter to return to INPUT mode");
+    System.out.println("--------------------------------------------------------------");
+  }
+
+  /**
+  * Clears the console screen (platform-independent fallback).
+  */
+  private void clearScreen() {
+    try {
+      if (System.getProperty("os.name").toLowerCase().contains("win")) {
+        System.out.print("\033[H\033[2J");
+        System.out.flush();
+      } else {
+        System.out.print("\033[H\033[2J");
+        System.out.flush();
+      }
+    } catch (Exception e) {
+
+      for (int i = 0; i < 50; i++) {
+        System.out.println();
+      }
+    }
+  }
+
+  /**
+  * Expands abbreviated sensor type names to their full form.
+  *
+  * @param type the sensor type
+  * @return the expanded type name
+  */
+  private String expandSensorType(String type) {
+    if (type == null) {
       return "";
     }
-    return switch (t.toLowerCase()) {
+    return switch (type.toLowerCase()) {
       case "temp" -> "temperature";
-      case "hum"  -> "humidity";
-      default     -> t.toLowerCase();
-    };
-  }
-
-  /**
-  * Returns a standardized unit for a given sensor type.
-  *
-  * <p>This helps normalize data from heterogeneous sources. If the type is known,
-  * a default unit is returned; otherwise, the provided unit is used as-is.
-  * </p>
-  *
-  * @param type the canonicalized sensor type
-  * @param unit the original unit string from the data source
-  * @return a normalized unit string suitable for display or storage
-  */
-  private static String normalizeUnit(String type, String unit) {
-    String lt = type == null ? "" : type.toLowerCase();
-    return switch (lt) {
-      case "temperature" -> "°C";
-      case "humidity"    -> "%";
-      case "wind"        -> "m/s";
-      case "light"       -> "lux";
-      case "fertilizer"  -> "ppm";
-      case "ph"          -> "";
-      default            -> unit == null ? "" : unit;
+      case "hum" -> "humidity";
+      default -> type;
     };
   }
 }

@@ -1,5 +1,7 @@
 package edu.ntnu.bidata.smg.group8.control.app;
+
 import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
+import edu.ntnu.bidata.smg.group8.control.console.ConsoleInputLoop;
 import edu.ntnu.bidata.smg.group8.control.console.DisplayManager;
 import edu.ntnu.bidata.smg.group8.control.infra.network.PanelAgent;
 import edu.ntnu.bidata.smg.group8.control.logic.command.CommandInputHandler;
@@ -28,6 +30,9 @@ public final class ControlPanelMain extends Application {
   private ControlPanelController controller;
 
   private DisplayManager consoleDisplay;
+
+  private Thread consoleInputThread;
+  private ConsoleInputLoop consoleInput;
 
 
   /**
@@ -67,50 +72,14 @@ public final class ControlPanelMain extends Application {
 
       controller.start();
 
-      consoleDisplay = new edu.ntnu.bidata.smg.group8.control.console.DisplayManager(stateStore);
-      consoleDisplay.setClearScreen(true); // eller false hvis ANSI ikke funker i din terminal
+      consoleDisplay = new DisplayManager(stateStore);
+      consoleDisplay.setClearScreen(true);
       consoleDisplay.start();
 
-      // TEST DATA INJECTION (for development/testing)
-
-      new Thread(() -> {
-        try {
-          String testNodeId = NODE_ID();
-
-          // Wait for UI to initialize
-          Thread.sleep(3000);
-
-          // TEST ACTUATORS
-          log.info("🧪 Injecting test actuator readings...");
-          Instant now = Instant.now();
-          stateStore.applyActuator(testNodeId, "fan", "75", now);
-          stateStore.applyActuator(testNodeId, "heater", "22", now);
-          stateStore.applyActuator(testNodeId, "valve", "1", now);
-          stateStore.applyActuator(testNodeId, "window", "50", now);
-          log.info("✅ Test actuator readings injected");
-
-          // TEST SENSORS
-          Thread.sleep(2000);
-          log.info("🧪 Injecting test sensor readings...");
-          stateStore.applySensor(testNodeId, "temperature", "24.5", "°C", Instant.now());
-          stateStore.applySensor(testNodeId, "humidity", "65.0", "%", Instant.now());
-          stateStore.applySensor(testNodeId, "wind", "3.2", "m/s", Instant.now());
-          stateStore.applySensor(testNodeId, "fertilizer", "125.0", "ppm", Instant.now());
-          stateStore.applySensor(testNodeId, "light", "850.0", "lux", Instant.now());
-          stateStore.applySensor(testNodeId, "ph", "6.5", "", Instant.now());
-          log.info("✅ Test sensor readings injected");
-
-          // TEST ARTIFICIAL LIGHTS
-          Thread.sleep(2000);
-          log.info("🧪 Injecting artificial light commands...");
-          stateStore.applyActuator(testNodeId, "artificial_light", "75", Instant.now());
-          log.info("✅ Artificial lights set to 75%");
-
-        } catch (InterruptedException e) {
-          Thread.currentThread().interrupt();
-          log.warn("Test data injection interrupted");
-        }
-      }, "test-data-injector").start();
+      consoleInput = new ConsoleInputLoop(cmdHandler, NODE_ID(), consoleDisplay, stateStore);
+      consoleInputThread = new Thread(consoleInput, "console-input");
+      consoleInputThread.setDaemon(true);
+      consoleInputThread.start();
 
       log.debug("Creating Scene with dimensions 1000x700");
       Scene scene = new Scene(view.getRootNode(), 1000, 700);
@@ -163,10 +132,38 @@ public final class ControlPanelMain extends Application {
         log.error("Error stopping controller", e);
       }
     }
-    if (consoleDisplay != null) {
-      try { consoleDisplay.stop(); } catch (Exception ignore) {}
-      consoleDisplay = null;
+
+    if (consoleInput != null) {
+      try {
+        consoleInput.stop();
+      } catch (Exception e) {
+        log.warn("Error stopping console input loop", e);
+      } finally {
+        consoleInput = null;
+      }
     }
+
+    if (consoleInputThread != null && consoleInputThread.isAlive()) {
+      try {
+        consoleInputThread.join(500);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        log.warn("Interrupted while waiting for console input thread to finish", e);
+      } finally {
+        consoleInputThread = null;
+      }
+    }
+
+    if (consoleDisplay != null) {
+      try {
+        consoleDisplay.stop();
+      } catch (Exception e) {
+        log.warn("Error stopping console display", e);
+      } finally {
+        consoleDisplay = null;
+      }
+    }
+
     if (agent != null) {
       try {
         agent.close();
@@ -174,7 +171,7 @@ public final class ControlPanelMain extends Application {
         log.error("Error closing agent", e);
       }
     }
-    log.info("Control Panel stopped");
+    log.info("Control Panel shutdown complete");
   }
 
 
