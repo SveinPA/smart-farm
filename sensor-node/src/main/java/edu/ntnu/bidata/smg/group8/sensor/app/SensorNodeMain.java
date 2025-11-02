@@ -17,64 +17,62 @@ import edu.ntnu.bidata.smg.group8.sensor.logic.NodeAgent;
 import org.slf4j.Logger;
 
 import java.io.IOException;
+import java.util.Deque;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
- /**
-   * <h3>Sensor Node Main - Entry Point for Sensor & Actuator Nodes</h3>
-   *
-   * <p>This class orchestrates all components of a sensor node, including device catalog,
-   * network communication, and periodic tasks.</p>
-   *
-   * <p><b>Key Responsibilities:</b></p>
-   * <ul>
-   *   <li>Initialization of sensors and actuators</li>
-   *   <li>Establishing TCP connection to the broker via {@link NodeAgent}</li>
-   *   <li>Periodic broadcasting of sensor readings</li>
-   *   <li>Sending heartbeat messages to maintain connection</li>
-   *   <li>Graceful shutdown management</li>
-   * </ul>
-   *
-   * <p><b>Usage:</b></p>
-   * <pre>
-   * # Quick start with defaults (no configuration needed)
-   * mvn exec:java -pl sensor-node
-   *
-   * # Custom configuration
-   * mvn exec:java -pl sensor-node -Dexec.args="[brokerHost] [brokerPort] [nodeId]"
-   *
-   * # Example with custom values
-   * mvn exec:java -pl sensor-node -Dexec.args="localhost 23048 greenhouse-1"
-   *
-   * # If you get dependency errors, build the project first:
-   * mvn clean install
-   * </pre>
-   *
-   * <p><b>Default Configuration:</b></p>
-   * <ul>
-   *   <li><b>Broker Host:</b> localhost</li>
-   *   <li><b>Broker Port:</b> 23048</li>
-   *   <li><b>Node ID:</b> Auto-generated (e.g., sensor-node-a3f2)</li>
-   * </ul>
-   *
-   * <p><b>Important Notes:</b></p>
-   * <ul>
-   *   <li>Broker must be running before starting sensor nodes</li>
-   *   <li>Each node is given a unique node ID</li>
-   * </ul>
-   *
-   * @author Ida Soldal
-   * @version 29.10.2025
-   * @see DeviceCatalog
-   * @see NodeAgent
-   */
+/**
+ * <h3>Sensor Node Main - Entry Point for Sensor & Actuator Nodes</h3>
+ *
+ * <p>This class is the <b>glue</b> that ties together all components of a sensor node:
+ * including device catalog, node agent, sensors, and actuators.</p>
+ *
+ * <p><b>Features:</b></p>
+ * <ol>
+ *   <li><b>Unique identifier:</b> Auto-generated UUID suffix or manual via node ID parameter</li>
+ *   <li><b>Multiple sensors:</b> Supports up to 6 sensor types per node (temp, hum, light, fert, ph, wind)</li>
+ *   <li><b>Different sensors:</b> Configurable via sensorConfig parameter (e.g., "temp,hum" vs "light")</li>
+ *   <li><b>Actuator node:</b> Every node includes 4 actuator types (heater, fan, window, valve)</li>
+ * </ol>
+ *
+ * <p><b>Usage Examples:</b></p>
+ * <pre>
+ * # Minimal configuration (all sensors, auto-generated ID)
+ * mvn exec:java -pl sensor-node
+ * → Node ID: sensor-node-a3f2, Broker: localhost:23048, Sensors: all
+ *
+ * # Custom nodes with specific sensors
+ * mvn exec:java -pl sensor-node -Dexec.args="localhost 23048 greenhouse-1 temp,hum"
+ * → Only temperature and humidity sensors
+ *
+ * mvn exec:java -pl sensor-node -Dexec.args="localhost 23048 outdoor-light light"
+ * → Only light sensor
+ *
+ * # If dependency errors occur:
+ * mvn clean install
+ * </pre>
+ *
+ * <p><b>Important Notes:</b></p>
+ * <ul>
+ *   <li>Broker must be running <b>before</b> starting sensor nodes</li>
+ *   <li>Each node requires a unique node ID (auto-generated if not provided)</li>
+ *   <li>Sensor data is sent every 12 seconds as 5-sample rolling average</li>
+ *   <li>Heartbeats maintain connection every 30 seconds</li>
+ * </ul>
+ *
+ * @author Ida Soldal
+ * @version 2.11.2025
+ * @see DeviceCatalog
+ * @see NodeAgent
+ */
   public final class SensorNodeMain {
 
   private static final Logger log = AppLogger.get(SensorNodeMain.class);
-  private static final Map<String, java.util.Deque<Double>> recentReadings = new java.util.HashMap<>();
+  private static final Map<String, Deque<Double>> recentReadings = new HashMap<>();
 
   // ============================================================
   // CONFIGURATION CONSTANTS
@@ -138,17 +136,24 @@ import java.util.concurrent.TimeUnit;
         : DEFAULT_NODE_ID + "-" + java.util.UUID.randomUUID().toString().substring(0, 4);
         // Generate unique node ID if not provided - default name + random 4-char suffix
         // Example: sensor-node-1234
+    String sensorConfig = args.length > 3 ? args[3] : null;
+    // Optional sensor configuration (comma-separated types), or null for all sensors (default)
 
     log.info("Configuration:");
     log.info("  Node ID: {}", nodeId);
     log.info("  Broker: {}:{}", brokerHost, brokerPort);
+    if (sensorConfig != null) { // Guard Condition:
+      log.info("  Sensors: {}", sensorConfig);
+    } else {
+      log.info("  Sensors: all (default)");
+    }
 
     ScheduledExecutorService scheduler = null;
     NodeAgent agent = null;
 
     try {
       // Step 1: Create and populate device catalog
-      DeviceCatalog catalog = createDeviceCatalog();
+      DeviceCatalog catalog = createDeviceCatalog(sensorConfig);
       log.info("Device catalog created: {}", catalog.summary());
 
       // Step 2: Create node agent for communication
@@ -284,59 +289,192 @@ import java.util.concurrent.TimeUnit;
   // INITIALIZATION METHODS
 
   /**
-   * Creates and populates the device catalog with sensors and actuators.
+   * Creates and populates the device catalog based on configuration.
    *
-   * <p><b>Purpose:</b> This method allows different nodes to have different sensor configurations.
-   * By modifying this method, you can create specialized node types
-   * (e.g., temperature-only nodes, humidity-focused nodes, etc.).</p>
+   * <p><b>Sensor Configuration:</b> Pass a comma-separated list of sensor types
+   * to create custom node configurations. If no config is provided, creates a
+   * full-featured node with all sensor types.</p>
    *
-   * <p><b>Current Configuration:</b> This creates a "full-featured" node with:</p>
+   * <p><b>Available Sensor Types:</b></p>
    * <ul>
-   *   <li><b>6 Sensors:</b> Temperature, Humidity, Light, Fertilizer, pH, Wind Speed</li>
-   *   <li><b>4 Actuators:</b> Heater, Fan, Window, Valve</li>
+   *   <li><b>temp</b> - Temperature sensor</li>
+   *   <li><b>hum</b> - Humidity sensor</li>
+   *   <li><b>light</b> - Light sensor</li>
+   *   <li><b>fert</b> - Fertilizer sensor</li>
+   *   <li><b>ph</b> - pH sensor</li>
+   *   <li><b>wind</b> - Wind speed sensor</li>
    * </ul>
    *
-   * <p><b>Sensor-Actuator Integration:</b> Temperature, humidity, and wind speed sensors
-   * are linked to the catalog so they can respond to actuator states (e.g., heater affects
-   * temperature readings).</p>
-   *
-   * @return A fully populated DeviceCatalog ready for use
+   * @param sensorConfig Comma-separated sensor types, or null for all sensors
+   * @return A DeviceCatalog with the specified sensors and all actuators
    */
-  private static DeviceCatalog createDeviceCatalog() {
-      DeviceCatalog catalog = new DeviceCatalog();
-  
-      // Add all sensor types
-      log.info("Adding sensors to catalog...");
-      TemperatureSensor tempSensor = new TemperatureSensor();
-      HumiditySensor humSensor = new HumiditySensor();
-      WindSpeedSensor windSensor = new WindSpeedSensor();
-      
-      catalog.addSensor(tempSensor);
-      catalog.addSensor(humSensor);
-      catalog.addSensor(new LightSensor());
-      catalog.addSensor(new FertilizerSensor());
-      catalog.addSensor(new PhSensor());
-      catalog.addSensor(windSensor);
-  
-      // Add all actuator types
-      log.info("Adding actuators to catalog...");
-      catalog.addActuator(new HeaterActuator());
-      catalog.addActuator(new FanActuator());
-      catalog.addActuator(new WindowActuator());
-      catalog.addActuator(new ValveActuator());
-      
-      // Link sensors to catalog so they can check actuator states
-      log.info("Linking sensors to actuators for realistic readings...");
-      tempSensor.setCatalog(catalog);
-      log.debug("✓ Temperature sensor linked (affected by: heater, fan, window)");
+  private static DeviceCatalog createDeviceCatalog(String sensorConfig) {
+    DeviceCatalog catalog = new DeviceCatalog();
+    
+    // Parse and add sensors
+    SensorConfiguration config = parseSensorConfig(sensorConfig);
+    addConfiguredSensors(catalog, config);
+    
+    // Always add all actuators (they control environment regardless of which sensors are present)
+    addActuators(catalog);
+    
+    // Link sensors to catalog for realistic readings
+    linkSensorsToActuators(catalog, config);
+    
+    return catalog;
+  }
 
-      humSensor.setCatalog(catalog);
-      log.debug("✓ Humidity sensor linked (affected by: valve, window)");
-      
-      windSensor.setCatalog(catalog);
-      log.debug("✓ Wind speed sensor linked (affected by: window state)");
-  
-      return catalog;
+  /**
+   * Parses sensor configuration string into a structured configuration object.
+   *
+   * @param sensorConfig Comma-separated sensor types, or null for all
+   * @return SensorConfiguration indicating which sensors to include
+   */
+  private static SensorConfiguration parseSensorConfig(String sensorConfig) {
+    SensorConfiguration config = new SensorConfiguration();
+    
+    if (sensorConfig == null || sensorConfig.isEmpty()) {
+      log.info("No sensor config provided - adding all sensor types");
+      config.includeAll();
+      return config;
+    }
+    
+    log.info("Custom sensor config: {}", sensorConfig);
+    String[] types = sensorConfig.toLowerCase().split(",");
+    
+    for (String type : types) {
+      // Switch-case to check which sensors user wants
+      // Use easy-to-write input (despite fert sounding funny)
+      type = type.trim();
+      switch (type) {
+        case "temp":
+          config.includeTemp = true;
+          break;
+        case "hum":
+          config.includeHum = true;
+          break;
+        case "light":
+          config.includeLight = true;
+          break;
+        case "fert":
+          config.includeFert = true;
+          break;
+        case "ph":
+          config.includePh = true;
+          break;
+        case "wind":
+          config.includeWind = true;
+          break;
+        default:
+          log.warn("Unknown sensor type '{}' - ignoring", type);
+      }
+    }
+    return config;
+  }
+
+  /**
+   * Adds sensors to the catalog based on configuration.
+   *
+   * @param catalog The catalog to add sensors to
+   * @param config  The configuration specifying which sensors to include
+   */
+  private static void addConfiguredSensors(DeviceCatalog catalog, SensorConfiguration config) {
+    log.info("Adding sensors to catalog...");
+    
+    if (config.includeTemp) { // Add temperature sensor
+      config.tempSensor = new TemperatureSensor();
+      catalog.addSensor(config.tempSensor);
+      log.debug("✓ Temperature sensor added");
+    }
+    
+    if (config.includeHum) { // Add humidity sensor
+      config.humSensor = new HumiditySensor();
+      catalog.addSensor(config.humSensor);
+      log.debug("✓ Humidity sensor added");
+    }
+    
+    if (config.includeLight) { // Add light sensor
+      catalog.addSensor(new LightSensor());
+      log.debug("✓ Light sensor added");
+    }
+    
+    if (config.includeFert) { // Add fertilizer sensor
+      catalog.addSensor(new FertilizerSensor());
+      log.debug("✓ Fertilizer sensor added");
+    }
+    
+    if (config.includePh) { // Add pH sensor
+      catalog.addSensor(new PhSensor());
+      log.debug("✓ pH sensor added");
+    }
+    
+    if (config.includeWind) { // Add wind speed sensor
+      config.windSensor = new WindSpeedSensor();
+      catalog.addSensor(config.windSensor);
+      log.debug("✓ Wind speed sensor added");
+    }
+  }
+
+  /**
+   * Adds all actuators to the catalog.
+   * Actuators are always added regardless of sensor configuration.
+   *
+   * @param catalog The catalog to add actuators to
+   */
+  private static void addActuators(DeviceCatalog catalog) {
+    log.info("Adding actuators to catalog...");
+    catalog.addActuator(new HeaterActuator());
+    catalog.addActuator(new FanActuator());
+    catalog.addActuator(new WindowActuator());
+    catalog.addActuator(new ValveActuator());
+    log.debug("✓ All actuators added");
+  }
+
+  /**
+   * Links sensors to the catalog for realistic actuator-aware readings.
+   * Only sensors that were added need to be linked.
+   *
+   * @param catalog The catalog containing actuators
+   * @param config  The configuration with sensor references
+   */
+  private static void linkSensorsToActuators(DeviceCatalog catalog, SensorConfiguration config) {
+    if (config.tempSensor != null) {
+      config.tempSensor.setCatalog(catalog);
+      log.debug("✓ Temperature sensor linked to actuators");
+    }
+    
+    if (config.humSensor != null) {
+      config.humSensor.setCatalog(catalog);
+      log.debug("✓ Humidity sensor linked to actuators");
+    }
+    
+    if (config.windSensor != null) {
+      config.windSensor.setCatalog(catalog);
+      log.debug("✓ Wind speed sensor linked to actuators");
+    }
+  }
+
+  /**
+   * Internal configuration object to track which sensors to include.
+   * Keeps references to sensors that need actuator linking.
+   */
+  private static class SensorConfiguration {
+    boolean includeTemp = false;
+    boolean includeHum = false;
+    boolean includeLight = false;
+    boolean includeFert = false;
+    boolean includePh = false;
+    boolean includeWind = false;
+    
+    // Keep references for sensors that need catalog linking
+    TemperatureSensor tempSensor = null;
+    HumiditySensor humSensor = null;
+    WindSpeedSensor windSensor = null;
+
+    // Inner class to help with sensor configuration
+    void includeAll() { // Call to include all sensors
+      includeTemp = includeHum = includeLight = includeFert = includePh = includeWind = true;
+    }
   }
 
   // ============================================================
