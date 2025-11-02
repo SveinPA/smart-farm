@@ -12,7 +12,6 @@ import edu.ntnu.bidata.smg.group8.sensor.entity.sensors.LightSensor;
 import edu.ntnu.bidata.smg.group8.sensor.entity.sensors.PhSensor;
 import edu.ntnu.bidata.smg.group8.sensor.entity.sensors.TemperatureSensor;
 import edu.ntnu.bidata.smg.group8.sensor.entity.sensors.WindSpeedSensor;
-import edu.ntnu.bidata.smg.group8.sensor.infra.SensorDataPacket;
 import edu.ntnu.bidata.smg.group8.sensor.logic.DeviceCatalog;
 import edu.ntnu.bidata.smg.group8.sensor.logic.NodeAgent;
 import org.slf4j.Logger;
@@ -26,59 +25,33 @@ import java.util.concurrent.TimeUnit;
 /**
  * <h3>Sensor Node Main - Entry Point for Sensor/Actuator Nodes</h3>
  *
- * <p>This is the <b>"glue" class</b> that orchestrates all components of a sensor node.
- * It brings together the device catalog, network communication, and periodic tasks
- * into a complete working sensor/actuator node application.</p>
+ * <p>This class orchestrates all components of a sensor node, including device catalog,
+ * network communication, and periodic tasks.</p>
  *
- * <p><b>What This Class Does:</b></p>
+ * <p><b>Key Responsibilities:</b></p>
  * <ul>
- *   <li><b>Initialization:</b> Creates and configures all sensors and actuators</li>
- *   <li><b>Connection:</b> Establishes TCP connection to the broker via {@link NodeAgent}</li>
- *   <li><b>Data Broadcasting:</b> Periodically sends sensor readings to the broker</li>
- *   <li><b>Heartbeat:</b> Keeps the connection alive with periodic health checks</li>
- *   <li><b>Lifecycle Management:</b> Handles startup, running, and graceful shutdown</li>
+ *   <li>Initialization of sensors and actuators</li>
+ *   <li>Establishing TCP connection to the broker via {@link NodeAgent}</li>
+ *   <li>Periodic broadcasting of sensor readings</li>
+ *   <li>Sending heartbeat messages to maintain connection</li>
+ *   <li>Graceful shutdown management</li>
  * </ul>
  *
- * <p><b>Architecture:</b> This class coordinates three main components:</p>
- * <ul>
- *   <li>{@link DeviceCatalog}: Manages the collection of sensors and actuators</li>
- *   <li>{@link NodeAgent}: Handles network communication with the broker</li>
- *   <li>{@link ScheduledExecutorService}: Manages periodic tasks (data + heartbeat)</li>
- * </ul>
- *
- * <p><b>Usage Examples:</b></p>
+ * <p><b>Usage:</b></p>
  * <pre>
- * # Run with default settings (localhost:23048, nodeId=node-1)
- * java SensorNodeMain
- *
- * # Multiple nodes can run simultaneously with different IDs
- * java SensorNodeMain localhost 23048 greenhouse-1  # Terminal 1
- * java SensorNodeMain localhost 23048 greenhouse-2  # Terminal 2
+ * java SensorNodeMain [brokerHost] [brokerPort] [nodeId]
  * </pre>
- *
- * <p><b>Execution:</b></p>
- * <ol>
- *   <li>Parse command line arguments (broker address, port, node ID)</li>
- *   <li>Create {@link DeviceCatalog} and populate with sensors/actuators</li>
- *   <li>Create {@link NodeAgent} and connect to broker</li>
- *   <li>Start periodic tasks (sensor data every 5s, heartbeat every 30s)</li>
- *   <li>Run until user presses ENTER or sends termination signal</li>
- *   <li>Perform graceful shutdown (stop tasks, disconnect from broker)</li>
- * </ol>
  *
  * <p><b>Important Notes:</b></p>
  * <ul>
- *   <li>The broker must be running before starting sensor nodes</li>
- *   <li>Each node must have a unique node ID for proper identification</li>
- *   <li>Graceful shutdown is handled via shutdown hook (CTRL+C) or ENTER key</li>
- *   <li>Connection failures will cause the application to exit with status code 1</li>
+ *   <li>Broker must be running before starting sensor nodes</li>
+ *   <li>Each node is given a unique node ID</li>
  * </ul>
  *
  * @author Ida Soldal
  * @version 29.10.2025
  * @see DeviceCatalog
  * @see NodeAgent
- * @see SensorDataPacket
  */
 public final class SensorNodeMain {
 
