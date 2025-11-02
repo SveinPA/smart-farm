@@ -94,7 +94,7 @@ public final class SensorNodeMain {
   private static final int DEFAULT_BROKER_PORT = 23048;
 
   // Default node ID if not specified via command line.
-  private static final String DEFAULT_NODE_ID = "node-1";
+  private static final String DEFAULT_NODE_ID = "sensor-node";
 
   // Interval for sending sensor data to the broker (in seconds).
   private static final int SENSOR_DATA_INTERVAL_SECONDS = 5;
@@ -149,7 +149,11 @@ public final class SensorNodeMain {
     // Parse command line arguments with defaults
     String brokerHost = args.length > 0 ? args[0] : DEFAULT_BROKER_HOST;
     int brokerPort = args.length > 1 ? Integer.parseInt(args[1]) : DEFAULT_BROKER_PORT;
-    String nodeId = args.length > 2 ? args[2] : DEFAULT_NODE_ID;
+    String nodeId = args.length > 2 // Check if node ID provided, length has to be > 2
+        ? args[2] // Use provided node ID, 2nd argument
+        : DEFAULT_NODE_ID + "-" + java.util.UUID.randomUUID().toString().substring(0, 4);
+        // Generate unique node ID if not provided - default name + random 4-char suffix
+        // Example: sensor-node-1234
 
     log.info("Configuration:");
     log.info("  Node ID: {}", nodeId);
