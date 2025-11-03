@@ -29,7 +29,7 @@ public class StateSnapshotTest {
   * Defensive copying means that the constructor doesn't just store
   * references to the list we pass in - it creates new lists with copies
   * of the data. This prevents the "original owner" of the lists from
-  * modifying the snapshot's after creation.
+  * modifying the snapshot after creation.
   */
   @Test
   void testConstructorCopiesAndRejectsNull() {
@@ -53,7 +53,7 @@ public class StateSnapshotTest {
 
   /**
   * This test verifies that the lists returned by the getters
-  * are immutable copied that cannot be modified.
+  * are immutable copies that cannot be modified.
   */
   @Test
   void testListsAreImmutableCopies() {

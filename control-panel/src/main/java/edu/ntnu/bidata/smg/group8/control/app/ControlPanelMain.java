@@ -80,7 +80,7 @@ public final class ControlPanelMain extends Application {
       if (enableConsoleInput) {
         consoleInput = new ConsoleInputLoop(cmdHandler, NODE_ID(), consoleDisplay, stateStore);
         consoleInputThread = new Thread(consoleInput, "console-input");
-        consoleInputThread.setDaemon(true); // tillat GUI å avslutte uten å vente på input
+        consoleInputThread.setDaemon(true); // allow GUI to exit without waiting for input
         consoleInputThread.start();
       }
 
@@ -219,7 +219,14 @@ public final class ControlPanelMain extends Application {
   * @return the broker port number
   */
   private static int BROKER_PORT() {
-    return Integer.parseInt(System.getProperty("broker.port", "23048"));
+    String portStr = System.getProperty("broker.port", "23048");
+    try {
+      return Integer.parseInt(portStr);
+    } catch (NumberFormatException e) {
+      log.error("Invalid broker.port value '{}', falling back to"
+              + "default port 23048", portStr, e);
+      return 23048;
+    }
   }
 
   /**

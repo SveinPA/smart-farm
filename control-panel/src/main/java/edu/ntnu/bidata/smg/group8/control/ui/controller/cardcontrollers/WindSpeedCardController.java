@@ -125,7 +125,8 @@ public class WindSpeedCardController {
   * @param avg average wind speed in last 24h
   */
   public void updateStatistics(double min, double max, double avg) {
-    log.debug("Wind statistics updated: min={:.1f}, max={:.1f}, avg={:.1f}", min, max, avg);
+    log.debug("Wind statistics updated: min={}, max={}, avg={}", String.format("%.1f", min),
+            String.format("%.1f", max), String.format("%.1f", avg));
 
     fx(() -> {
       minLabel.setText(String.format("Min: %.1f m/s", min));

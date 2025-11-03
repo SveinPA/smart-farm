@@ -84,7 +84,8 @@ public class ControlPanelController {
     this.stateStore = Objects.requireNonNull(stateStore, "stateStore");
     this.nodeId = Objects.requireNonNull(nodeId, "nodeId");
 
-    log.debug("ControlPanelController created for view: {} nodeId: {}", view, nodeId);
+    log.debug("ControlPanelController created for view class: {} nodeId: {}",
+            view.getClass().getSimpleName(), nodeId);
     initializeControllers();
   }
 

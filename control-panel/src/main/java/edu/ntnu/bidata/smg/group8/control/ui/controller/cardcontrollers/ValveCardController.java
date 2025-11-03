@@ -194,10 +194,10 @@ public class ValveCardController {
   private void sendValveCommandAsync(boolean open) {
     new Thread(() -> {
       try {
-        String state = open ? "1" : "0"; // 1 = OPEN, 0 = CLOSED
-        log.debug("Attempting to send valve command nodeId={} "
-                + "state={}", nodeId, open ? "OPEN" : "CLOSED");
-        cmdHandler.setValue(nodeId, actuatorKey, Integer.parseInt(state));
+        int value = open ? 1 : 0; // 1 = OPEN, 0 = CLOSED
+        log.debug("Attempting to send valve command nodeId={} state={}",
+                nodeId, open ? "OPEN" : "CLOSED");
+        cmdHandler.setValue(nodeId, actuatorKey, value);
         lastSentState = open;
         log.info("Valve command sent successfully nodeId={} "
                 + "state={}", nodeId, open ? "OPEN" : "CLOSED");

@@ -30,9 +30,9 @@ public record StateSnapshot(List<SensorReading> sensors, List<ActuatorReading> a
   * @param actuators list of all actuator states at snapshot time (must not be null)
   * @throws NullPointerException if sensors or actuators is null
   */
-  public StateSnapshot {
-    sensors   = List.copyOf(Objects.requireNonNull(sensors, "sensors"));
-    actuators = List.copyOf(Objects.requireNonNull(actuators, "actuators"));
+  public StateSnapshot(List<SensorReading> sensors, List<ActuatorReading> actuators) {
+    this.sensors = List.copyOf(Objects.requireNonNull(sensors, "sensors"));
+    this.actuators = List.copyOf(Objects.requireNonNull(actuators, "actuators"));
   }
 }
 

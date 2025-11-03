@@ -182,7 +182,6 @@ public class DisplayManager {
             .forEach(sr -> System.out.printf("%-12s %-16s %-18s %-12s%n",
                     sr.nodeId(),
                     expandSensorType(sr.type()),
-                    sr.type(),
                     sr.value() + " " + sr.unit(),
                     TIME_FORMATTER.format(sr.ts())));
   }

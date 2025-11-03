@@ -104,7 +104,7 @@ public class StateStore {
 
   /**
   * Registers a new listener (sink) that will be notified whenever
-  * an actuator reading is called.
+  * a new actuator reading is received
   *
   * @param sink a consumer that handles actuator updates, must not be null
   */
@@ -125,7 +125,7 @@ public class StateStore {
 
   /**
   * Registers a new listener (sink) that will be notified whenever
-  * a sensor reading is called.
+  * a new sensor reading is received
   *
   * @param sink a consumer that handles sensor updates, must not be null
   */

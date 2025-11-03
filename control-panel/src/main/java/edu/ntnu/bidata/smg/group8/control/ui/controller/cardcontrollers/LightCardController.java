@@ -84,7 +84,7 @@ public class LightCardController {
   * @param cmdHandler the command handler for sending commands
   * @param nodeId the node ID this controller manages
   */
-  private void setDependencies(CommandInputHandler cmdHandler, String nodeId) {
+  public void setDependencies(CommandInputHandler cmdHandler, String nodeId) {
     this.cmdHandler = cmdHandler;
     this.nodeId = nodeId;
     log.debug("LightCardController dependencies injected (nodeId={})", nodeId);

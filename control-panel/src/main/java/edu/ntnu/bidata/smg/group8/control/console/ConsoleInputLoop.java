@@ -142,7 +142,7 @@ public class ConsoleInputLoop implements Runnable {
           System.out.print("\n[Viewing live data] Press Enter to return to INPUT... ");
           System.out.flush();
 
-          String ignored = br.readLine();
+          br.readLine();
           if (!running) {
             break;
           }
@@ -186,7 +186,7 @@ public class ConsoleInputLoop implements Runnable {
     System.out.println();
     System.out.println("Mode control:");
     System.out.println(" view            - switch to VIEW mode (live updating)");
-    System.out.println(" input           - switch to iNPUT mode (typing)");
+    System.out.println(" input           - switch to INPUT mode (typing)");
     System.out.println(" display on      - alias for 'view'");
     System.out.println(" display off     - alias for 'input'");
     System.out.println(" help | quit");

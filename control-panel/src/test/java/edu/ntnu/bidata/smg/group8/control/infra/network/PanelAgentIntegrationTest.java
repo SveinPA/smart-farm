@@ -28,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 *
 * <p>Each test starts a mock broker on a random port, creates a PanelAgent that
 * connects to it, and then verifies the message exchange using CountDownLatch
-* to coordinated between threads. The tests have a 5 second timeout to
+* to coordinate between threads. The tests have a 5 second timeout to
 * prevent hanging if something goes wrong.</p>
 *
 * @author Andrea Sandnes

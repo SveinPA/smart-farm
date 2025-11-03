@@ -46,12 +46,30 @@ public class ConsoleControlPanelMain {
   */
   private void run() {
     String host = System.getProperty("broker.host", "localhost");
-    int port = Integer.parseInt(System.getProperty("broker.port", "23048"));
+    int port;
+
+    try {
+      port = Integer.parseInt(System.getProperty("broker.port", "23048"));
+    } catch (NumberFormatException e) {
+      log.warn("Invalid broker.port value: '{}'. Falling back to default 23048.",
+              System.getProperty("broker.port"));
+      port = 23048;
+    }
+
     String panelId = System.getProperty("panel.id", "panel-1");
     String nodeId = System.getProperty("node.id", "node-1");
 
     String mockFile = System.getProperty("mock.file");
-    long mockDelay = Long.parseLong(System.getProperty("mock.interval.ms", "500"));
+
+    long mockDelay;
+    try {
+      mockDelay = Long.parseLong(System.getProperty("mock.intervals.ms", "500"));
+    } catch (NumberFormatException e) {
+      log.error("Invalid value for mock.intervals.ms: '{}', using default 500ms",
+              System.getProperty("mock.intervals.ms"));
+      mockDelay = 500L;
+    }
+
     boolean mockOnly = Boolean.parseBoolean(System.getProperty("mock.only", "false"));
 
     log.info(

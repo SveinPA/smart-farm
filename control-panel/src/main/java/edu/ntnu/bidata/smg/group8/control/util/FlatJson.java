@@ -22,10 +22,10 @@ import java.util.Map;
 * </pre>
 *
 * <p>Typical use-case: Parsing application-layer protocol messages
-* where we control the JSON shape an keep it flat to avoid heavy Json
+* where we control the JSON shape and keep it flat to avoid heavy Json
 * libraries.</p>
 *
-* @author Andrea Sandes
+* @author Andrea Sandnes
 * @version 30.10.25
 */
 public final class FlatJson {
