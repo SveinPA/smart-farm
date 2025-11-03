@@ -127,7 +127,7 @@ public class DisplayManager {
   /**
   * Enables or disables clearing the console before each render.
   *
-  * @param clear true tor clear console, false to append output
+  * @param clear true to clear console, false to append output
   */
   public void setClearScreen(boolean clear) {
     this.clearScreen = clear;

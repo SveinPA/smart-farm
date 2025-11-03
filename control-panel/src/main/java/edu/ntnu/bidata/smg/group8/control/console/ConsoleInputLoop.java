@@ -12,7 +12,7 @@ import org.slf4j.Logger;
 /**
 * Handles user input from the console in a continuous loop.
 *
-* <p>This class listens form commands typed in the console and forwards
+* <p>This class listens for commands typed in the console and forwards
 * them to CommandInputHandler for execution. It is typically used to
 * send control commands (e.g "heater 22") to a specific node in a
 * distributed system or smart grid.</p>
