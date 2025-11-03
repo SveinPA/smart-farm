@@ -80,7 +80,7 @@ public final class ControlPanelMain extends Application {
       if (enableConsoleInput) {
         consoleInput = new ConsoleInputLoop(cmdHandler, NODE_ID(), consoleDisplay, stateStore);
         consoleInputThread = new Thread(consoleInput, "console-input");
-        consoleInputThread.setDaemon(true); // tillat GUI å avslutte uten å vente på input
+        consoleInputThread.setDaemon(true); // allow GUI to exit without waiting for input
         consoleInputThread.start();
       }
 
