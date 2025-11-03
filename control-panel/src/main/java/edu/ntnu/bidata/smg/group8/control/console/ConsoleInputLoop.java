@@ -142,7 +142,7 @@ public class ConsoleInputLoop implements Runnable {
           System.out.print("\n[Viewing live data] Press Enter to return to INPUT... ");
           System.out.flush();
 
-          String ignored = br.readLine();
+          br.readLine();
           if (!running) {
             break;
           }
