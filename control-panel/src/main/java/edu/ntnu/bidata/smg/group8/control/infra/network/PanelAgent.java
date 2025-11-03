@@ -68,7 +68,7 @@ public class PanelAgent implements AutoCloseable {
   * process incoming messages.
   *
   * @throws IOException if an I/O error occurs when creating the socket
-      * or sending the registration message
+  * or sending the registration message
   */
   public void start() throws IOException {
     if (running.getAndSet(true)) {
