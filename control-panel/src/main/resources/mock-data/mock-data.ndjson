@@ -1,0 +1,9 @@
+{"type":"SENSOR_DATA","nodeId":"node-1","sensorKey":"temperature","value":"24.5","unit":"°C","timestamp":"2025-11-02T12:00:00Z"}
+{"type":"SENSOR_DATA","nodeId":"node-1","sensorKey":"humidity","value":"61.0","unit":"%","timestamp":"2025-11-02T12:00:01Z"}
+{"type":"SENSOR_DATA","nodeId":"node-1","sensorKey":"light","value":"78000","unit":"lux","timestamp":"2025-11-02T12:00:02Z"}
+{"type":"SENSOR_DATA","nodeId":"node-1","sensorKey":"ph","value":"6.5","unit":"pH","timestamp":"2025-11-02T12:00:03Z"}
+{"type":"SENSOR_DATA","nodeId":"node-1","sensorKey":"wind","value":"3.2","unit":"m/s","timestamp":"2025-11-02T12:00:04Z"}
+{"type":"ACTUATOR_STATE","nodeId":"node-1","actuator":"fan","state":"45","timestamp":"2025-11-02T12:00:05Z"}
+{"type":"ACTUATOR_STATE","nodeId":"node-1","actuator":"heater","state":"22","timestamp":"2025-11-02T12:00:06Z"}
+{"type":"ACTUATOR_STATE","nodeId":"node-1","actuator":"window","state":"50","timestamp":"2025-11-02T12:00:07Z"}
+{"type":"ACTUATOR_STATE","nodeId":"node-1","actuator":"artificial_light","state":"75","timestamp":"2025-11-02T12:00:08Z"}

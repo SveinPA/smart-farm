@@ -263,7 +263,7 @@ public class ControlPanelView {
    * @return the windows ControlCard instance
    */
   public ControlCard getWindowsCard() {
-    return windSpeedCard;
+    return windowsCard;
   }
 
   /**

@@ -87,7 +87,7 @@ public class TemperatureCardController {
   * @param temperature the current temperature in Celsius
   */
   public void updateTemperature(double temperature) {
-    log.debug("Updating temperature to: {}°C", String.format("%.1f", temperature));
+    log.info("Temperature updated: {}°C", String.format("%.1f", temperature));
 
     fx(() -> {
       card.setValueText(String.format("%.1f°C", temperature));
@@ -137,7 +137,7 @@ public class TemperatureCardController {
         temperatureBar.getStyleClass().remove(activeZoneClass);
       }
       temperatureBar.getStyleClass().add(newClass);
-      log.debug("Temperature zone changed: {} -> {} ({:.1f}°C)",
+      log.info("Temperature zone changed: {} -> {} ({}°C)",
               activeZoneClass != null ? activeZoneClass : "none",
               zone,
               temperature);

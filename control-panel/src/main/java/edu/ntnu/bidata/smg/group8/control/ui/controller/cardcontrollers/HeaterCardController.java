@@ -1,8 +1,11 @@
 package edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers;
 
 import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
+import edu.ntnu.bidata.smg.group8.control.logic.command.CommandInputHandler;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlCard;
 import edu.ntnu.bidata.smg.group8.control.ui.view.cards.HeaterCardBuilder;
+import java.io.IOException;
+import java.util.Objects;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.event.ActionEvent;
@@ -11,6 +14,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Spinner;
 import org.slf4j.Logger;
+
 
 /**
 * Controller for the Heater control card.
@@ -51,6 +55,13 @@ public class HeaterCardController {
   private EventHandler<ActionEvent> moderateHandler;
   private EventHandler<ActionEvent> warmHandler;
   private EventHandler<ActionEvent> offHandler;
+
+  private CommandInputHandler cmdHandler;
+  private String nodeId;
+  private final String actuatorKey = "heater";
+
+  private volatile boolean suppressSend = false;
+  private Integer lastSentTemp = null;
 
 
   /**
@@ -173,7 +184,9 @@ public class HeaterCardController {
   * @param temperature the target temperature in Celsius
   */
   private void setTargetTemperature(int temperature, String source) {
-    log.info("Heater target temperature set to {}°C (Source: {})", temperature, source);
+    if (!suppressSend) {
+      log.info("Heater target temperature set to {}°C (Source: {})", temperature, source);
+    }
 
     fx(() -> {
       tempSpinner.getValueFactory().setValue(temperature);
@@ -184,29 +197,38 @@ public class HeaterCardController {
       isOn = true;
       currentTargetTemp = temperature;
 
-      if (wasOff) {
-        log.info("Heater turned ON - Target: {}°C", temperature);
-      } else {
-        log.debug("Heater target adjusted: {}°C", temperature);
+      if (!suppressSend) {
+        if (wasOff) {
+          log.info("Heater turned ON - Target: {}°C", temperature);
+        } else {
+          log.debug("Heater target adjusted: {}°C", temperature);
+        }
+        checkTemperatureWarnings(temperature);
       }
-
-      checkTemperatureWarnings(temperature);
     });
 
-    // TODO: Send command to backend
+    if (!suppressSend && cmdHandler != null && nodeId != null) {
+      if (lastSentTemp != null && lastSentTemp.equals(temperature)) {
+        log.debug("Skipping duplicate heater temperature send ({}°C)", temperature);
+        return;
+      }
+      sendHeaterCommandAsync(temperature);
+    }
   }
 
   /**
   * Turns off the heater and updates UI.
   */
   private void turnOff() {
-    log.info("Heater turned OFF");
+    if (!suppressSend) {
+      log.info("Heater turned OFF");
+    }
 
     fx(() -> {
       targetLabel.setText("Target: --°C");
       card.setValueText("OFF");
 
-      if (isOn) {
+      if (!suppressSend && isOn) {
         log.debug("Heater deactivated - Previous target: {}°C",
                 currentTargetTemp != null ? currentTargetTemp : "N/A");
       }
@@ -215,7 +237,31 @@ public class HeaterCardController {
       currentTargetTemp = null;
     });
 
-    // TODO: Send command to backend
+    if (!suppressSend && cmdHandler != null && nodeId != null) {
+      if (lastSentTemp != null && lastSentTemp == 0) {
+        log.debug("Skipping duplicate heater OFF send");
+        return;
+      }
+      sendHeaterCommandAsync(0); // 0 = OFF
+    }
+  }
+
+  /**
+  * Sends heater command asynchronously to avoid blocking UI thread.
+  *
+  * @param temperature target temperature (0 = OFF)
+  */
+  private void sendHeaterCommandAsync(int temperature) {
+    new Thread(() -> {
+      try {
+        log.debug("Attempting to send heater command nodeId={} temp={}°C", nodeId, temperature);
+        cmdHandler.setValue(nodeId, actuatorKey, temperature);
+        lastSentTemp = temperature;
+        log.info("Heater command sent successfully nodeId={} temp={}°C", nodeId, temperature);
+      } catch (IOException e) {
+        log.error("Failed to send heater command nodeId={} temp={}°C", nodeId, temperature, e);
+      }
+    }, "heater-cmd-send").start();
   }
 
   /**
@@ -244,21 +290,26 @@ public class HeaterCardController {
   }
 
   /**
-  * Updates the heater state externally.
+  * Updates the heater temperature externally.
   *
-  * @param on true if heater should be on, false if off
-  * @param targetTemp target temperature (null if off)
+  * @param temperature target temperature in Celsius (0 = OFF)
   */
-  public void updateHeaterState(boolean on, Integer targetTemp) {
-    log.debug("External heater state update - On: {}, Target: {}°C",
-            on, targetTemp != null ? targetTemp : "N/A");
-
-    if (on && targetTemp != null) {
-      String source = getTemperatureSource(targetTemp);
-      setTargetTemperature(targetTemp, source);
-    } else {
-      turnOff();
-    }
+  public void updateHeaterTemperature(int temperature) {
+    log.info("External heater temperature update: {}°C", temperature);
+    Platform.runLater(() -> {
+      suppressSend = true;
+      if (temperature > 0) {
+        setTargetTemperature(temperature, "External");
+      } else {
+        turnOff();
+      }
+      new Thread(() -> {
+        try {
+          Thread.sleep(100);
+        } catch (InterruptedException ignored) {}
+        suppressSend = false;
+      }).start();
+    });
   }
 
   /**
@@ -295,6 +346,18 @@ public class HeaterCardController {
   */
   public Integer getCurrentTargetTemp() {
     return currentTargetTemp;
+  }
+
+  /**
+  * Injects required dependencies for this heater card controller.
+  *
+  * @param cmdHandler the command input handler
+  * @param nodeId the node ID this controller manages
+  */
+  public void setDependencies(CommandInputHandler cmdHandler, String nodeId) {
+    this.cmdHandler = Objects.requireNonNull(cmdHandler, "cmdHandler");
+    this.nodeId = Objects.requireNonNull(nodeId, "nodeId");
+    log.debug("HeaterCardController dependencies injected (nodeId={})", nodeId);
   }
 
   /**

@@ -1,13 +1,15 @@
 package edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers;
 
 import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
+import edu.ntnu.bidata.smg.group8.control.logic.command.CommandInputHandler;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlCard;
+import java.io.IOException;
+import java.util.Objects;
 import javafx.application.Platform;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
 import org.slf4j.Logger;
-
 
 /**
 * Controller for the Valve control card.
@@ -33,6 +35,13 @@ public class ValveCardController {
   private Button closeButton;
   private ProgressBar flowIndicator;
   private Button scheduleButton;
+
+  private CommandInputHandler cmdHandler;
+  private String nodeId;
+  private final String actuatorKey = "valve";
+
+  private volatile boolean suppressSend = false;
+  private Boolean lastSentState = null;
 
 
   /**
@@ -104,7 +113,9 @@ public class ValveCardController {
   * Opens the valve and updates UI.
   */
   private void openValve() {
-    log.info("Valve OPEN command triggered");
+    if (!suppressSend) {
+      log.info("Valve OPEN command triggered");
+    }
 
     fx(() -> {
       card.setValueText("OPEN");
@@ -121,18 +132,28 @@ public class ValveCardController {
       openButton.setDisable(true);
       closeButton.setDisable(false);
 
-      currentState = true;
-
-      log.debug("Valve opened - Flow rate set to {} L/min", String.format("%.1f", OPEN_FLOW_RATE));
+      if (!suppressSend) {
+        log.debug("Valve opened - Flow rate set to {} L/min",
+                String.format("%.1f", OPEN_FLOW_RATE));
+      }
     });
-    //TODO: Send command to actuator service
+
+    if (!suppressSend && cmdHandler != null && nodeId != null) {
+      if (lastSentState != null && lastSentState) {
+        log.debug("Skipping duplicate valve OPEN send");
+        return;
+      }
+      sendValveCommandAsync(true);
+    }
   }
 
   /**
   * Closes the valve and updates UI.
   */
   private void closeValve() {
-    log.info("Valve CLOSE command triggered");
+    if (!suppressSend) {
+      log.info("Valve CLOSE command triggered");
+    }
 
     fx(() -> {
       card.setValueText("CLOSE");
@@ -151,9 +172,60 @@ public class ValveCardController {
 
       currentState = false;
 
-      log.debug("Valve closed - Flow rate set to 0 L/min");
+      if (!suppressSend) {
+        log.debug("Valve closed - Flow rate set to 0 L/min");
+      }
     });
-    //TODO: Send command to actuator service
+
+    if (!suppressSend && cmdHandler != null && nodeId != null) {
+      if (lastSentState != null && !lastSentState) {
+        log.debug("Skipping duplicate valve CLOSE send");
+        return;
+      }
+      sendValveCommandAsync(false);
+    }
+  }
+
+  /**
+  * Sends valve command asynchronously to avoid blocking UI thread.
+  *
+  * @param open true to open valve, false to close
+  */
+  private void sendValveCommandAsync(boolean open) {
+    new Thread(() -> {
+      try {
+        int value = open ? 1 : 0; // 1 = OPEN, 0 = CLOSED
+        log.debug("Attempting to send valve command nodeId={} state={}",
+                nodeId, open ? "OPEN" : "CLOSED");
+        cmdHandler.setValue(nodeId, actuatorKey, value);
+        lastSentState = open;
+        log.info("Valve command sent successfully nodeId={} "
+                + "state={}", nodeId, open ? "OPEN" : "CLOSED");
+      } catch (IOException e) {
+        log.error("Failed to send valve command nodeId={} "
+                + "state={}", nodeId, open ? "OPEN" : "CLOSED", e);
+      }
+    }, "valve-cmd-send").start();
+  }
+
+  /**
+  * Updates the valve state externally (e.g., from backend).
+  * Does not trigger a new command send (prevents echo).
+  *
+  * @param open true if valve should be open, false if closed
+  */
+  public void updateValveState(boolean open) {
+    log.info("External valve state update: {}", open ? "OPEN" : "CLOSED");
+    Platform.runLater(() -> {
+      suppressSend = true;
+      setValveState(open);
+      new Thread(() -> {
+        try {
+          Thread.sleep(100);
+        } catch (InterruptedException ignored) {}
+        suppressSend = false;
+      }).start();
+    });
   }
 
   /**
@@ -199,7 +271,9 @@ public class ValveCardController {
   * @param isOpen true if valve is open, false if closed
   */
   public void setValveState(boolean isOpen) {
-    log.info("Setting valve state to: {}", isOpen ? "OPEN" : "CLOSED");
+    if (!suppressSend) {
+      log.info("Setting valve state to: {}", isOpen ? "OPEN" : "CLOSED");
+    }
 
     if (isOpen) {
       openValve();
@@ -215,6 +289,18 @@ public class ValveCardController {
   */
   public boolean isOpen() {
     return currentState;
+  }
+
+  /**
+  * Injects required dependencies for this valve card controller.
+  *
+  * @param cmdHandler the command input handler
+  * @param nodeId the node ID this controller manages
+  */
+  public void setDependencies(CommandInputHandler cmdHandler, String nodeId) {
+    this.cmdHandler = Objects.requireNonNull(cmdHandler, "cmdHandler");
+    this.nodeId = Objects.requireNonNull(nodeId, "nodeId");
+    log.debug("ValveCardController dependencies injected (nodeId={})", nodeId);
   }
 
   /**

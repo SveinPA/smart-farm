@@ -2,6 +2,7 @@ package edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers;
 
 import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlCard;
+import javafx.application.Platform;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
 import org.slf4j.Logger;
@@ -47,8 +48,8 @@ public class WindSpeedCardController {
    * @param avgLabel label displaying the 24h average wind speed
    */
   public WindSpeedCardController(ControlCard card, Label currentLabel, Label statusLabel,
-                                 Label gustLabel, ProgressBar windBar, Label minLabel, Label maxLabel,
-                                 Label avgLabel) {
+                                 Label gustLabel, ProgressBar windBar, Label minLabel,
+                                 Label maxLabel, Label avgLabel) {
     this.card = card;
     this.currentLabel = currentLabel;
     this.statusLabel = statusLabel;
@@ -86,14 +87,17 @@ public class WindSpeedCardController {
   * @param speed the current wind speed in m/s
   */
   public void updateWindSpeed(double speed) {
-    card.setValueText(String.format("%.1f m/s", speed));
-    currentLabel.setText(String.format("Current: %.1f m/s", speed));
+    log.info("Wind speed updated: {} m/s", String.format("%.1f", speed));
 
-    double progress = (speed - MIN_WIND) / (MAX_WIND - MIN_WIND);
-    windBar.setProgress(Math.max(0, Math.min(1, progress)));
+    fx(() -> {
+      card.setValueText(String.format("%.1f m/s", speed));
+      currentLabel.setText(String.format("Current: %.1f m/s", speed));
 
-    updateWindStatus(speed);
-    log.trace("Wind speed updated to {:.1f} m/s", speed);
+      double progress = (speed - MIN_WIND) / (MAX_WIND - MIN_WIND);
+      windBar.setProgress(Math.max(0, Math.min(1, progress)));
+
+      updateWindStatus(speed);
+    });
   }
 
   /**
@@ -102,8 +106,11 @@ public class WindSpeedCardController {
   * @param gust the maximum gust speed in m/s
   */
   public void updateGust(double gust) {
-    gustLabel.setText(String.format("Gust: %.1f m/s", gust));
-    log.trace("Wind gust updated to {:.1f} m/s", gust);
+    log.info("Wind gust updated: {} m/s", String.format("%.1f", gust));
+
+    fx(() -> {
+      gustLabel.setText(String.format("Gust: %.1f m/s", gust));
+    });
   }
 
   /**
@@ -118,10 +125,14 @@ public class WindSpeedCardController {
   * @param avg average wind speed in last 24h
   */
   public void updateStatistics(double min, double max, double avg) {
-    minLabel.setText(String.format("Min: %.1f m/s", min));
-    maxLabel.setText(String.format("Max: %.1f m/s", max));
-    avgLabel.setText(String.format("Avg: %.1f m/s", avg));
-    log.trace("Wind statistics updated: min={:.1f}, max={:.1f}, avg={:.1f}", min, max, avg);
+    log.debug("Wind statistics updated: min={}, max={}, avg={}", String.format("%.1f", min),
+            String.format("%.1f", max), String.format("%.1f", avg));
+
+    fx(() -> {
+      minLabel.setText(String.format("Min: %.1f m/s", min));
+      maxLabel.setText(String.format("Max: %.1f m/s", max));
+      avgLabel.setText(String.format("Avg: %.1f m/s", avg));
+    });
   }
 
   /**
@@ -165,15 +176,28 @@ public class WindSpeedCardController {
     statusLabel.setText("Status: " + status);
 
     statusLabel.getStyleClass().removeAll("wind-speed-calm",
-            "wind-speed-light","wind-speed-breeze","wind-speed-moderate",
-            "wind-speed-strong","wind-speed-gale");
+            "wind-speed-light", "wind-speed-breeze", "wind-speed-moderate",
+            "wind-speed-strong", "wind-speed-gale");
     windBar.getStyleClass().removeAll("wind-speed-calm",
-            "wind-speed-light","wind-speed-breeze","wind-speed-moderate",
-            "wind-speed-strong","wind-speed-gale");
+            "wind-speed-light", "wind-speed-breeze", "wind-speed-moderate",
+            "wind-speed-strong", "wind-speed-gale");
 
     statusLabel.getStyleClass().add(color);
     windBar.getStyleClass().add(color);
 
-    log.trace("Wind status updated to '{}' with CSS class '{}'", status, color);
+    log.debug("Wind status updated to '{}' with CSS class '{}'", status, color);
+  }
+
+  /**
+  * Ensures the given runnable executes on the JavaFX Application Thread.
+  *
+  * @param r the runnable to execute on the FX thread
+  */
+  private static void fx(Runnable r) {
+    if (Platform.isFxApplicationThread()) {
+      r.run();
+    } else {
+      Platform.runLater(r);
+    }
   }
 }
