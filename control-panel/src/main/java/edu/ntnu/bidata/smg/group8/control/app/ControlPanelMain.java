@@ -46,8 +46,6 @@ public final class ControlPanelMain extends Application {
             BROKER_HOST(), BROKER_PORT(), PANEL_ID(), NODE_ID());
 
     try {
-      // For trying out the Dashboard styling
-      // DashboardView view = new DashboardView();
       StateStore stateStore = new StateStore();
 
       try {
@@ -65,46 +63,46 @@ public final class ControlPanelMain extends Application {
       }
 
       CommandInputHandler cmdHandler = new CommandInputHandler(agent);
-
       ControlPanelView view = new ControlPanelView();
-
       controller = new ControlPanelController(view, cmdHandler, stateStore, NODE_ID());
-
       controller.start();
 
-      consoleDisplay = new DisplayManager(stateStore);
-      consoleDisplay.setClearScreen(true);
-      consoleDisplay.start();
+      boolean enableConsoleDisplay = Boolean.parseBoolean(System.getProperty("console.display", "false"));
+      boolean enableConsoleInput   = Boolean.parseBoolean(System.getProperty("console.input", "false"));
+      boolean clearConsole         = Boolean.parseBoolean(System.getProperty("console.clear", "false"));
 
-      consoleInput = new ConsoleInputLoop(cmdHandler, NODE_ID(), consoleDisplay, stateStore);
-      consoleInputThread = new Thread(consoleInput, "console-input");
-      consoleInputThread.setDaemon(true);
-      consoleInputThread.start();
+      if (enableConsoleDisplay) {
+        consoleDisplay = new DisplayManager(stateStore);
+        consoleDisplay.setClearScreen(clearConsole);
+        consoleDisplay.start();
+      }
+
+      if (enableConsoleInput) {
+        consoleInput = new ConsoleInputLoop(cmdHandler, NODE_ID(), consoleDisplay, stateStore);
+        consoleInputThread = new Thread(consoleInput, "console-input");
+        consoleInputThread.setDaemon(true); // tillat GUI å avslutte uten å vente på input
+        consoleInputThread.start();
+      }
 
       log.debug("Creating Scene with dimensions 1000x700");
       Scene scene = new Scene(view.getRootNode(), 1000, 700);
 
       String cssPath = "/css/styleSheet.css";
       log.debug("Loading CSS from: {}", cssPath);
-
-      scene.getStylesheets().add(Objects.requireNonNull(ControlPanelMain.class.getResource(cssPath),
-              "app.css not found" + cssPath).toExternalForm());
-
+      scene.getStylesheets().add(
+              Objects.requireNonNull(ControlPanelMain.class.getResource(cssPath),
+                      "stylesheet not found: " + cssPath).toExternalForm());
       log.debug("CSS stylesheet loaded successfully");
 
-      // stage.setTitle("Smart-Greenhouse");
-      //stage.setTitle("Control Panel");
       stage.setTitle("Control Panel - Node " + NODE_ID()
-          + " @ " + BROKER_HOST() + ":" + BROKER_PORT());
+              + " @ " + BROKER_HOST() + ":" + BROKER_PORT());
       stage.setScene(scene);
 
-      stage.setOnCloseRequest(e -> {
-        shutdown();
-      });
+      stage.setOnCloseRequest(e -> shutdown());
 
       log.info("Showing application window");
       stage.show();
-    }  catch (Exception e) {
+    } catch (Exception e) {
       log.error("Failed to start Control Panel application", e);
       shutdown();
       throw e;

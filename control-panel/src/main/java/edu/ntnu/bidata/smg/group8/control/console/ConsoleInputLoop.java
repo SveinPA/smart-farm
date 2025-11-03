@@ -9,7 +9,6 @@ import java.io.InputStreamReader;
 import java.time.Instant;
 import org.slf4j.Logger;
 
-
 /**
 * Handles user input from the console in a continuous loop.
 *

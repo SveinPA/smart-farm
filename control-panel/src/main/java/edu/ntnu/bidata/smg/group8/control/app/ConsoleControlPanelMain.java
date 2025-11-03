@@ -3,10 +3,12 @@ package edu.ntnu.bidata.smg.group8.control.app;
 import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
 import edu.ntnu.bidata.smg.group8.control.console.ConsoleInputLoop;
 import edu.ntnu.bidata.smg.group8.control.console.DisplayManager;
+import edu.ntnu.bidata.smg.group8.control.console.MockFeeder;
 import edu.ntnu.bidata.smg.group8.control.infra.network.PanelAgent;
 import edu.ntnu.bidata.smg.group8.control.logic.command.CommandInputHandler;
 import edu.ntnu.bidata.smg.group8.control.logic.state.StateStore;
 import org.slf4j.Logger;
+
 
 /**
 * Entry point for the Console-based version of the Control Panel.
@@ -24,6 +26,7 @@ public class ConsoleControlPanelMain {
   private DisplayManager display;
   private ConsoleInputLoop inputLoop;
   private Thread inputThread;
+  private Thread mockThread;
 
 
   /**
@@ -47,37 +50,66 @@ public class ConsoleControlPanelMain {
     String panelId = System.getProperty("panel.id", "panel-1");
     String nodeId = System.getProperty("node.id", "node-1");
 
-    log.info("Starting Console Control Panel (host={} port={} panelId={} nodeId={})",
-        host, port, panelId, nodeId);
+    String mockFile = System.getProperty("mock.file");
+    long mockDelay = Long.parseLong(System.getProperty("mock.interval.ms", "500"));
+    boolean mockOnly = Boolean.parseBoolean(System.getProperty("mock.only", "false"));
+
+    log.info(
+            "Starting Console Control Panel (host={} port={} "
+                    + "panelId={} nodeId={} mock.file={} mock.only={})",
+            host, port, panelId, nodeId, mockFile, mockOnly);
 
     StateStore stateStore = new StateStore();
 
-    try {
-      agent = new PanelAgent(host, port, panelId, stateStore);
-      agent.start();
-      log.info("PanelAgent connected to broker at {}:{}", host, port);
-    } catch (Exception e) {
-      log.error("Failed to start PanelAgent ({}:{})", host, port, e);
-      safeShutdown();
-      return;
+    // Optional: start mock feeder if a file is provided
+    if (mockFile != null && !mockFile.isBlank()) {
+      MockFeeder feeder = new MockFeeder(stateStore, mockFile, mockDelay);
+      mockThread = new Thread(feeder, "mock-feeder");
+      mockThread.setDaemon(true);
+      mockThread.start();
     }
 
-    CommandInputHandler cmdHandler = new CommandInputHandler(agent);
+    // Start network agent unless mock-only
+    if (!mockOnly) {
+      try {
+        agent = new PanelAgent(host, port, panelId, stateStore);
+        agent.start();
+        log.info("PanelAgent connected to broker at {}:{}", host, port);
+      } catch (Exception e) {
+        log.error("Failed to start PanelAgent ({}:{})", host, port, e);
+        safeShutdown();
+        return;
+      }
+    } else {
+      log.info("Mock-only mode: skipping broker connection");
+    }
 
+    // Start display (always)
     display = new DisplayManager(stateStore);
-
     display.setClearScreen(false);
     display.start();
 
-    inputLoop = new ConsoleInputLoop(cmdHandler, nodeId, display, stateStore);
-    inputThread = new Thread(inputLoop, "console-input");
-    inputThread.setDaemon(false);
-    inputThread.start();
+    // Start input loop only when agent is available (i.e., not mock-only)
+    if (agent != null) {
+      CommandInputHandler cmdHandler = new CommandInputHandler(agent);
+      inputLoop = new ConsoleInputLoop(cmdHandler, nodeId, display, stateStore);
+      inputThread = new Thread(inputLoop, "console-input");
+      inputThread.setDaemon(false);
+      inputThread.start();
+    } else {
+      log.info("Mock-only mode: ConsoleInputLoop not started (no broker)");
+    }
 
     Runtime.getRuntime().addShutdownHook(new Thread(this::safeShutdown, "console-shutdown"));
 
     try {
-      inputThread.join();
+      if (inputThread != null) {
+        inputThread.join();
+      } else if (mockThread != null) {
+        mockThread.join();
+      } else {
+        Thread.sleep(Long.MAX_VALUE);
+      }
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
     }
@@ -141,6 +173,17 @@ public class ConsoleControlPanelMain {
         agent = null;
       }
     }
+
+    if (mockThread != null) {
+      try {
+        mockThread.join(200);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      } finally {
+        mockThread = null;
+      }
+    }
+
     log.info("Shutdown sequence completed");
   }
 }
