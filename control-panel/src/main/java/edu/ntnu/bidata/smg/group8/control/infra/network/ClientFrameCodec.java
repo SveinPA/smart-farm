@@ -36,7 +36,7 @@ public class ClientFrameCodec {
   /**
   * Reads a length-prefixed frame from the input stream.
   * This method reads a 4-byte integer indicating the payload length,
-  * then reads exactly that man bytes for the payload. If the length is
+  * then reads exactly that many bytes for the payload. If the length is
   * invalid (zero, negative or exceeds MAX_FRAME_BYTES, an exception is
   * thrown.
   *
