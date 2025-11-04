@@ -65,6 +65,9 @@ public class WindowsCardController {
 
   private Button scheduleButton;
 
+  private Double latestTempC = null;
+  private Double latestWindMs = null;
+
   private ChangeListener<Object> modeListener;
   private ChangeListener<Number> sliderListener;
 
@@ -139,8 +142,10 @@ public class WindowsCardController {
       boolean manual = manualMode.isSelected();
       fx(() -> applyMode(manual));
       log.debug("Mode changed to {}", manual ? "MANUAL" : "AUTO");
+      if (!manual) {
+        onThresholdChanged();
+      }
     };
-
     modeGroup.selectedToggleProperty().addListener(modeListener);
 
     sliderListener = (obs, oldVal, newVal) -> {
@@ -168,12 +173,15 @@ public class WindowsCardController {
       //TODO: Implement actions
     });
 
+    tempSpinner.valueProperty().addListener((o, ov, nv) -> onThresholdChanged());
+    windSpinner.valueProperty().addListener((o, ov, nv) -> onThresholdChanged());
+
+
     fx(() -> {
       applyMode(true); // Manual by default
       applyPosition(currentPosition);
     });
 
-    // TODO: Add initialization logic here
     log.debug("WindowsCardController started successfully");
   }
 
@@ -227,14 +235,50 @@ public class WindowsCardController {
     Platform.runLater(() -> {
       suppressSend = true;
       updateWindowPosition(position);
-      new Thread(() -> {
-        try {
-          Thread.sleep(100);
-        } catch (InterruptedException ignored) {}
-        suppressSend = false;
-      }).start();
+      Platform.runLater(() -> suppressSend = false);
     });
   }
+
+  /**
+  * Updates the latest temperature reading and triggers auto-mode evaluation.
+  *
+  * @param tempC current temperature in degrees Celsius
+  */
+  public void updateTemperature(double tempC) {
+    this.latestTempC = tempC;
+    if (latestWindMs != null) {
+      updateFromSensors(latestTempC, latestWindMs);
+    }
+  }
+
+  /**
+   * Updates the latest wind speed reading and triggers auto-mode evaluation.
+   *
+   * @param windMs current wind speed in m/s
+   */
+  public void updateWindSpeed(double windMs) {
+    this.latestWindMs = windMs;
+    if (latestTempC != null) {
+      updateFromSensors(latestTempC, latestWindMs);
+    }
+  }
+
+  /**
+   * Re-evaluates auto-mode when threshold change.
+   * If missing sensor data, show passive status.
+   */
+  private void onThresholdChanged() {
+    if (!autoMode.isSelected()) {
+      return;
+    }
+    if (latestTempC == null || latestWindMs == null) {
+      updateAutoStatus(false, "Waiting for sensor data");
+      return;
+    }
+    updateFromSensors(latestTempC, latestWindMs);
+  }
+
+
 
   /**
   * Processes sensor reading and updates window position in automatic mode.
@@ -267,9 +311,13 @@ public class WindowsCardController {
     } else {
       target = currentPosition;
       updateAutoStatus(false, "Within threshold");
+      return;
+    }
+    if (target != currentPosition) {
+      updateWindowPosition(target);
+      sendWindowPositionIfNeeded(target);
     }
   }
-
   /**
   * Gets the current selected control mode.
   *
@@ -328,7 +376,7 @@ public class WindowsCardController {
       } else {
         autoStatusLabel.setText("Auto-control: Standby");
         autoStatusLabel.getStyleClass().remove("active");
-        if (autoStatusLabel.getStyleClass().contains("standby")) {
+        if (!autoStatusLabel.getStyleClass().contains("standby")) {
           autoStatusLabel.getStyleClass().add("standby");
         }
       }

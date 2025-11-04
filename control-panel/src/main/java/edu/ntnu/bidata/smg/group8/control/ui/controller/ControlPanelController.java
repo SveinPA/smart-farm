@@ -241,13 +241,16 @@ public class ControlPanelController {
       if (!"temperature".equalsIgnoreCase(sr.type())) {
         return;
       }
-      if (temperatureController != null) {
-        try {
-          double temp = Double.parseDouble(sr.value());
+      try {
+        double temp = Double.parseDouble(sr.value());
+        if (temperatureController != null) {
           temperatureController.updateTemperature(temp);
-        } catch (NumberFormatException e) {
-          log.warn("Invalid temperature value '{}' for nodeId={}", sr.value(), sr.nodeId());
         }
+        if (windowsController != null) {
+          windowsController.updateTemperature(temp);
+        }
+      } catch (NumberFormatException e) {
+        log.warn("Invalid temperature value '{}' for nodeId={}", sr.value(), sr.nodeId());
       }
     };
     stateStore.addSensorSink(temperatureSink);
@@ -277,13 +280,16 @@ public class ControlPanelController {
       if (!"wind".equalsIgnoreCase(sr.type())) {
         return;
       }
-      if (windSpeedController != null) {
-        try {
-          double windSpeed = Double.parseDouble(sr.value());
+      try {
+        double windSpeed = Double.parseDouble(sr.value());
+        if (windSpeedController != null) {
           windSpeedController.updateWindSpeed(windSpeed);
-        } catch (NumberFormatException e) {
-          log.warn("Invalid wind speed value '{}' for nodeId={}", sr.value(), sr.nodeId());
         }
+        if (windowsController != null) {
+          windowsController.updateWindSpeed(windSpeed);
+        }
+      } catch (NumberFormatException e) {
+        log.warn("Invalid wind speed value '{}' for nodeId={}", sr.value(), sr.nodeId());
       }
     };
     stateStore.addSensorSink(windSpeedSink);
