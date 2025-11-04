@@ -23,7 +23,6 @@ public class WindSpeedCardController {
   private static final double MAX_WIND = 30.0;
 
   private final ControlCard card;
-  private Label currentLabel;
   private Label statusLabel;
   private Label minLabel;
   private Label maxLabel;
@@ -39,7 +38,6 @@ public class WindSpeedCardController {
    * and passed to this controller for lifecycle management.
    *
    * @param card the main control card container
-   * @param currentLabel label displaying current wind speed
    * @param statusLabel label displaying the wind status text (e.g, "Calm")
    * @param gustLabel label displaying the maximum gust speed
    * @param windBar progress bar visualizing wind speed intensity
@@ -47,11 +45,10 @@ public class WindSpeedCardController {
    * @param maxLabel label displaying the 24h maximum wind speed
    * @param avgLabel label displaying the 24h average wind speed
    */
-  public WindSpeedCardController(ControlCard card, Label currentLabel, Label statusLabel,
+  public WindSpeedCardController(ControlCard card, Label statusLabel,
                                  Label gustLabel, ProgressBar windBar, Label minLabel,
                                  Label maxLabel, Label avgLabel) {
     this.card = card;
-    this.currentLabel = currentLabel;
     this.statusLabel = statusLabel;
     this.gustLabel = gustLabel;
     this.windBar = windBar;
@@ -91,7 +88,6 @@ public class WindSpeedCardController {
 
     fx(() -> {
       card.setValueText(String.format("%.1f m/s", speed));
-      currentLabel.setText(String.format("Current: %.1f m/s", speed));
 
       double progress = (speed - MIN_WIND) / (MAX_WIND - MIN_WIND);
       windBar.setProgress(Math.max(0, Math.min(1, progress)));

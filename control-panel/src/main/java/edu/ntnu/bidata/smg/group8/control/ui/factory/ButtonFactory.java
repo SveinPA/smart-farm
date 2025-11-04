@@ -279,6 +279,14 @@ public class ButtonFactory {
     return button;
   }
 
+  public static Button createHistoryButton(String text) {
+    log.debug("Creating history button: {}", text);
+
+    Button historyButton = new Button(text);
+    historyButton.setId("history-button");
+    return historyButton;
+  }
+
 
   /**
   * Creates a standard button with default styling.

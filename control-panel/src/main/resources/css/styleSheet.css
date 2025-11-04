@@ -115,6 +115,32 @@
     -fx-text-fill: black;
 }
 
+/*--------------- HISTORY  BUTTON ---------------*/
+#history-button {
+    -fx-border-radius: 0px;
+    -fx-background-radius: 0px;
+    -fx-background-color:  #6B9B76;
+    -fx-border-color:#6B9B79;
+    -fx-border-width: 2;
+    -fx-text-fill: #0F1C13;
+    -fx-font-weight: bold;
+    -fx-font-size: 12px;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.25), 8, 0.3, 0, 3);
+    -fx-cursor: hand;
+
+}
+
+#history-button:hover {
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.35), 12, 0.4, 0, 4);
+    -fx-scale-x: 1.02;
+    -fx-scale-y: 1.02;
+}
+
+#history-button:pressed {
+    -fx-background-color: #5B9B99;
+}
+
+
   /*--------------- CONTROL PANEL BUTTON ---------------*/
 
 #control-panel-button {
@@ -329,6 +355,10 @@
 }
 
 /* Progress bar colors */
+
+.progress-bar.wind-speed-bar {
+    -fx-padding: 2, 0, 2, 0;
+}
 
 .progress-bar.wind-speed-calm .bar {
     -fx-accent: #4CAF50;
