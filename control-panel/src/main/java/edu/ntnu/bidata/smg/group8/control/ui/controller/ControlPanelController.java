@@ -68,7 +68,6 @@ public class ControlPanelController {
   private Consumer<SensorReading> lightSink;
   private Consumer<SensorReading> phSink;
 
-
   /**
   * Creates a new ControlPanelController for the given view.
    *
@@ -249,6 +248,10 @@ public class ControlPanelController {
         if (windowsController != null) {
           windowsController.updateTemperature(temp);
         }
+
+        if (fanController != null) {
+          fanController.updateTemperature(temp);
+        }
       } catch (NumberFormatException e) {
         log.warn("Invalid temperature value '{}' for nodeId={}", sr.value(), sr.nodeId());
       }
@@ -266,6 +269,11 @@ public class ControlPanelController {
         try {
           double humidity = Double.parseDouble(sr.value());
           humidityController.updateHumidity(humidity);
+
+          if (fanController != null) {
+            fanController.updateHumidity(humidity);
+          }
+
         } catch (NumberFormatException e) {
           log.warn("Invalid humidity value '{}' for nodeId={}", sr.value(), sr.nodeId());
         }
@@ -288,6 +296,7 @@ public class ControlPanelController {
         if (windowsController != null) {
           windowsController.updateWindSpeed(windSpeed);
         }
+
       } catch (NumberFormatException e) {
         log.warn("Invalid wind speed value '{}' for nodeId={}", sr.value(), sr.nodeId());
       }
@@ -630,8 +639,6 @@ public class ControlPanelController {
   public FanCardController getFanController() {
     return fanController;
   }
-
-
 
 }
 
