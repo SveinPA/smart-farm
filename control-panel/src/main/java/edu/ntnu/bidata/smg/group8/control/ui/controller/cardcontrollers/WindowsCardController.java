@@ -41,7 +41,6 @@ public class WindowsCardController {
   private int currentPosition = 0;
 
   private final ControlCard card;
-  private Label openingLabel;
   private RadioButton manualMode;
   private RadioButton autoMode;
   private ToggleGroup modeGroup;
@@ -63,10 +62,11 @@ public class WindowsCardController {
   private Spinner<Integer> windSpinner;
   private Label autoStatusLabel;
 
-  private Button scheduleButton;
-
   private Double latestTempC = null;
   private Double latestWindMs = null;
+
+  private static final double WIND_CAUTION_FACTOR = 0.75;
+  private static final int WIND_CAUTION_MAX_OPENING = POSITION_HALF;
 
   private ChangeListener<Object> modeListener;
   private ChangeListener<Number> sliderListener;
@@ -86,7 +86,6 @@ public class WindowsCardController {
    * updates and event handling.
    *
    * @param card the main card container
-   * @param openingLabel label displaying current window opening percentage
    * @param manualMode radio button for manual control mode
    * @param autoMode radio button for automatic control mode
    * @param modeGroup toggle group managing mode radio buttons
@@ -100,18 +99,16 @@ public class WindowsCardController {
    * @param tempSpinner spinner for temperature threshold in auto mode (20-35°C)
    * @param windSpinner spinner for wind speed limit in auto mode (5-20 m/s)
    * @param autoStatusLabel label displaying automation status and reason
-   * @param scheduleButton button for accessing schedule configuration
    */
-  public WindowsCardController(ControlCard card, Label openingLabel,
+  public WindowsCardController(ControlCard card,
                                RadioButton manualMode, RadioButton autoMode, ToggleGroup modeGroup,
                                Button closedButton, Button slightButton, Button halfButton,
                                Button mostlyButton, Button openButton,
                                Slider openingSlider, Label sliderLabel,
                                Spinner<Integer> tempSpinner, Spinner<Integer> windSpinner,
-                               Label autoStatusLabel, Button scheduleButton, VBox manualBox,
+                               Label autoStatusLabel, VBox manualBox,
                                VBox autoBox) {
     this.card = card;
-    this.openingLabel = openingLabel;
     this.manualMode = manualMode;
     this.autoMode = autoMode;
     this.modeGroup = modeGroup;
@@ -127,7 +124,6 @@ public class WindowsCardController {
     this.autoStatusLabel = autoStatusLabel;
     this.manualBox = manualBox;
     this.autoBox = autoBox;
-    this.scheduleButton = scheduleButton;
 
     log.debug("WindowsCardController wired");
   }
@@ -168,10 +164,6 @@ public class WindowsCardController {
     mostlyButton.setOnAction(e -> setManualPosition(POSITION_MOSTLY));
     openButton.setOnAction(e -> setManualPosition(POSITION_OPEN));
 
-    scheduleButton.setOnAction(e -> {
-      log.info("Schedule button clicked");
-      //TODO: Implement actions
-    });
 
     tempSpinner.valueProperty().addListener((o, ov, nv) -> onThresholdChanged());
     windSpinner.valueProperty().addListener((o, ov, nv) -> onThresholdChanged());
@@ -205,7 +197,6 @@ public class WindowsCardController {
     halfButton.setOnAction(null);
     mostlyButton.setOnAction(null);
     openButton.setOnAction(null);
-    scheduleButton.setOnAction(null);
     openingSlider.setOnMouseReleased(null);
 
     log.debug("WindowsCardController stopped successfully");
@@ -296,6 +287,7 @@ public class WindowsCardController {
 
     int tempThreshold = tempSpinner.getValue();
     int windLimit = windSpinner.getValue();
+    double windCautionThreshold = windLimit * WIND_CAUTION_FACTOR;
 
     log.debug("Processing sensor data - Temp: {}°C (threshold: {}°C), Wind: {} m/s (limit: {} m/s)",
             String.format("%.1f", currentTemp), tempThreshold,
@@ -304,7 +296,15 @@ public class WindowsCardController {
     int target;
     if (currentWind > windLimit) {
       target = POSITION_CLOSED;
-      updateAutoStatus(true, "Strong wind");
+      updateAutoStatus(true, String.format("Strong wind (%.1f m/s) - safety closure", currentWind));
+    } else if (currentWind > windCautionThreshold) {
+      if (currentTemp >= tempThreshold) {
+        target = WIND_CAUTION_MAX_OPENING;
+        updateAutoStatus(true, String.format("Moderate wind (%.1f m/s) - limited opening", currentWind));
+      } else {
+        target = POSITION_CLOSED;
+        updateAutoStatus(true, String.format("Moderate wind (%.1f m/s) - closing", currentWind));
+      }
     } else if (currentTemp >= tempThreshold) {
       target = POSITION_OPEN;
       updateAutoStatus(true, "High temperature");
@@ -454,7 +454,6 @@ public class WindowsCardController {
     currentPosition = clampToPercent(pos);
 
     openingSlider.setValue(currentPosition);
-    openingLabel.setText("Opening: " + currentPosition + "%");
     sliderLabel.setText("Custom: " + currentPosition + "%");
 
     if (currentPosition == 0) {
@@ -472,9 +471,11 @@ public class WindowsCardController {
   private void applyMode(boolean manual) {
     manualBox.setDisable(!manual);
     manualBox.setVisible(manual);
+    manualBox.setManaged(manual);
 
     autoBox.setDisable(manual);
     autoBox.setVisible(!manual);
+    autoBox.setManaged(!manual);
   }
 
   /**
