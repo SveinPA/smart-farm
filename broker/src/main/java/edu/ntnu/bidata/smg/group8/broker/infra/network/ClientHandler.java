@@ -152,8 +152,26 @@ final class ClientHandler implements Runnable {
       registry.registerSensorNode(nodeId, out, who);
       registeredSensorOut = out;
       log.info("Sensor nodes connected: {}", registry.sensorNodeCount());
+      // Broadcast node connected event to all control panels
+      broadcastNodeEvent(Protocol.TYPE_NODE_CONNECTED, nodeId);
     }
     return true;
+  }
+
+  /**
+   * Broadcast a node lifecycle event (connected/disconnected) to all control panels.
+   * 
+   * @param eventType the event type constant (TYPE_NODE_CONNECTED or TYPE_NODE_DISCONNECTED)
+   * @param nodeId the node ID that triggered the event
+   */
+  private void broadcastNodeEvent(String eventType, String nodeId) {
+    final String event = JsonBuilder.build(
+      "type", eventType,
+      "nodeId", nodeId,
+      "timestamp", String.valueOf(System.currentTimeMillis())
+    );
+    registry.broadcastToPanels(event.getBytes(StandardCharsets.UTF_8));
+    log.info("Broadcasted {} for node {}", eventType, nodeId);
   }
 
   /**
@@ -309,6 +327,8 @@ final class ClientHandler implements Runnable {
         registry.unregisterSensorNode(nodeId, who);
         registeredSensorOut = null;
         log.info("Sensor nodes connected: {}", registry.sensorNodeCount());
+        // Broadcast node disconnected event to all control panels
+        broadcastNodeEvent(Protocol.TYPE_NODE_DISCONNECTED, nodeId);
       }
     } catch (Exception ignored) {
       // ignore

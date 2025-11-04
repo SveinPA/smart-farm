@@ -81,6 +81,10 @@ class TcpServerIntegrationTest {
       String sensorAck = readJson(sensor);
       assertTrue(sensorAck.contains(Protocol.TYPE_REGISTER_ACK));
 
+      // Panel receives NODE_CONNECTED event after sensor registration
+      String nodeConnected = readJson(panel);
+      assertTrue(nodeConnected.contains(Protocol.TYPE_NODE_CONNECTED));
+
       // Send SENSOR_DATA from sensor
       String data = Jsons.sensorData("{\"value\":42}");
       writeJson(sensor, data);
