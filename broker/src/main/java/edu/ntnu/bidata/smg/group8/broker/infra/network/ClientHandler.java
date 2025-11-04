@@ -19,9 +19,54 @@ import org.slf4j.Logger;
 
 
 /**
- * Handler for a connected TCP client.
+ * Handles a single TCP client connection in a dedicated thread.
+ *
+ * <p>This handler manages the complete lifecycle of a client connection:
+ * <ol>
+ *   <li><strong>Handshake:</strong> Requires REGISTER_NODE or REGISTER_CONTROL_PANEL as first message</li>
+ *   <li><strong>Registration:</strong> Registers client with ConnectionRegistry based on role</li>
+ *   <li><strong>Message Processing:</strong> Routes messages according to protocol and client role</li>
+ *   <li><strong>Cleanup:</strong> Unregisters client and closes socket on disconnect</li>
+ * </ol>
+ *
+ * <p><strong>Message Routing:</strong>
+ * <ul>
+ *   <li><strong>SENSOR_DATA:</strong> Broadcast from sensor nodes to all control panels</li>
+ *   <li><strong>ACTUATOR_COMMAND:</strong> Route from control panels to specific sensor nodes</li>
+ *   <li><strong>HEARTBEAT:</strong> Keep-alive messages (logged only, resets timeout)</li>
+ *   <li><strong>NODE_CONNECTED/DISCONNECTED:</strong> Lifecycle events broadcast to control panels</li>
+ * </ul>
+ *
+ * <p><strong>Role-Based Validation:</strong>
+ * <ul>
+ *   <li>Only sensor nodes can send SENSOR_DATA messages</li>
+ *   <li>Only control panels can send ACTUATOR_COMMAND messages</li>
+ *   <li>Invalid role/message combinations are rejected and logged</li>
+ * </ul>
+ *
+ * <p><strong>Heartbeat and Timeout Mechanism:</strong>
+ * <ul>
+ *   <li>Socket read timeout: 30 seconds (READ_TIMEOUT_MS)</li>
+ *   <li>Any received message resets timeout counter and lastSeen timestamp</li>
+ *   <li>On idle timeout (no message for 30s), broker sends HEARTBEAT to client</li>
+ *   <li>After 2 consecutive idle timeouts (MAX_IDLE_MISSES), connection is closed</li>
+ *   <li>Total idle time before disconnect: 60 seconds (2 × 30s)</li>
+ * </ul>
+ *
+ * <p><strong>Thread Safety:</strong> Each client runs in its own thread (via Runnable).
+ * The handler can be stopped externally via {@link #stop()}, which sets the running flag
+ * and closes the socket, causing the message loop to exit gracefully.
+ *
+ * <p><strong>Error Handling:</strong>
+ * <ul>
+ *   <li>EOFException: Client closed connection (logged as info)</li>
+ *   <li>SocketTimeoutException: Triggers heartbeat mechanism</li>
+ *   <li>IOException: Logged as warning, connection closed</li>
+ *   <li>Unknown message types: Logged as warning, connection continues</li>
+ * </ul>
  *
  * @see TcpServer
+ * @see ConnectionRegistry
  */
 final class ClientHandler implements Runnable {
 
