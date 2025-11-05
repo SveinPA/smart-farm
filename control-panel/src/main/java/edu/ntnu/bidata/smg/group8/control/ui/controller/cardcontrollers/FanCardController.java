@@ -178,11 +178,20 @@ public class FanCardController {
       int intensity = newVal.intValue();
       autoIntensity = intensity;
       autoIntensityLabel.setText("Fan intensity: " + intensity + "%");
-      log.info("Auto mode fan intensity changed: {}% -> {}%", oldVal.intValue(), intensity);
+      log.info("Auto mode fan intensity set to: {}%", intensity);
 
-      if (!isManualMode) {
-        evaluateAutoMode();
-      }
+//      if (!isManualMode) {
+//        int tempThreshold = tempSpinner.getValue();
+//        int humidityThreshold = humiditySpinner.getValue();
+//        boolean conditionsMet = (currentTemperature >= tempThreshold) || (currentHumidity >= humidityThreshold);
+//
+//        if (conditionsMet) {
+//          setFanSpeed(intensity);
+//          log.debug("Auto intensity updated while conditions met: {}%", intensity);
+//        } else {
+//          log.debug("Auto intensity updated but conditions not met - fan stays off");
+//        }
+//      }
     };
     autoIntensitySlider.valueProperty().addListener(autoIntensityListener);
 
@@ -461,6 +470,14 @@ public class FanCardController {
     if (isManualMode) {
       return;
     }
+
+    // Dont evaluate if sensor data is not available
+    if (currentTemperature < 0 || currentHumidity < 0) {
+      log.debug("Waiting for sensor data before evaluating auto mode");
+      updateAutoStatus("Waiting for sensor data", false);
+      return;
+    }
+
     int tempThreshold = tempSpinner.getValue();
     int humidityThreshold = humiditySpinner.getValue();
 
