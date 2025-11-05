@@ -4,16 +4,18 @@ import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
 import edu.ntnu.bidata.smg.group8.control.logic.command.CommandInputHandler;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlCard;
 import java.io.IOException;
-import java.time.LocalTime;
-import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
-import javafx.scene.control.*;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.RadioButton;
+import javafx.scene.control.Slider;
+import javafx.scene.control.Spinner;
+import javafx.scene.control.Toggle;
+import javafx.scene.control.ToggleGroup;
 import org.slf4j.Logger;
 
 /**
@@ -179,19 +181,6 @@ public class FanCardController {
       autoIntensity = intensity;
       autoIntensityLabel.setText("Fan intensity: " + intensity + "%");
       log.info("Auto mode fan intensity set to: {}%", intensity);
-
-//      if (!isManualMode) {
-//        int tempThreshold = tempSpinner.getValue();
-//        int humidityThreshold = humiditySpinner.getValue();
-//        boolean conditionsMet = (currentTemperature >= tempThreshold) || (currentHumidity >= humidityThreshold);
-//
-//        if (conditionsMet) {
-//          setFanSpeed(intensity);
-//          log.debug("Auto intensity updated while conditions met: {}%", intensity);
-//        } else {
-//          log.debug("Auto intensity updated but conditions not met - fan stays off");
-//        }
-//      }
     };
     autoIntensitySlider.valueProperty().addListener(autoIntensityListener);
 
@@ -462,9 +451,9 @@ public class FanCardController {
    * Evaluates the conditions for auto mode and adjusts fan speed accordingly.
    * This method checks the current temperature and humidity against
    *
-   * the user-defined thresholds. If either condition is met,
+   * <p>the user-defined thresholds. If either condition is met,
    * the fan speed is set to the auto intensity level.
-   * If neither condition is met, the fan is turned off.
+   * If neither condition is met, the fan is turned off.</p>
    */
   private void evaluateAutoMode() {
     if (isManualMode) {
@@ -485,7 +474,8 @@ public class FanCardController {
     boolean humidityConditionMet = currentHumidity >= humidityThreshold;
 
     if (tempConditionMet || humidityConditionMet) {
-      log.info("Auto mode conditions met - Temp: {}°C (threshold: {}°C), Humidity: {}% (threshold: {})",
+      log.info("Auto mode conditions met - Temp: {}°C (threshold: {}°C), "
+                      + "Humidity: {}% (threshold: {})",
               currentTemperature, tempThreshold, currentHumidity, humidityThreshold);
       setFanSpeed(autoIntensity);
       updateAutoStatus("Active - Fan ON", true);
