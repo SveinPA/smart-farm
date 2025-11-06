@@ -30,7 +30,6 @@ public class PHCardController {
   private static final double PH_ALKALINE = 10.0;
 
   private final ControlCard card;
-  private Label currentLabel;
   private Label statusLabel;
   private Label minLabel;
   private Label maxLabel;
@@ -46,7 +45,6 @@ public class PHCardController {
   * Creates a new PHCardController with the specified UI components.
   *
   * @param card the main card container
-  * @param currentLabel label displaying current pH value
   * @param statusLabel label displaying pH status (Acidic/Neutral/Alkaline)
   * @param phBar progress bar visualizing pH level
   * @param minLabel label displaying minimum pH (24h)
@@ -54,11 +52,10 @@ public class PHCardController {
   * @param avgLabel label displaying average pH (24h)
   * @param historyButton button to access historical data
   */
-  public PHCardController(ControlCard card, Label currentLabel, Label statusLabel,
+  public PHCardController(ControlCard card, Label statusLabel,
                           ProgressBar phBar, Label minLabel, Label maxLabel,
                           Label avgLabel, Button historyButton) {
     this.card = card;
-    this.currentLabel = currentLabel;
     this.statusLabel = statusLabel;
     this.phBar = phBar;
     this.minLabel = minLabel;
@@ -97,7 +94,6 @@ public class PHCardController {
 
     fx(() -> {
       card.setValueText(String.format("%.1f", ph));
-      currentLabel.setText(String.format("Current: %.1f", ph));
 
       // Update progress bar (normalized to 0-1 range)
       double progress = (ph - MIN_PH) / (MAX_PH - MIN_PH);
@@ -152,6 +148,7 @@ public class PHCardController {
               String.format("%.2f", ph));
       previousStatus = status;
     }
+    statusLabel.setText("Status: " + status);
 
     if (ph < PH_VERY_ACIDIC) {
       log.warn("CRITICAL: pH too acidic ({}) - Risk of nutrient lockout and root damage",

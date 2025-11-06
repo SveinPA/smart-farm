@@ -47,40 +47,42 @@ public class PHCardBuilder implements CardBuilder {
   public ControlCard build() {
     log.info("Building pH control card");
 
-    Label currentLabel = new Label("Current: --");
-    currentLabel.getStyleClass().addAll("card-subtle", "ph-current");
-
+    // Status Label
     Label statusLabel = new Label("Status: --");
     statusLabel.getStyleClass().addAll("card-subtle", "ph-status");
+    statusLabel.setAlignment(Pos.CENTER);
 
+    // Visual representation of the ph value
     ProgressBar phBar = new ProgressBar(0.5);
     phBar.setMaxWidth(Double.MAX_VALUE);
     phBar.setPrefHeight(20);
     phBar.getStyleClass().add("ph-bar");
 
-    Label minLabel = new Label("Min: -- m/s");
+    // Minimum temperature the last 24h
+    Label minLabel = new Label("Min: -- ");
     minLabel.getStyleClass().addAll("card-subtle", "ph-stat");
+    minLabel.setAlignment(Pos.CENTER);
 
-    Label maxLabel = new Label("Max: -- m/s");
+    // Maximum temperature the last 24h
+    Label maxLabel = new Label("Max: -- ");
     maxLabel.getStyleClass().addAll("card-subtle", "ph-stat");
+    maxLabel.setAlignment(Pos.CENTER);
 
-    Label avgLabel = new Label("Avg: -- m/s");
+    // Average temperature the last 24h
+    Label avgLabel = new Label("Avg: -- ");
     avgLabel.getStyleClass().addAll("card-subtle", "ph-stat");
+    avgLabel.setAlignment(Pos.CENTER);
 
     Label statsTitle = new Label("24h Statistics:");
     statsTitle.getStyleClass().add("ph-stats-title");
 
-    HBox statsRow = new HBox(15, minLabel, maxLabel);
-    statsRow.setAlignment(Pos.CENTER);
-
-    VBox statsBox = new VBox(4, statsTitle, statsRow, avgLabel);
+    VBox statsBox = new VBox(4, statsTitle, new Separator(), minLabel, avgLabel, maxLabel);
     statsBox.setAlignment(Pos.CENTER);
 
-    Button historyButton = ButtonFactory.createButton("History...");
+    Button historyButton = ButtonFactory.createHistoryButton("History");
     card.getFooter().getChildren().add(historyButton);
 
     card.addContent(
-            currentLabel,
             statusLabel,
             new Separator(),
             phBar,
@@ -89,7 +91,6 @@ public class PHCardBuilder implements CardBuilder {
 
     var controller = new PHCardController(
             card,
-            currentLabel,
             statusLabel,
             phBar,
             minLabel,

@@ -470,45 +470,48 @@
 
 /*--------------- pH Card ---------------*/
 
-/* Current pH label */
-.ph-current {
-    -fx-font-size: 14px;
-    -fx-font-weight: bold;
-}
 
 /* Status label - base style */
 .ph-status {
     -fx-font-size: 12px;
     -fx-font-style: italic;
+    -fx-alignment: CENTER;
 }
 
 /* pH zone colors for status label */
 .ph-status.ph-very-acidic {
-    -fx-text-fill: #f44336; /* Red */
+    -fx-text-fill: #f44336;
+    -fx-alignment: CENTER;
 }
 
 .ph-status.ph-acidic {
-    -fx-text-fill: #ff9800; /* Orange */
+    -fx-text-fill: #ff9800;
+    -fx-alignment: CENTER;
 }
 
 .ph-status.ph-slightly-acidic {
-    -fx-text-fill: #8bc34a; /* Light green */
+    -fx-text-fill: #8bc34a;
+    -fx-alignment: CENTER;
 }
 
 .ph-status.ph-neutral {
-    -fx-text-fill: #4caf50; /* Green */
+    -fx-text-fill: #4caf50;
+    -fx-alignment: CENTER;
 }
 
 .ph-status.ph-slightly-alkaline {
-    -fx-text-fill: #2196f3; /* Blue */
+    -fx-text-fill: #2196f3;
+    -fx-alignment: CENTER;
 }
 
 .ph-status.ph-alkaline {
-    -fx-text-fill: #3f51b5; /* Dark blue */
+    -fx-text-fill: #3f51b5;
+    -fx-alignment: CENTER;
 }
 
 .ph-status.ph-very-alkaline {
-    -fx-text-fill: #9c27b0; /* Purple */
+    -fx-text-fill: #9c27b0;
+    -fx-alignment: CENTER;
 }
 
 /* pH progress bar - base style */
