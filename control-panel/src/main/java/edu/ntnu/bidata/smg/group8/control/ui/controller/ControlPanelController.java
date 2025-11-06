@@ -199,21 +199,22 @@ public class ControlPanelController {
     stateStore.addActuatorSink(heaterSink);
 
     valveSink = ar -> {
-      if (!nodeId.equals(ar.nodeId())) {
-        return;
-      }
-      if (!"valve".equalsIgnoreCase(ar.type())) {
-        return;
-      }
+      if (!nodeId.equals(ar.nodeId())) return;
+      if (!"valve".equalsIgnoreCase(ar.type())) return;
       try {
-        int state = Integer.parseInt(ar.state());
+        int v = Integer.parseInt(ar.state().trim());
         if (valveController != null) {
-          valveController.updateValveState(state == 1);
+          if (v >= 0 && v <= 100) {
+            valveController.updateValvePositionExternal(v);
+          } else {
+            valveController.updateValveState(v == 1);
+          }
         }
       } catch (NumberFormatException e) {
         log.warn("Invalid valve state '{}' for nodeId={}", ar.state(), ar.nodeId());
       }
     };
+    stateStore.addActuatorSink(valveSink);
     stateStore.addActuatorSink(valveSink);
 
     windowSink = ar -> {
