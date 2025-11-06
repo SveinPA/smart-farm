@@ -34,11 +34,7 @@ public class FanCardController {
   private static final int SPEED_HIGH = 75;
   private static final int SPEED_FULL = 100;
 
-  private static final int DEFAULT_TEMP_THRESHOLD = 26;
-  private static final int DEFAULT_HUMIDITY_THRESHOLD = 75;
-
   private final ControlCard card;
-  private final Label speedLabel;
   private final RadioButton manualMode;
   private final RadioButton autoMode;
   private final ToggleGroup modeGroup;
@@ -52,10 +48,15 @@ public class FanCardController {
   private final Spinner<Integer> tempSpinner;
   private final Spinner<Integer> humiditySpinner;
   private final Label autoStatusLabel;
-  private final Button scheduleButton;
+  private final Slider autoIntensitySlider;
+  private final Label autoIntensityLabel;
 
   private int currentSpeed = 0;
   private boolean isManualMode = true;
+
+  private double currentTemperature = 20.0;
+  private double currentHumidity = 50.0;
+  private int autoIntensity = 0;
 
   private ChangeListener<Toggle> modeChangeListener;
   private ChangeListener<Number> sliderChangeListener;
@@ -66,20 +67,20 @@ public class FanCardController {
   private EventHandler<ActionEvent> highHandler;
   private EventHandler<ActionEvent> fullHandler;
   private EventHandler<ActionEvent> offHandler;
+  private ChangeListener<Number> autoIntensityListener;
 
   private CommandInputHandler cmdHandler;
   private String nodeId;
   private final String actuatorKey = "fan";
 
   private volatile boolean suppressSend = false;
-
   private Integer lastSentSpeed = null;
 
   /**
    * Creates a new FanCardController with the specified UI components.
    *
    * @param card the main card container
-   * @param speedLabel label displaying current fan speed
+
    * @param manualMode radio button for manual mode
    * @param autoMode radio button for automatic mode
    * @param modeGroup toggle group for mode selection
@@ -93,9 +94,10 @@ public class FanCardController {
    * @param tempSpinner spinner for temperature threshold in auto mode
    * @param humiditySpinner spinner for humidity threshold in auto mode
    * @param autoStatusLabel label displaying auto mode status
-   * @param scheduleButton button to access scheduling configuration
+   * @param autoIntensitySlider slider for auto mode fan intensity
+   * @param autoIntensityLabel label displaying auto intensity value
    */
-  public FanCardController(ControlCard card, Label speedLabel,
+  public FanCardController(ControlCard card, //Label speedLabel,
                            RadioButton manualMode, RadioButton autoMode,
                            ToggleGroup modeGroup, Button lowButton,
                            Button mediumButton, Button highButton,
@@ -103,9 +105,11 @@ public class FanCardController {
                            Slider speedSlider, Label sliderLabel,
                            Spinner<Integer> tempSpinner,
                            Spinner<Integer> humiditySpinner,
-                           Label autoStatusLabel, Button scheduleButton) {
+                           Label autoStatusLabel,
+                           Slider autoIntensitySlider,
+                           Label autoIntensityLabel
+  ){
     this.card = card;
-    this.speedLabel = speedLabel;
     this.manualMode = manualMode;
     this.autoMode = autoMode;
     this.modeGroup = modeGroup;
@@ -118,8 +122,9 @@ public class FanCardController {
     this.sliderLabel = sliderLabel;
     this.tempSpinner = tempSpinner;
     this.humiditySpinner = humiditySpinner;
+    this.autoIntensitySlider = autoIntensitySlider;
+    this.autoIntensityLabel = autoIntensityLabel;
     this.autoStatusLabel = autoStatusLabel;
-    this.scheduleButton = scheduleButton;
 
     log.debug("FanCardController wired");
   }
@@ -137,6 +142,8 @@ public class FanCardController {
       } else if (newToggle == autoMode) {
         isManualMode = false;
         log.info("Fan mode changed to: AUTO");
+        updateAutoStatus("Active", true);
+        evaluateAutoMode();
       }
     };
     modeGroup.selectedToggleProperty().addListener(modeChangeListener);
@@ -152,7 +159,7 @@ public class FanCardController {
       setFanSpeed(finalValue);
     });
 
-
+    //Manual mode buttons
     lowHandler = e -> setFanSpeed(SPEED_LOW);
     lowButton.setOnAction(lowHandler);
 
@@ -168,24 +175,36 @@ public class FanCardController {
     offHandler = e -> setFanSpeed(0);
     offButton.setOnAction(offHandler);
 
+    // Auto mode
+    autoIntensityListener = (obs, oldVal, newVal) -> {
+      int intensity = newVal.intValue();
+      autoIntensity = intensity;
+      autoIntensityLabel.setText("Fan intensity: " + intensity + "%");
+      log.info("Auto mode fan intensity set to: {}%", intensity);
+    };
+    autoIntensitySlider.valueProperty().addListener(autoIntensityListener);
+
     tempSpinnerListener = (obs, oldVal, newVal) -> {
       if (oldVal != null && newVal != null && !oldVal.equals(newVal)) {
         log.info("Auto mode temperature threshold changed: {}°C -> {}°C", oldVal, newVal);
+        if (!isManualMode) {
+          evaluateAutoMode();
+        }
       }
     };
+
+
     tempSpinner.valueProperty().addListener(tempSpinnerListener);
 
     humiditySpinnerListener = (obs, oldVal, newVal) -> {
       if (oldVal != null && newVal != null && !oldVal.equals(newVal)) {
         log.info("Auto mode humidity threshold changed: {}% -> {}%", oldVal, newVal);
+        if (!isManualMode) {
+          evaluateAutoMode();
+        }
       }
     };
     humiditySpinner.valueProperty().addListener(humiditySpinnerListener);
-
-    scheduleButton.setOnAction(e -> {
-      log.info("Schedule button clicked (not implemented)");
-      // TODO: Open scheduling dialog
-    });
 
     log.debug("FanCardController started successfully - Mode: MANUAL, Speed: {}%", currentSpeed);
   }
@@ -205,6 +224,11 @@ public class FanCardController {
     if (sliderChangeListener != null) {
       speedSlider.valueProperty().removeListener(sliderChangeListener);
       sliderChangeListener = null;
+    }
+
+    if (autoIntensityListener != null) {
+      autoIntensitySlider.valueProperty().removeListener(autoIntensityListener);
+      autoIntensityListener = null;
     }
 
     if (tempSpinnerListener != null) {
@@ -242,8 +266,6 @@ public class FanCardController {
       offButton.setOnAction(null);
       offHandler = null;
     }
-
-    scheduleButton.setOnAction(null);
 
     log.debug("FanCardController stopped successfully");
   }
@@ -304,8 +326,6 @@ public class FanCardController {
    * @param speed the speed percentage (0-100)
    */
   private void updateCardValue(int speed) {
-    speedLabel.setText("Speed: " + speed + "%");
-
     String statusText;
     if (speed == 0) {
       statusText = "OFF";
@@ -320,7 +340,6 @@ public class FanCardController {
     }
 
     card.setValueText(statusText);
-
     log.trace("Fan status updated: {}", statusText);
   }
 
@@ -425,6 +444,73 @@ public class FanCardController {
       r.run();
     } else {
       Platform.runLater(r);
+    }
+  }
+
+  /**
+   * Evaluates the conditions for auto mode and adjusts fan speed accordingly.
+   * This method checks the current temperature and humidity against
+   *
+   * <p>the user-defined thresholds. If either condition is met,
+   * the fan speed is set to the auto intensity level.
+   * If neither condition is met, the fan is turned off.</p>
+   */
+  private void evaluateAutoMode() {
+    if (isManualMode) {
+      return;
+    }
+
+    // Dont evaluate if sensor data is not available
+    if (currentTemperature < 0 || currentHumidity < 0) {
+      log.debug("Waiting for sensor data before evaluating auto mode");
+      updateAutoStatus("Waiting for sensor data", false);
+      return;
+    }
+
+    int tempThreshold = tempSpinner.getValue();
+    int humidityThreshold = humiditySpinner.getValue();
+
+    boolean tempConditionMet = currentTemperature >= tempThreshold;
+    boolean humidityConditionMet = currentHumidity >= humidityThreshold;
+
+    if (tempConditionMet || humidityConditionMet) {
+      log.info("Auto mode conditions met - Temp: {}°C (threshold: {}°C), "
+                      + "Humidity: {}% (threshold: {})",
+              currentTemperature, tempThreshold, currentHumidity, humidityThreshold);
+      setFanSpeed(autoIntensity);
+      updateAutoStatus("Active - Fan ON", true);
+    } else {
+      log.info("Auto mode condition not met - Fan OFF");
+      setFanSpeed(0);
+      updateAutoStatus("Active - Conditions not met", true);
+    }
+  }
+
+  /**
+   * Updates the current humidity reading.
+   *
+   * @param humidity the new humidity value to set
+   */
+  public void updateHumidity(double humidity) {
+    this.currentHumidity = humidity;
+    log.debug("Humidity updated: {}%", humidity);
+
+    if (!isManualMode) {
+      evaluateAutoMode();
+    }
+  }
+
+  /**
+   * Updates the current temperature reading.
+   *
+   * @param temperature the new temperature value to set
+   */
+  public void updateTemperature(double temperature) {
+    this.currentTemperature = temperature;
+    log.debug("Temperature updated: {}°C", temperature);
+
+    if (!isManualMode) {
+      evaluateAutoMode();
     }
   }
 }
