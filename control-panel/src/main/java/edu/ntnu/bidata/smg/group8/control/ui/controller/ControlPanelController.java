@@ -214,7 +214,6 @@ public class ControlPanelController {
       }
     };
     stateStore.addActuatorSink(valveSink);
-    stateStore.addActuatorSink(valveSink);
 
     windowSink = ar -> {
       if (!nodeId.equals(ar.nodeId())) {
