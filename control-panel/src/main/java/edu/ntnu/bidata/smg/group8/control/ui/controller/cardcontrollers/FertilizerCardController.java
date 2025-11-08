@@ -221,6 +221,8 @@ public class FertilizerCardController {
       });
     });
     sendDoseCommandIfNeeded(amount);
+    addHistoryEntry(String.format("Applied %d ml (%s)", amount, source));
+    log.info("Fertilizer dose noted into history");
   }
 
   /**
@@ -321,32 +323,35 @@ public class FertilizerCardController {
       double clamped = Math.max(0, Math.min(300, nitrogenPpm));
       card.setValueText(String.format("%.1f ppm", nitrogenPpm));
 
-      double progress = clamped / 300.0;
-      nitrogenBar.setProgress(progress);
+      if (nitrogenBar != null) {
+        double progress = clamped / 300.0;
+        nitrogenBar.setProgress(progress);
+      }
 
       String zoneClass;
 
       if (nitrogenPpm < 50) {
         statusLabel.setText("Status: Very Low - Deficiency Risk");
-        zoneClass = "fertilizer-zone-very-low";
+        zoneClass = "fertilizer-very-low";
         } else if (nitrogenPpm <= 100) {
         statusLabel.setText("Status: Low - Supplement Recommended");
-        zoneClass = "fertilizer-zone-low";
+        zoneClass = "fertilizer-low";
       } else if (nitrogenPpm <= 150) {
         statusLabel.setText("Status: Optimal Range");
-        zoneClass = "fertilizer-zone-optimal";
+        zoneClass = "fertilizer-optimal";
       } else if (nitrogenPpm <= 200) {
         statusLabel.setText("Status: High - Good for Heavy Feeders");
-        zoneClass = "fertilizer-zone-high";
+        zoneClass = "fertilizer-high";
       } else {
         statusLabel.setText("Status: Very High - Burn Risk");
-        zoneClass = "fertilizer-zone-very-high";
+        zoneClass = "fertilizer-very-high";
       }
 
-      // swap CSS classes to update color
-      ObservableList<String> classes = nitrogenBar.getStyleClass();
-      classes.removeAll(FERT_ZONE_CLASSES);
-      classes.add(zoneClass);
+      if (nitrogenBar != null) {
+        ObservableList<String> classes = nitrogenBar.getStyleClass();
+        classes.removeAll(FERT_ZONE_CLASSES);
+        classes.add(zoneClass);
+      }
     });
   }
 
@@ -402,21 +407,36 @@ public class FertilizerCardController {
     }
   }
 
+  /**
+   * Adds an entry to the fertilizer change history.
+   *
+   * <p>This method prepends a timestamped message to the change history list,
+   * which can later be displayed in a dialog.</p>
+   *
+   * @param message the message describing the change
+   */
   private void addHistoryEntry(String message) {
     String timestamp = LocalDateTime.now()
             .truncatedTo(ChronoUnit.SECONDS)
             .toString();
-    changeHistory.add(timestamp + "- " + message);
+    changeHistory.addFirst(timestamp + "- " + message);
 }
 
+  /**
+   * Displays a dialog showing the fertilizer change history.
+   * This dialog lists all recorded changes made during the current session.
+   *
+   * <p>The dialog is modal and blocks interaction with the main UI
+   * until closed.</p>
+   */
   private void showHistoryDialog() {
     Dialog<Void> dialog = new Dialog<>();
     dialog.setTitle("Fertilizer History");
-    dialog.setHeaderText("Fertilizer deposit history during this session:");
+    dialog.setHeaderText("Changes made during this session:");
 
     dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
 
-      ListView<String> listView = new ListView<>();
+    ListView<String> listView = new ListView<>();
     listView.getItems().setAll(changeHistory);
 
     int visibleRows = Math.min(changeHistory.size(), 10);
@@ -426,11 +446,12 @@ public class FertilizerCardController {
     listView.setMinHeight(Region.USE_PREF_SIZE);
     listView.setMaxHeight(Region.USE_PREF_SIZE);
 
-    listView.setPrefWidth(360);
+    listView.setPrefWidth(500);
+    listView.setPrefHeight(300);
+    dialog.getDialogPane().setPrefWidth(520);
+    dialog.getDialogPane().setPrefHeight(350);
 
     dialog.getDialogPane().setContent(listView);
-    dialog.getDialogPane().setPrefWidth(380);
-
     dialog.showAndWait();
     }
 

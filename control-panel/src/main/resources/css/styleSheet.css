@@ -691,7 +691,7 @@
     -fx-background-color: #c8e6c9;
 }
 .progress-bar.fertilizer-bar {
-    -fx-pref-heightl: 10;
+    -fx-pref-height: 10;
 }
 
 .progress-bar.fertilizer-very-low .bar {

@@ -60,7 +60,7 @@ public class FertilizerCardBuilder implements CardBuilder {
     Label lastDoseLabel = new Label("Last dose: --");
     lastDoseLabel.getStyleClass().addAll("card-subtle", "fertilizer-last-dose");
 
-    Label nitrogenLabel = new Label("Nitrogen level in soil:");
+    Label nitrogenLabel = new Label("Current nitrogen level in soil:");
     nitrogenLabel.getStyleClass().add("fertilizer-nitrogen-level");
 
     ProgressBar nitrogenBar = new ProgressBar(0);
@@ -98,7 +98,7 @@ public class FertilizerCardBuilder implements CardBuilder {
     VBox presetsBox = new VBox(6, presetsLabel, quickDose50Button, quickDose100Button, quickDose200Button);
     presetsBox.setAlignment(Pos.CENTER_LEFT);
 
-    Button historyButton = ButtonFactory.createButton("History");
+    Button historyButton = ButtonFactory.createHistoryButton("History");
     card.getFooter().getChildren().add(historyButton);
 
     card.addContent(
