@@ -30,7 +30,7 @@ import org.slf4j.Logger;
 * It also provides real-time nitrogen level monitoring and warnings
 * for potentially harmful dose levels</p>
 *
-* @author Andrea Sandnes
+* @author Andrea Sandnes & Mona Amundsen
 * @version 28.10.2025
 */
 public class FertilizerCardController {

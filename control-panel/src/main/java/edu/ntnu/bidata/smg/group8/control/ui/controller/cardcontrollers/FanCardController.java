@@ -23,7 +23,7 @@ import org.slf4j.Logger;
 * This controller coordinates the interaction between the FanCardBuilder UI
 * and the underlying logic it is responsible for.
 
-* @author Andrea Sandnes
+* @author Andrea Sandnes & Mona Amundsen
 * @version 28.10.2025
 */
 public class FanCardController {

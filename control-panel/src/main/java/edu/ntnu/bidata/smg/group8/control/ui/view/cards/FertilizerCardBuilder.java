@@ -23,7 +23,7 @@ import javafx.geometry.Pos;
 * <p>This builder constructs and configures a ControlCard component
 * dedicated to controlling greenhouse fertilizer dosing.</p>
 *
-* @author Andrea Sandnes
+* @author Andrea Sandnes & Mona Amundsen
 * @version 28.10.2025
 */
 public class FertilizerCardBuilder implements CardBuilder {

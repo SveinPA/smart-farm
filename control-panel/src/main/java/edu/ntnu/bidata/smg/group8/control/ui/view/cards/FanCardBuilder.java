@@ -23,7 +23,7 @@ import org.slf4j.Logger;
 * <p>This builder constructs and configures a ControlCard component
 * dedicated to controlling greenhouse fans with both manual and automatic modes.</p>
 *
-* @author Andrea Sandnes
+* @author Andrea Sandnes & Mona Amundsen
 * @version 28.10.2025
 */
 public class FanCardBuilder implements CardBuilder {
