@@ -77,10 +77,10 @@ public class FanCardBuilder implements CardBuilder {
 
     HBox presetsRow1 = new HBox(8, lowButton, mediumButton);
     HBox presetsRow2 = new HBox(8, highButton, fullButton);
-    presetsRow1.setAlignment(Pos.CENTER_LEFT);
-    presetsRow2.setAlignment(Pos.CENTER_LEFT);
+    presetsRow1.setAlignment(Pos.CENTER);
+    presetsRow2.setAlignment(Pos.CENTER);
     VBox presetsBox = new VBox(6, presetsRow1, presetsRow2);
-    presetsBox.setAlignment(Pos.CENTER_LEFT);
+    presetsBox.setAlignment(Pos.CENTER);
 
     Label sliderLabel = new Label("Custom: 0%");
     sliderLabel.getStyleClass().add("fan-slider-label");
@@ -110,6 +110,7 @@ public class FanCardBuilder implements CardBuilder {
     tempSpinner.setPrefWidth(75);
     Label tempUnit = new Label("°C");
     HBox tempRow = new HBox(8,tempLabel, tempSpinner, tempUnit);
+    tempRow.setAlignment(Pos.CENTER);
     tempSpinner.getStyleClass().add("fan-auto-spinner");
 
     Label humidityLabel = new Label("Or at: ");
@@ -119,7 +120,7 @@ public class FanCardBuilder implements CardBuilder {
     humiditySpinner.getStyleClass().add("fan-auto-spinner");
     Label humidityUnit = new Label("% RH");
     HBox humidityRow = new HBox(8, humidityLabel, humiditySpinner, humidityUnit);
-    humidityRow.setAlignment(Pos.CENTER_LEFT);
+    humidityRow.setAlignment(Pos.CENTER);
 
     Label autoIntensityLabel = new Label("Fan intensity: 0%");
     VBox.setMargin(autoIntensityLabel, new Insets(10,0,0,0));
