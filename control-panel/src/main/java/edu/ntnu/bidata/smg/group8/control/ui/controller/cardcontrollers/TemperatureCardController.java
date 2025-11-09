@@ -201,7 +201,7 @@ public class TemperatureCardController {
    *
    * <p>The entry includes the timestamp, humidity value, and status zone.</p>
    *
-   * @param humidity the humidity value to record
+   * @param temperature the temperature value to record
    * @param zoneText the status zone associated with the humidity value
    */
   private void addHistoryEntry(double temperature, String zoneText) {
