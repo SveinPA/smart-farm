@@ -239,6 +239,8 @@ public final class ControlPanelMain extends Application {
         double wind = 12.3;
         double humidity = 65.0;
         double pH = 6.8;
+        double fertilizer= 75.0;
+         // Actuator states
         int windowPosition = 50;
         boolean fanOn = true;
         boolean heaterOn = false;
@@ -262,6 +264,10 @@ public final class ControlPanelMain extends Application {
           pH += (Math.random() - 0.5) * 0.2;
           pH = Math.max(5.5, Math.min(8.0, pH));
 
+          //Fertilizer: ±2% per update
+          fertilizer += (Math.random() - 0.5) * 4;
+          fertilizer = Math.max(0.0, Math.min(300.0, fertilizer));
+
           // Update sensors - VIKTIG: Bruk Locale.US for punktum som desimalskilletegn
           java.time.Instant now = java.time.Instant.now();
           stateStore.applySensor("node-1", "temperature",
@@ -272,6 +278,8 @@ public final class ControlPanelMain extends Application {
                   String.format(java.util.Locale.US, "%.1f", humidity), "%", now);
           stateStore.applySensor("node-1", "pH",
                   String.format(java.util.Locale.US, "%.1f", pH), "", now);
+            stateStore.applySensor("node-1", "fertilizer",
+                  String.format(java.util.Locale.US, "%.1f", fertilizer), "ppm", now);
 
           // ===== SIMULATE ACTUATOR CHANGES =====
 
@@ -297,11 +305,12 @@ public final class ControlPanelMain extends Application {
                   heaterOn ? "on" : "off", now);
 
           log.debug("Updated test data: temp={}, wind={}, humidity={}, pH={}, " +
-                          "window={}%, fan={}, heater={}",
+                          "window={}%, fan={}, heater={}, fertilizer={}",
                   String.format(java.util.Locale.US, "%.1f", temp),
                   String.format(java.util.Locale.US, "%.1f", wind),
                   String.format(java.util.Locale.US, "%.1f", humidity),
                   String.format(java.util.Locale.US, "%.1f", pH),
+                  String.format(java.util.Locale.US, "%.1f",fertilizer),
                   windowPosition,
                   fanOn ? "on" : "off",
                   heaterOn ? "on" : "off");

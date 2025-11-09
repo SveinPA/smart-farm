@@ -373,10 +373,14 @@ public class ControlPanelController {
     log.info("All sensor sinks registered successfully");
 
     fertilizerSink = sr -> {
+      log.info("DEBUG: Received sensor reading - nodeId={}, type={}, value={}",
+              sr.nodeId(), sr.type(), sr.value()); // ADD THIS LINE
+
       if (!nodeId.equals(sr.nodeId())) {
         return;
       }
       if (!"fertilizer".equalsIgnoreCase(sr.type())) {
+        log.warn("DEBUG: Type mismatch! Expected 'fertilizer', got '{}'", sr.type());
         return;
       }
       if (fertilizerController != null) {

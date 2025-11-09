@@ -67,8 +67,8 @@ public class FertilizerCardBuilder implements CardBuilder {
     nitrogenBar.setMaxWidth(Double.MAX_VALUE);
     nitrogenBar.setPrefHeight(8);
     nitrogenBar.getStyleClass().addAll("fertilizer-bar", "fertilizer-very-low");
-    VBox nitrogenBox = new VBox(4, nitrogenLabel, nitrogenBar);
-    VBox.setMargin(nitrogenBox, new Insets(10, 0, 15, 0));
+    VBox nitrogenBox = new VBox(4, nitrogenLabel, statusLabel, nitrogenBar);
+    VBox.setMargin(nitrogenBox, new Insets(10, 0, 10, 0));
     nitrogenBox.setAlignment(Pos.CENTER_LEFT);
 
     Spinner<Integer> doseSpinner = new Spinner<>(DOSE_MIN, DOSE_MAX, DOSE_DEFAULT, 10);
@@ -81,11 +81,17 @@ public class FertilizerCardBuilder implements CardBuilder {
     Label setLabel = new Label("Dose amount:");
     Label unitLabel = new Label("ml");
 
-    HBox doseBox = new HBox(8, setLabel, doseSpinner, unitLabel);
+    HBox doseRow = new HBox(8, doseSpinner, unitLabel);
+    doseRow.setAlignment(Pos.CENTER);
+
+    VBox doseBox = new VBox(4, setLabel, doseRow);
     doseBox.setAlignment(Pos.CENTER);
-    doseBox.setMinWidth(200);
+
+    setLabel.setWrapText(false);
+    unitLabel.setWrapText(false);
 
     VBox applyBox = new VBox(8, doseBox, applyButton);
+    VBox.setMargin(applyButton, new Insets(0, 0, 10, 0));
     applyBox.setAlignment(Pos.CENTER);
 
     Button quickDose50Button = ButtonFactory.createFullWidthButton("Quick Dose (50 ml)");
@@ -102,7 +108,6 @@ public class FertilizerCardBuilder implements CardBuilder {
     card.getFooter().getChildren().add(historyButton);
 
     card.addContent(
-            statusLabel,
             lastDoseLabel,
             new Separator(),
             nitrogenBox,
