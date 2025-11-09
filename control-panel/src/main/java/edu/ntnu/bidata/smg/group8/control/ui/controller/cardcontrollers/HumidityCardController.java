@@ -253,8 +253,7 @@ public class HumidityCardController {
     String time = LocalTime.now()
             .truncatedTo(ChronoUnit.SECONDS)
             .toString();
-    String entry = time + " – " + String.format("%.1f %% RH", humidity)
-            + " (" + zoneText + ")";
+    String entry = time + " – " + String.format("%.1f %% RH", humidity);
     historyEntries.addFirst(entry);
   }
 
