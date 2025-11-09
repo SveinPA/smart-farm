@@ -7,12 +7,19 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
 import org.slf4j.Logger;
+import java.util.ArrayList;
+import java.util.List;
+import java.time.LocalTime;
+import java.time.temporal.ChronoUnit;
+import javafx.scene.control.Dialog;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.ListView;
 
 /**
 * Controller for the Humidity control card.
 * Handles humidity updates, statistics display, and zone-based styling.
 
-* @author Andrea Sandnes
+* @author Andrea Sandnes & Mona Amundsen
 * @version 28.10.2025
 */
 public class HumidityCardController {
@@ -29,38 +36,38 @@ public class HumidityCardController {
   private static final double HUMIDITY_CRITICAL_HIGH = 80.0;
 
   private final ControlCard card;
-  private Label currentLabel;
-  private Label minLabel;
-  private Label maxLabel;
-  private Label avgLabel;
-  private ProgressBar humidityBar;
-  private Button historyButton;
+  private final Label minLabel;
+  private final Label maxLabel;
+  private final Label avgLabel;
+  private final ProgressBar humidityBar;
+  private final Button historyButton;
+  private final List<String> historyEntries = new ArrayList<>();
+  private Label statusLabel = new Label();
 
   private String previousLevel = null;
   private String activeZoneClass = null;
-
 
   /**
    * Creates a new HumidityCardController with the specified UI components.
    *
    * @param card the main card container
-   * @param currentLabel label displaying current humidity value
    * @param humidityBar progress bar visualizing humidity level
    * @param minLabel label displaying minimum humidity (24h)
    * @param maxLabel label displaying maximum humidity (24h)
    * @param avgLabel label displaying average humidity (24h)
    * @param historyButton  button to access historical data
+   * @param statusLabel label displaying current humidity status
    */
-  public HumidityCardController(ControlCard card, Label currentLabel,
-                                ProgressBar humidityBar, Label minLabel,
-                                Label maxLabel, Label avgLabel, Button historyButton) {
+  public HumidityCardController(ControlCard card, ProgressBar humidityBar,
+                                Label minLabel, Label maxLabel, Label avgLabel,
+                                Button historyButton, Label statusLabel) {
     this.card = card;
-    this.currentLabel = currentLabel;
     this.humidityBar = humidityBar;
     this.minLabel = minLabel;
     this.maxLabel = maxLabel;
     this.avgLabel = avgLabel;
     this.historyButton = historyButton;
+    this.statusLabel = statusLabel;
 
     log.debug("HumidityCardController wired with range [0%, 100%]");
   }
@@ -71,6 +78,7 @@ public class HumidityCardController {
   public void start() {
     log.info("Starting HumidityCardController");
     // TODO: Add initialization logic here
+    historyButton.setOnAction(e -> showHistoryDialog());
     log.debug("HumidityCardController started successfully");
   }
 
@@ -92,8 +100,8 @@ public class HumidityCardController {
     log.debug("Updating humidity to: {}%", String.format("%.1f", humidity));
 
     fx(() -> {
-      card.setValueText(String.format("%.0f%%", humidity));
-      currentLabel.setText(String.format("Current: %.0f%%", humidity));
+      double clamped = Math.max(0, Math.min(100, humidity));
+      card.setValueText(String.format("%.1f %% RH", clamped));
 
       // Update progress bar (humidity is already 0-100, convert to 0-1)
       double progress = humidity / 100.0;
@@ -106,6 +114,9 @@ public class HumidityCardController {
 
       // Update color based on humidity level
       updateHumidityZone(humidity);
+
+      String zoneText = statusLabel.getText();
+      addHistoryEntry(clamped, zoneText);
 
       checkCriticalLevels(humidity);
     });
@@ -227,5 +238,32 @@ public class HumidityCardController {
     } else {
       Platform.runLater(r);
     }
+  }
+
+  private void addHistoryEntry(double humidity, String zoneText) {
+    String time = LocalTime.now()
+            .truncatedTo(ChronoUnit.SECONDS)
+            .toString();
+    String entry = time + " – " + String.format("%.1f %% RH", humidity)
+            + " (" + zoneText + ")";
+    historyEntries.addFirst(entry);
+  }
+
+  private void showHistoryDialog() {
+    Dialog<Void> dialog = new Dialog<>();
+    dialog.setTitle("Humidity History");
+    dialog.setHeaderText("Humidity Readings History");
+
+    dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+
+    ListView<String> listView = new ListView<>();
+    listView.getItems().setAll(historyEntries);
+
+    listView.setPrefSize(450, 300);
+    dialog.getDialogPane().setPrefSize(470,340);
+    dialog.setResizable(true);
+
+    dialog.getDialogPane().setContent(listView);
+    dialog.showAndWait();
   }
 }
