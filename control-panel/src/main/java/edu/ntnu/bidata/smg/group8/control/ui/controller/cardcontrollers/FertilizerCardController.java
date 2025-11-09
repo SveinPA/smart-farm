@@ -93,6 +93,7 @@ public class FertilizerCardController {
   * @param quickDose100Button button for quick 100ml dose
   * @param quickDose200Button button for quick 200ml dose
   * @param historyButton button to access scheduling configuration
+  * @param nitrogenBar progress bar showing current nitrogen level
   */
   public FertilizerCardController(ControlCard card, Label statusLabel,
                                   Label lastDoseLabel, Spinner<Integer> doseSpinner,

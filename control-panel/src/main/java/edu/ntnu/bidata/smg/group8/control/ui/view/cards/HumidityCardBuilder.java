@@ -79,6 +79,7 @@ public class HumidityCardBuilder implements CardBuilder {
             currentLabel,
             new Separator(),
             humidityBar,
+            new Separator(),
             statsBox
     );
 
