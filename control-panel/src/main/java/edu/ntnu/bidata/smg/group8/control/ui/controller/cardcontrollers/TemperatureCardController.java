@@ -2,11 +2,17 @@ package edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers;
 
 import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlCard;
-import edu.ntnu.bidata.smg.group8.control.ui.view.cards.TemperatureCardBuilder;
 import javafx.application.Platform;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
+import javafx.scene.control.Dialog;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.ListView;
+import java.time.LocalTime;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.List;
 import org.slf4j.Logger;
 
 
@@ -15,7 +21,7 @@ import org.slf4j.Logger;
 * This controller coordinates the interaction between the TemperatureCardBuilder UI
 * and the underlying logic it is responsible for.
 
-* @author Andrea Sandnes
+* @author Andrea Sandnes & Mona Amundsen
 * @version 28.10.2025
 */
 public class TemperatureCardController {
@@ -32,11 +38,13 @@ public class TemperatureCardController {
   private static final double T_WARM = 30.0;
 
   private final ControlCard card;
-  private Label minLabel;
-  private Label maxLabel;
-  private Label avgLabel;
-  private ProgressBar temperatureBar;
-  private Button historyButton;
+  private final Label minLabel;
+  private final Label maxLabel;
+  private final Label avgLabel;
+  private final ProgressBar temperatureBar;
+  private final Button historyButton;
+  private final List<String> historyEntries = new ArrayList<>();
+  private Label statusLabel = new Label();
 
   private String activeZoneClass;
 
@@ -69,6 +77,7 @@ public class TemperatureCardController {
   public void start() {
     log.info("Starting TemperatureCardController");
     // TODO: Add initialization logic here
+    historyButton.setOnAction(e -> showHistoryDialog());
     log.debug("TemperatureCardController started successfully");
   }
 
@@ -90,6 +99,7 @@ public class TemperatureCardController {
     log.info("Temperature updated: {}°C", String.format("%.1f", temperature));
 
     fx(() -> {
+      double clamped = Math.max(MIN_TEMP, Math.min(MAX_TEMP, temperature));
       card.setValueText(String.format("%.1f°C", temperature));
 
       // Update progress bar (normalized to 0-1 range)
@@ -103,6 +113,10 @@ public class TemperatureCardController {
 
       // Update color based on temperature
       applyTemperatureStyle(temperature);
+
+      // Add to history
+      String zoneText = statusLabel.getText();
+      addHistoryEntry(clamped, zoneText);
     });
   }
 
@@ -180,5 +194,45 @@ public class TemperatureCardController {
     } else {
       Platform.runLater(r);
     }
+  }
+
+  /**
+   * Adds a new entry to the humidity history.
+   *
+   * <p>The entry includes the timestamp, humidity value, and status zone.</p>
+   *
+   * @param humidity the humidity value to record
+   * @param zoneText the status zone associated with the humidity value
+   */
+  private void addHistoryEntry(double temperature, String zoneText) {
+    String time = LocalTime.now()
+            .truncatedTo(ChronoUnit.SECONDS)
+            .toString();
+    String entry = time + " – " + String.format("%.1f °C", temperature);
+    historyEntries.addFirst(entry);
+  }
+
+  /**
+   * Displays a dialog with the humidity history entries.
+   *
+   * <p>The dialog shows a list of recorded humidity readings along with their timestamps
+   * and status zones. Users can close the dialog when done.</p>
+   */
+  private void showHistoryDialog() {
+    Dialog<Void> dialog = new Dialog<>();
+    dialog.setTitle("Temperature History");
+    dialog.setHeaderText("Temperature Readings History");
+
+    dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+
+    ListView<String> listView = new ListView<>();
+    listView.getItems().setAll(historyEntries);
+
+    listView.setPrefSize(450, 300);
+    dialog.getDialogPane().setPrefSize(470, 340);
+    dialog.setResizable(true);
+
+    dialog.getDialogPane().setContent(listView);
+    dialog.showAndWait();
   }
 }

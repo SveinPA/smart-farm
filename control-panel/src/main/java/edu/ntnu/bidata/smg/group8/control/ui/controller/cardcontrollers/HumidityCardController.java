@@ -241,6 +241,14 @@ public class HumidityCardController {
     }
   }
 
+  /**
+   * Adds a new entry to the humidity history.
+   *
+   * <p>The entry includes the timestamp, humidity value, and status zone.</p>
+   *
+   * @param humidity the humidity value to record
+   * @param zoneText the status zone associated with the humidity value
+   */
   private void addHistoryEntry(double humidity, String zoneText) {
     String time = LocalTime.now()
             .truncatedTo(ChronoUnit.SECONDS)
@@ -250,6 +258,12 @@ public class HumidityCardController {
     historyEntries.addFirst(entry);
   }
 
+  /**
+   * Displays a dialog with the humidity history entries.
+   *
+   * <p>The dialog shows a list of recorded humidity readings along with their timestamps
+   * and status zones. Users can close the dialog when done.</p>
+   */
   private void showHistoryDialog() {
     Dialog<Void> dialog = new Dialog<>();
     dialog.setTitle("Humidity History");

@@ -19,7 +19,7 @@ import org.slf4j.Logger;
 * <p>This builder constructs and configures a ControlCard component
 * dedicated to displaying real-time temperature readings and 24h statistics</p>
 
-* @author Andrea Sandnes
+* @author Andrea Sandnes & Mona Amundsen
 * @version 27.10.2025
 */
 public class TemperatureCardBuilder implements CardBuilder {
@@ -113,5 +113,4 @@ public class TemperatureCardBuilder implements CardBuilder {
   public ControlCard getCard() {
     return card;
   }
-
 }
