@@ -426,9 +426,6 @@ public class FertilizerCardController {
   /**
    * Displays a dialog showing the fertilizer change history.
    * This dialog lists all recorded changes made during the current session.
-   *
-   * <p>The dialog is modal and blocks interaction with the main UI
-   * until closed.</p>
    */
   private void showHistoryDialog() {
     Dialog<Void> dialog = new Dialog<>();
@@ -455,5 +452,4 @@ public class FertilizerCardController {
     dialog.getDialogPane().setContent(listView);
     dialog.showAndWait();
     }
-
 }

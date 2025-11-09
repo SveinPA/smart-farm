@@ -4,16 +4,15 @@ import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
 import edu.ntnu.bidata.smg.group8.control.logic.command.CommandInputHandler;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlCard;
 import java.io.IOException;
-import java.util.Objects;
-
-import javafx.application.Platform;
-import javafx.beans.value.ChangeListener;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.RadioButton;
 import javafx.scene.control.Slider;
 import javafx.scene.control.Spinner;
 import javafx.scene.control.ToggleGroup;
+import java.util.Objects;
+import javafx.application.Platform;
+import javafx.beans.value.ChangeListener;
 import javafx.scene.layout.VBox;
 import org.slf4j.Logger;
 
@@ -99,6 +98,8 @@ public class WindowsCardController {
    * @param tempSpinner spinner for temperature threshold in auto mode (20-35°C)
    * @param windSpinner spinner for wind speed limit in auto mode (5-20 m/s)
    * @param autoStatusLabel label displaying automation status and reason
+   * @param manualBox container for manual mode controls
+   * @param autoBox container for automatic mode controls
    */
   public WindowsCardController(ControlCard card,
                                RadioButton manualMode, RadioButton autoMode, ToggleGroup modeGroup,
