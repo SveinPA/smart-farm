@@ -88,6 +88,7 @@ public class HumidityCardController {
   public void stop() {
     log.info("Stopping HumidityCardController");
     // TODO: Add cleanup logic here
+    historyButton.setOnAction(null);
     log.debug("HumidityCardController stopped successfully");
   }
 
