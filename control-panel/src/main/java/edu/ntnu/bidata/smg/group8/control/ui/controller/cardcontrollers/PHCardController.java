@@ -3,10 +3,12 @@ package edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers;
 import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlCard;
 import javafx.application.Platform;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.ProgressBar;
+import javafx.scene.control.*;
 import org.slf4j.Logger;
+
+import java.time.LocalTime;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
 
 /**
 * Controller for the pH control card.
@@ -36,6 +38,7 @@ public class PHCardController {
   private Label avgLabel;
   private ProgressBar phBar;
   private Button historyButton;
+  private final List<String> historyEntries = new java.util.ArrayList<>();
 
   private String previousStatus = null;
   private String activeZoneClass = null;
@@ -51,6 +54,7 @@ public class PHCardController {
   * @param maxLabel label displaying maximum pH (24h)
   * @param avgLabel label displaying average pH (24h)
   * @param historyButton button to access historical data
+   *
   */
   public PHCardController(ControlCard card, Label statusLabel,
                           ProgressBar phBar, Label minLabel, Label maxLabel,
@@ -72,6 +76,10 @@ public class PHCardController {
   public void start() {
     log.info("Starting PHCardController");
     // TODO: Add initialization logic here
+    historyButton.setOnAction(e -> {
+      showHistoryDialog();
+      log.info("History button clicked - showing pH history dialog");
+    });
     log.debug("PHCardController started successfully");
   }
 
@@ -106,6 +114,8 @@ public class PHCardController {
 
       // Update status and color
       updatePHStatus(ph);
+      // Add to history
+      addHistoryEntry(ph, previousStatus);
     });
   }
 
@@ -204,5 +214,42 @@ public class PHCardController {
     }
   }
 
+  /**
+   * Adds a new entry to the pH history.
+   *
+   * <p>The entry includes the timestamp and pH value.</p>
+   *
+   * @param PHLevel the pH value to record
+   * @param zoneText the status zone associated with the pH value
+   */
+  private void addHistoryEntry(double PHLevel, String zoneText) {
+    String time = LocalTime.now()
+            .truncatedTo(ChronoUnit.SECONDS)
+            .toString();
+    String entry = time + " – " + String.format("%.1f pH", PHLevel);
+    historyEntries.addFirst(entry);
+  }
 
+  /**
+   * Displays the history dialog with recorded pH entries.
+   *
+   * <p>The dialog shows a list of recorded pH entries.</p>
+   */
+  private void showHistoryDialog() {
+    Dialog<Void> dialog = new Dialog<>();
+    dialog.setTitle("pH Readings History");
+    dialog.setHeaderText("pH Readings History");
+
+    dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+
+    ListView<String> listView = new ListView<>();
+    listView.getItems().setAll(historyEntries);
+
+    listView.setPrefSize(450, 300);
+    dialog.getDialogPane().setPrefSize(470,340);
+    dialog.setResizable(true);
+
+    dialog.getDialogPane().setContent(listView);
+    dialog.showAndWait();
+  }
 }

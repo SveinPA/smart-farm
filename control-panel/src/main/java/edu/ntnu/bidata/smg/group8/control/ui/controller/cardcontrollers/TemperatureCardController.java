@@ -77,7 +77,10 @@ public class TemperatureCardController {
   public void start() {
     log.info("Starting TemperatureCardController");
     // TODO: Add initialization logic here
-    historyButton.setOnAction(e -> showHistoryDialog());
+    historyButton.setOnAction(e -> {
+      showHistoryDialog();
+      log.info("Temperature history button clicked - showing temperature history dialog");
+    });
     log.debug("TemperatureCardController started successfully");
   }
 
@@ -197,9 +200,9 @@ public class TemperatureCardController {
   }
 
   /**
-   * Adds a new entry to the humidity history.
+   * Adds a new entry to the temperature history.
    *
-   * <p>The entry includes the timestamp, humidity value, and status zone.</p>
+   * <p>The entry includes the timestamp and temperature value.</p>
    *
    * @param temperature the temperature value to record
    * @param zoneText the status zone associated with the humidity value
@@ -213,10 +216,9 @@ public class TemperatureCardController {
   }
 
   /**
-   * Displays a dialog with the humidity history entries.
+   * Displays a dialog with the temperature history.
    *
-   * <p>The dialog shows a list of recorded humidity readings along with their timestamps
-   * and status zones. Users can close the dialog when done.</p>
+   * <p>The dialog shows a list of recorded temperature entries.</p>
    */
   private void showHistoryDialog() {
     Dialog<Void> dialog = new Dialog<>();

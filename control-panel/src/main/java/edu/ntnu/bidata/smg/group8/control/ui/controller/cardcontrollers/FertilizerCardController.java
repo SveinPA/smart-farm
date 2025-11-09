@@ -142,7 +142,7 @@ public class FertilizerCardController {
     quickDose200Button.setOnAction(quickDose200Handler);
 
     historyButton.setOnAction(e -> {
-      log.info("History button clicked - showing history dialog");
+      log.info("History button clicked - showing fertilizer history dialog");
       showHistoryDialog();
     });
 

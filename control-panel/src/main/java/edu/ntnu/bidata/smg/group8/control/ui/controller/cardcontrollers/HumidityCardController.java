@@ -78,7 +78,10 @@ public class HumidityCardController {
   public void start() {
     log.info("Starting HumidityCardController");
     // TODO: Add initialization logic here
-    historyButton.setOnAction(e -> showHistoryDialog());
+    historyButton.setOnAction(e -> {
+      showHistoryDialog();
+      log.info("Humidity history button clicked - showing humidity history dialog");
+    });
     log.debug("HumidityCardController started successfully");
   }
 
@@ -244,7 +247,7 @@ public class HumidityCardController {
   /**
    * Adds a new entry to the humidity history.
    *
-   * <p>The entry includes the timestamp, humidity value, and status zone.</p>
+   * <p>The entry includes the timestamp, humidity value.</p>
    *
    * @param humidity the humidity value to record
    * @param zoneText the status zone associated with the humidity value
