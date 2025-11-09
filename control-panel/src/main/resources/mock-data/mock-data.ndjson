@@ -9,6 +9,3 @@
 {"type":"ACTUATOR_STATE","nodeId":"node-1","actuator":"artificial_light","state":"75","timestamp":"2025-11-02T12:00:08Z"}
 
 {"type":"SENSOR_DATA","nodeId":"node-1","sensorKey":"fertilizer","value":"20.0","unit":"ppm","timestamp":"2025-11-08T16:30:00Z"}
-{"type":"SENSOR_DATA","nodeId":"node-1","sensorKey":"fertilizer","value":"80.0","unit":"ppm","timestamp":"2025-11-08T16:30:10Z"}
-{"type":"SENSOR_DATA","nodeId":"node-1","sensorKey":"fertilizer","value":"150.0","unit":"ppm","timestamp":"2025-11-08T16:30:20Z"}
-{"type":"SENSOR_DATA","nodeId":"node-1","sensorKey":"fertilizer","value":"210.0","unit":"ppm","timestamp":"2025-11-08T16:30:30Z"}

@@ -331,19 +331,19 @@ public class FertilizerCardController {
       String zoneClass;
 
       if (nitrogenPpm < 50) {
-        statusLabel.setText("Status: Very Low - Deficiency Risk");
+        statusLabel.setText("Status: \n Very Low - Deficiency Risk");
         zoneClass = "fertilizer-very-low";
         } else if (nitrogenPpm <= 100) {
-        statusLabel.setText("Status: Low - Supplement Recommended");
+        statusLabel.setText("Status: \n Low - Supplement Recommended");
         zoneClass = "fertilizer-low";
       } else if (nitrogenPpm <= 150) {
-        statusLabel.setText("Status: Optimal Range");
+        statusLabel.setText("Status: \n Optimal Range");
         zoneClass = "fertilizer-optimal";
       } else if (nitrogenPpm <= 200) {
-        statusLabel.setText("Status: High - Good for Heavy Feeders");
+        statusLabel.setText("Status: \n High - Good for Heavy Feeders");
         zoneClass = "fertilizer-high";
       } else {
-        statusLabel.setText("Status: Very High - Burn Risk");
+        statusLabel.setText("Status: \n Very High - Burn Risk");
         zoneClass = "fertilizer-very-high";
       }
 

@@ -691,8 +691,9 @@
     -fx-background-color: #c8e6c9;
 }
 .progress-bar.fertilizer-bar {
-    -fx-pref-height: 10;
+    -fx-pref-height: 20px;
 }
+
 
 .progress-bar.fertilizer-very-low .bar {
     -fx-accent: #F44336;
@@ -713,7 +714,6 @@
 .progress-bar.fertilizer-very-high .bar {
     -fx-accent: #9c27b0;
 }
-
 
 /*--------------- Fan Card ---------------*/
 

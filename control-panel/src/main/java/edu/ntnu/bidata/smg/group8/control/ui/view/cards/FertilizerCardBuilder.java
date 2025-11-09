@@ -14,8 +14,6 @@ import javafx.scene.control.Spinner;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import org.slf4j.Logger;
-import javafx.scene.control.ProgressBar;
-import javafx.geometry.Pos;
 
 /**
 * Builder for the Fertilizer Control Card.
@@ -60,14 +58,11 @@ public class FertilizerCardBuilder implements CardBuilder {
     Label lastDoseLabel = new Label("Last dose: --");
     lastDoseLabel.getStyleClass().addAll("card-subtle", "fertilizer-last-dose");
 
-    Label nitrogenLabel = new Label("Current nitrogen level in soil:");
-    nitrogenLabel.getStyleClass().add("fertilizer-nitrogen-level");
-
     ProgressBar nitrogenBar = new ProgressBar(0);
     nitrogenBar.setMaxWidth(Double.MAX_VALUE);
     nitrogenBar.setPrefHeight(8);
     nitrogenBar.getStyleClass().addAll("fertilizer-bar", "fertilizer-very-low");
-    VBox nitrogenBox = new VBox(4, nitrogenLabel, statusLabel, nitrogenBar);
+    VBox nitrogenBox = new VBox(4, statusLabel, nitrogenBar);
     VBox.setMargin(nitrogenBox, new Insets(10, 0, 10, 0));
     nitrogenBox.setAlignment(Pos.CENTER_LEFT);
 
@@ -86,6 +81,7 @@ public class FertilizerCardBuilder implements CardBuilder {
 
     VBox doseBox = new VBox(4, setLabel, doseRow);
     doseBox.setAlignment(Pos.CENTER);
+    VBox.setMargin(doseBox, new Insets(10, 0, 0, 0));
 
     setLabel.setWrapText(false);
     unitLabel.setWrapText(false);
@@ -109,8 +105,8 @@ public class FertilizerCardBuilder implements CardBuilder {
 
     card.addContent(
             lastDoseLabel,
-            new Separator(),
             nitrogenBox,
+            new Separator(),
             applyBox,
             new Separator(),
             presetsBox
