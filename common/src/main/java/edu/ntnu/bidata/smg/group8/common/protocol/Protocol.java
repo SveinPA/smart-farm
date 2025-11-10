@@ -27,6 +27,7 @@ public final class Protocol {
   public static final String TYPE_NODE_CONNECTED = "NODE_CONNECTED";
   public static final String TYPE_NODE_DISCONNECTED = "NODE_DISCONNECTED";
   public static final String TYPE_ACTUATOR_STATUS = "ACTUATOR_STATUS";
+  public static final String TYPE_COMMAND_ACK = "COMMAND_ACK";
 
   // Roles
   public static final String ROLE_SENSOR_NODE = "SENSOR_NODE";
