@@ -9,309 +9,222 @@ import javafx.beans.value.ChangeListener;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
-import javafx.scene.control.RadioButton;
-import javafx.scene.control.Slider;
-import javafx.scene.control.Toggle;
-import javafx.scene.control.ToggleGroup;
+import javafx.scene.control.ListView;
+import javafx.scene.control.ProgressBar;
+import java.time.LocalTime;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.List;
 import javafx.scene.layout.VBox;
 import org.slf4j.Logger;
-
-
 
 /**
 * Controller for the Light control card.
 * Handles light state (ON/OFF), intensity adjustment, and ambient light monitoring.
 
-* @author Andrea Sandnes
+* @author Andrea Sandnes & Mona Amundsen
 * @version 28.10.2025
 */
 public class LightCardController {
   private static final Logger log = AppLogger.get(LightCardController.class);
 
+  // Ambient range for progress bar
+  private static final double MIN_LUX = 0.0;
+  private static final double MAX_LUX = 80000.0;
+
+  // Light level thresholds color coding
+  private static final double L_DARK = 400.0;
+  private static final double L_LOW = 500.0;
+  private static final double L_MEDIUM= 2500.0;
+  private static final double L_BRIGHT = 20000.0;
+
   private final ControlCard card;
+  private final Label minLabel;
+  private final Label maxLabel;
+  private final Label avgLabel;
+  private final ProgressBar ambientBar;
+  private final Button historyButton;
+  private final List<String> historyEntries = new ArrayList<>();
+  private Label statusLabel = new Label();
 
-  private Label ambientLabel;
-  private RadioButton onButton;
-  private RadioButton offButton;
-  private ToggleGroup stateGroup;
-  private Slider intensitySlider;
-  private Label intensityLabel;
-  private VBox intensityBox;
-  private Button scheduleButton;
+  private String activeZoneClass;
 
-  private EventHandler<ActionEvent> onButtonHandler;
-  private EventHandler<javafx.event.ActionEvent> offButtonHandler;
-  private ChangeListener<Toggle> stateChangeListener;
-  private ChangeListener<Number> intensityChangeListener;
-
-  private CommandInputHandler cmdHandler;
-  private String nodeId;
-
-
-  /**
-  * Creates new LightCardController with the specified UI components.
-  *
-  * @param card the main card container
-  * @param ambientLabel label displaying ambient light level in lux
-  * @param onButton radio button to turn lights ON
-  * @param offButton radio button to turn lights OFF
-  * @param stateGroup toggle group for ON/OFF state
-  * @param intensitySlider slider controlling light intensity (0-100%)
-  * @param intensityLabel label displaying current intensity percentage
-  * @param intensityBox container for intensity controls
-  * @param scheduleButton button to access scheduling configuration
-  */
-  public LightCardController(ControlCard card, Label ambientLabel, RadioButton onButton,
-                             RadioButton offButton, ToggleGroup stateGroup, Slider intensitySlider,
-                             Label intensityLabel, VBox intensityBox, Button scheduleButton) {
+  public LightCardController(ControlCard card, ProgressBar ambientBar, Label minLabel,
+                             Label maxLabel, Label avgLabel, Button historyButton) {
     this.card = card;
-    this.ambientLabel = ambientLabel;
-    this.onButton = onButton;
-    this.offButton = offButton;
-    this.stateGroup = stateGroup;
-    this.intensitySlider = intensitySlider;
-    this.intensityLabel = intensityLabel;
-    this.intensityBox = intensityBox;
-    this.scheduleButton = scheduleButton;
+    this.ambientBar = ambientBar;
+    this.minLabel = minLabel;
+    this.maxLabel = maxLabel;
+    this.avgLabel = avgLabel;
+    this.historyButton = historyButton;
 
-    log.debug("LightCardController wired");
+    log.debug("LightCardController wired with range [{}, {}] lx", MIN_LUX, MAX_LUX);
   }
 
   /**
-  * Injects backend dependencies into this controller.
-  *
-  * @param cmdHandler the command handler for sending commands
-  * @param nodeId the node ID this controller manages
-  */
-  public void setDependencies(CommandInputHandler cmdHandler, String nodeId) {
-    this.cmdHandler = cmdHandler;
-    this.nodeId = nodeId;
-    log.debug("LightCardController dependencies injected (nodeId={})", nodeId);
-  }
-
-  /**
-  * Initializes event handlers and starts any listeners required by this controller.
-  */
+   * Initializes event handlers and starts any listeners required by this controller.
+   */
   public void start() {
     log.info("Starting LightCardController");
-
-    // Artificial light
-    onButtonHandler = e -> {
-      int intensity = (int) intensitySlider.getValue();
-
-      fx(() -> {
-        card.setValueText("On (" + intensity + "%)");
-        log.debug("Artificial lights turned ON at {}%", intensity);
-      });
-
-      if (cmdHandler != null && nodeId != null) {
-        try {
-          cmdHandler.setValue(nodeId, "artificial_light", intensity);
-          log.info("Artificial light ON command sent (nodeId={}, "
-                  + "intensity={}%)", nodeId, intensity);
-        } catch (IOException ex) {
-          log.error("Failed to send artificial light ON command (nodeId={})", nodeId, ex);
-        }
-      }
-    };
-    onButton.setOnAction(onButtonHandler);
-
-
-    offButtonHandler = e -> {
-      fx(() -> {
-        card.setValueText("OFF");
-        log.debug("Artificial lights turned OFF");
-      });
-      if (cmdHandler != null && nodeId != null) {
-        try {
-          cmdHandler.setValue(nodeId, "artificial_light", 0);
-          log.info("Artificial light OFF command sent (nodeId={})", nodeId);
-        } catch (IOException ex) {
-          log.error("Failed to send artificial light OFF command (nodeId={})", nodeId, ex);
-        }
-      }
-    };
-    offButton.setOnAction(offButtonHandler);
-
-    stateChangeListener = (obs, oldToggle, newToggle) -> {
-      if (newToggle == onButton) {
-        int intensity = (int) intensitySlider.getValue();
-        fx(() -> card.setValueText("ON (" + intensity + "%)"));
-      } else if (newToggle == offButton) {
-        fx(() -> card.setValueText("OFF"));
-      }
-    };
-    stateGroup.selectedToggleProperty().addListener(stateChangeListener);
-
-    intensityChangeListener = (obs, oldVal, newVal) -> {
-      int newIntensity = newVal.intValue();
-      int oldIntensity = oldVal.intValue();
-
-      fx(() -> {
-        intensityLabel.setText("Intensity: " + newIntensity + "%");
-
-        // Update card value text if lights are ON
-        if (onButton.isSelected()) {
-          card.setValueText("ON (" + newIntensity + "%)");
-        }
-      });
-
-      if (Math.abs(newIntensity - oldIntensity) >= 5 || newIntensity == 0 || newIntensity == 100) {
-        log.debug("Artificial light intensity adjusted: {}% -> {}%", oldIntensity, newIntensity);
-
-        if (onButton.isSelected() && cmdHandler != null && nodeId != null) {
-          try {
-            cmdHandler.setValue(nodeId, "artificial_light", newIntensity);
-            log.info("Artificial light intensity command sent (nodeId={}, intensity={}%)",
-                    nodeId, newIntensity);
-          } catch (IOException ex) {
-            log.error("Failed to send artificial light intensity command "
-                            + "(nodeId={}, intensity={}%)",
-                    nodeId, newIntensity, ex);
-          }
-        }
-      }
-    };
-    intensitySlider.valueProperty().addListener(intensityChangeListener);
-
-
-    scheduleButton.setOnAction(e -> {
-      log.info("Schedule button clicked (not implemented)");
-      // TODO: Open scheduling dialog
+    historyButton.setOnAction(event -> {
+      showHistoryDialog();
+      log.info("Light history button clicked - showing light history dialog");
     });
-
     log.debug("LightCardController started successfully");
   }
 
-
-
   /**
-  * Stops this controller and cleans up resources/listeners.
-  */
+   * Stops this controller and cleans up resources/listeners.
+   */
   public void stop() {
     log.info("Stopping LightCardController");
-    if (onButtonHandler != null) {
-      onButton.setOnAction(null);
-      onButtonHandler = null;
-    }
-
-    if (offButtonHandler != null) {
-      offButton.setOnAction(null);
-      offButtonHandler = null;
-    }
-
-    if (stateChangeListener != null) {
-      stateGroup.selectedToggleProperty().removeListener(stateChangeListener);
-      stateChangeListener = null;
-    }
-
-    if (intensityChangeListener != null) {
-      intensitySlider.valueProperty().removeListener(intensityChangeListener);
-      intensityChangeListener = null;
-    }
-
-    scheduleButton.setOnAction(null);
-
+    historyButton.setOnAction(null);
+    log.debug("Temperature history button action cleared");
     log.debug("LightCardController stopped successfully");
   }
 
   /**
-  * Updates the ambient light level display.
-  *
-  * @param lux the ambient light level in lux
-  */
-  public void updateAmbientLight(double lux) {
-    log.info("Updating ambient light to: {} lx", String.format("%.0f", lux));
+   * Updated the light/ambient display.
+   *
+   * @param lightLevel the current light level in lux
+   */
+  public void updateAmbientLight(double lightLevel) {
+    log.info("Updating light: {} lx", String.format("%.1f", lightLevel));
 
     fx(() -> {
-      ambientLabel.setText(String.format("Ambient: %.0f lux", lux));
+      double clamped = Math.max(MIN_LUX, Math.min(MAX_LUX, lightLevel));
+      card.setValueText(String.format("%.1f lx", clamped));
 
-      String lightLevel = getLightLevelDescription(lux);
-      log.debug("Ambient light level: {} ({})", lightLevel, String.format("%.0f", lux));
+      double progress = (lightLevel - MIN_LUX) / (MAX_LUX - MIN_LUX);
+      progress = Math.max(0, Math.min(1, progress)); // Clamp to 0-1
+      ambientBar.setProgress(progress);
+
+      log.trace("Progress bar updated: {} ({} lx)",
+              String.format("%.2f", progress),
+              String.format("%.1f", lightLevel));
+
+      // Update color based on light level
+      applyLightLevelStyle(lightLevel);
+
+      // Add to history
+      String zoneText = statusLabel.getText();
+      addHistoryEntry(clamped,zoneText);
     });
   }
 
   /**
-  * Gets a readable description of light level.
-  *
-  * @param lux the light level in lux
-  * @return description of the light level
-  */
-  private String getLightLevelDescription(double lux) {
-    if (lux < 100) {
-      return "Dark";
-    }
-    if (lux < 300) {
-      return "Low";
-    }
-    if (lux < 1000) {
-      return "Medium";
-    }
-    if (lux < 10000) {
-      return "Bright";
-    }
-    return "Very Bright";
-  }
+   * Applies appropriate style class to the ambient bar based on light level.
+   *
+   * @param lightLevel the current light level in lux
+   */
+  private void applyLightLevelStyle(double lightLevel) {
+    String newClass;
+    String zone;
 
-  /**
-  * Sets the artificial light state programmatically.
-  *
-  * @param isOn true to turn artificial lights ON, false to turn OFF
-  */
-  public void setLightState(boolean isOn) {
-    log.info("Setting light state to: {}", isOn ? "ON" : "OFF");
+    if (lightLevel < L_DARK) {
+      newClass = "light-very-low";
+      zone = "DARK";
+    } else if (lightLevel < L_LOW) {
+      newClass = "light-low";
+      zone = "LOW";
+    } else if (lightLevel < L_MEDIUM) {
+      newClass = "light-moderate";
+      zone = "MEDIUM";
+    } else if (lightLevel < L_BRIGHT) {
+      newClass = "light-high";
+      zone = "BRIGHT";
+    } else {
+      newClass = "light-very-high";
+      zone = "VERY BRIGHT";
+    }
 
-    fx(() -> {
-      if (isOn) {
-        onButton.setSelected(true);
-      } else {
-        offButton.setSelected(true);
+    if (!newClass.equals(activeZoneClass)) {
+      if (activeZoneClass != null) {
+        ambientBar.getStyleClass().remove(activeZoneClass);
       }
+      ambientBar.getStyleClass().add(newClass);
+      log.info("Light level zone changed: {} -> {} ({} lx)",
+              activeZoneClass != null ? activeZoneClass: "none",
+              zone,
+              lightLevel);
+      activeZoneClass = newClass;
+    }
+    statusLabel.setText(zone);
+  }
+
+  /**
+   * Updates the statistics display.
+   *
+   * @param min minimum light level in last 24h
+   * @param max maximum light level in last 24h
+   * @param avg average light level in last 24h
+   */
+  public void updateStatistics(double min, double max, double avg) {
+    log.debug("Updating 24h statistics - Min: {} lx, Max: {} lx, Avg: {} lx",
+            String.format("%.1f", min),
+            String.format("%.1f", max),
+            String.format("%.1f", avg));
+
+    fx(() -> {
+      minLabel.setText(String.format("Min: %.1f lx", min));
+      maxLabel.setText(String.format("Max: %.1f lx", max));
+      avgLabel.setText(String.format("Avg: %.1f lx", avg));
+
+      log.trace("Statistics labels updated successfully");
     });
   }
 
   /**
-  * Sets the artificial light intensity programmatically.
-  *
-  * @param intensity the  intensity percentage (0-100)
-  */
-  public void setIntensity(int intensity) {
-    int clamped = Math.max(0, Math.min(100, intensity));
-    log.info("Setting light intensity to: {}%", clamped);
-
-    fx(() -> intensitySlider.setValue(clamped));
-  }
-
-  /**
-  * Gets the current artificial light state.
-  *
-  * @return true if artificial lights are ON, false if OFF
-  */
-  public boolean isLightOn() {
-    return onButton.isSelected();
-  }
-
-  /**
-  * Gets the current artificial light intensity percentage.
-  *
-  * @return intensity value (0-100)
-  */
-  public int getIntensity() {
-    return (int) intensitySlider.getValue();
-  }
-
-
-  /**
-  * Ensures the given runnable executes on the JavaFX Application Thread.
-  *
-  * @param r the runnable to execute on the FX thread
-  */
+   * Ensures the given runnable executes on the JavaFX Application Thread.
+   *
+   * @param r the runnable to execute on the FX thread
+   */
   private static void fx(Runnable r) {
     if (Platform.isFxApplicationThread()) {
       r.run();
     } else {
       Platform.runLater(r);
     }
+  }
+
+  /**
+   * Adds a new entry to the light history.
+   *
+   * @param lightLevel the current light level in lux
+   * @param zoneText the status zone associated with the humidity value
+   */
+  private void addHistoryEntry(double lightLevel, String zoneText) {
+    String time = LocalTime.now()
+            .truncatedTo(ChronoUnit.SECONDS)
+            .toString();
+    String entry = time + " – " + String.format("%.1f lx", lightLevel);
+    historyEntries.addFirst(entry);
+  }
+
+  /**
+   * Displays the light history dialog.
+   *
+   * <p>The dialog shows a list of past light level readings with timestamps, where
+   * the most recent entries appear at the top.</p>
+   */
+  private void showHistoryDialog() {
+    Dialog<Void> dialog = new Dialog<>();
+    dialog.setTitle("Ambient Light History");
+    dialog.setHeaderText("Past Light Level Readings");
+
+    dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+
+    ListView<String> listView = new ListView<>();
+    listView.getItems().setAll(historyEntries);
+
+    listView.setPrefSize(450, 300);
+    dialog.getDialogPane().setPrefSize(470, 340);
+    dialog.setResizable(true);
+
+    dialog.getDialogPane().setContent(listView);
+    dialog.showAndWait();
   }
 }

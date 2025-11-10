@@ -324,33 +324,6 @@ public class ControlPanelController {
     };
     stateStore.addSensorSink(lightSink);
 
-    // Artificial light
-    artificialLightSink = ar -> {
-      if (!nodeId.equals(ar.nodeId())) {
-        return;
-      }
-      if (!"artificial_light".equalsIgnoreCase(ar.type())
-              && !"grow_light".equalsIgnoreCase(ar.type())) {
-        return;
-      }
-      if (lightController != null) {
-        try {
-          int intensity = Integer.parseInt(ar.state());
-          if (intensity > 0) {
-            lightController.setLightState(true);
-            lightController.setIntensity(intensity);
-            log.info("Artificial lights turned ON at {}% (nodeId={})", intensity, nodeId);
-          } else {
-            lightController.setLightState(false);
-            log.info("Artificial lights turned OFF (nodeId={})", nodeId);
-          }
-        } catch (NumberFormatException e) {
-          log.warn("Invalid artificial light state '{}' for nodeId={}", ar.state(), ar.nodeId());
-        }
-      }
-    };
-    stateStore.addActuatorSink(artificialLightSink);
-
     // pH sensor sink
     phSink = sr -> {
       if (!nodeId.equals(sr.nodeId())) {

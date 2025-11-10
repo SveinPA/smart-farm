@@ -19,6 +19,11 @@
   -fx-fill:BLACK;
 }
 
+.progress-bar.light-ambient-bar {
+    -fx-padding: 2, 0, 2, 0;
+}
+
+
 /*--------------- LIGHT TOGGLE BUTTON ---------------*/
 
 #light-toggle-button {
@@ -34,40 +39,38 @@
     -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.30), 2, 0, 0, 2);
 }
 
-#light-toggle-button:hover {
-    -fx-background-color: #F5D5DA;
-    -fx-border-color: #2C3E50;
-    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.35), 12, 0.4, 0, 4);
-    -fx-scale-x: 1.03;
-    -fx-scale-y: 1.03;
+.light-ambient-stats-box {
+    -fx-spacing: 6px;
 }
 
-#light-toggle-button .switch-track {
-    -fx-background-color: #FFCDD2;
-    -fx-background-radius: 14;
-    -fx-text-fill: black;
+.light-stats-box {
+    -fx-spacing: 6px;
 }
 
-#light-toggle-button:selected .switch-track {
-    -fx-background-color: #FFAEE9;
+.progress-bar.light-bar {
+    -fx-pref-height: 20px;
 }
 
-#light-toggle-button .switch-thumb {
-    -fx-background-color: white;
-    -fx-background-radius: 999;
-    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.25), 6, 0.2, 0, 1);
+/* Light intensity zones */
+.progress-bar.light-very-low .bar {
+    -fx-accent: #f44336;   /* red - very dark */
 }
 
-#light-toggle-button.switch-label {
-    -fx-font-size: 10px;
-    -fx-font-weight: 700;
-    -fx-text-fill: #333;
+.progress-bar.light-low .bar {
+    -fx-accent: #ff9800;   /* orange - dim */
 }
 
-#light-toggle-button:selected {
-    -fx-text-fill: black;
+.progress-bar.light-moderate .bar {
+    -fx-accent: #8bc34a;   /* green - bright */
 }
 
+.progress-bar.light-high .bar {
+    -fx-accent: #2196f3;   /* blue - sunny */
+}
+
+.progress-bar.light-very-high .bar {
+    -fx-accent: #9c27b0;   /* purple - intense */
+}
   /*--------------- WINDOW TOGGLE BUTTON ---------------*/
 
 #window-toggle-button {

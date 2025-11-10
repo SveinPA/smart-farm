@@ -15,7 +15,6 @@ import java.util.ArrayList;
 import java.util.List;
 import org.slf4j.Logger;
 
-
 /**
 * Controller for the Temperature control card.
 * This controller coordinates the interaction between the TemperatureCardBuilder UI
@@ -90,6 +89,8 @@ public class TemperatureCardController {
   public void stop() {
     log.info("Stopping TemperatureCardController");
     // TODO: Add cleanup logic here
+    historyButton.setOnAction(null);
+    log.debug("Temperature history button action cleared");
     log.debug("TemperatureCardController stopped successfully");
   }
 
@@ -159,7 +160,6 @@ public class TemperatureCardController {
               zone,
               temperature);
       activeZoneClass = newClass;
-
     }
   }
 
