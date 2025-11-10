@@ -65,6 +65,12 @@ import java.util.concurrent.TimeUnit;
  *   <li>Heartbeats maintain connection every 30 seconds</li>
  * </ul>
  *
+ * <p><b>Note:</b> This class has been heavily been structured and assisted by
+ * AI, specifically a combination of <b>Claude Sonnet 4.5 and GPT-5</b>. This is due
+ * to the heavy amounts of research that had to be done in this project,
+ * and this class was among the most complex to develop. Comments have been
+ * added for the team's own understanding.</p>
+ *
  * @author Ida Soldal
  * @version 2.11.2025
  * @see DeviceCatalog
@@ -205,30 +211,50 @@ public final class SensorNodeMain {
   /**
    * Starts periodic background tasks for sensor data updates and heartbeats.
    *
+   * <p><b>Tasks Started:</b></p>
+   * <ul>
+   *  <li><b>Sensor Data:</b> Sends averaged sensor readings every
+   *   {@value #SENSOR_DATA_INTERVAL_SECONDS} seconds</li>
+   * <li><b>Actuator Status:</b> Sends current actuator states every
+   * {@value #SENSOR_DATA_INTERVAL_SECONDS} seconds</li>
+   * <li><b>Heartbeat:</b> Sends heartbeat messages every
+   * {@value #HEARTBEAT_INTERVAL_SECONDS} seconds</li>
+   * </ul>
+   *
    * @param agent   Connected {@link NodeAgent}
    * @param catalog Device catalog for reading sensors
    * @return Scheduled executor service managing background tasks
    */
   private static ScheduledExecutorService startScheduledTasks(NodeAgent agent, DeviceCatalog catalog) {
-      ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
+      ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(3);
+      // 3 means we can run 3 tasks concurrently
 
+      // Task 1: Send averaged sensor data
       scheduler.scheduleAtFixedRate(() ->
           sendAllSensorData(agent, catalog),
           0, SENSOR_DATA_INTERVAL_SECONDS, TimeUnit.SECONDS
       );
+
+      // Task 2: Send actuator status
+      scheduler.scheduleAtFixedRate(() ->
+          sendAllActuatorStatus(agent, catalog),
+          0, SENSOR_DATA_INTERVAL_SECONDS, TimeUnit.SECONDS
+      );
+
+      // Task 3: Send heartbeat messages
       scheduler.scheduleAtFixedRate(() -> {
-      try {
-          if (!agent.isConnected()) {
-              log.error("Lost connection during heartbeat check! Exiting...");
-              System.exit(1);
+          try {
+              if (!agent.isConnected()) {
+                  log.error("Lost connection during heartbeat check! Exiting...");
+                  System.exit(1);
+              }
+              agent.sendHeartbeat();
+          } catch (Exception e) {
+              log.error("Heartbeat failed: {}", e.getMessage());
           }
-          agent.sendHeartbeat();
-        } catch (Exception e) {
-            log.error("Heartbeat failed: {}", e.getMessage());
-        }
       }, HEARTBEAT_INTERVAL_SECONDS, HEARTBEAT_INTERVAL_SECONDS, TimeUnit.SECONDS);
 
-      log.info("Periodic tasks started (sensor data every {}s, heartbeat every {}s)",
+      log.info("Periodic tasks started (sensor data + actuator status every {}s, heartbeat every {}s)",
           SENSOR_DATA_INTERVAL_SECONDS, HEARTBEAT_INTERVAL_SECONDS);
       log.info("Averaging enabled: keeping {} samples per sensor (~1 minute window).",
           AVERAGE_SAMPLE_COUNT);
@@ -334,6 +360,32 @@ public final class SensorNodeMain {
     } catch (Exception e) {
       log.error("Error sending sensor data: {}", e.getMessage());
     }
+  }
+
+  /**
+   * Sends status of all actuators to the broker.
+   *
+   * <p>Reports current state (ON/OFF) of each actuator based on current value.
+   * Values > 0.5 are considered ON, <= 0.5 are considered OFF.</p>
+   *
+   * @param agent   The NodeAgent to send data through
+   * @param catalog The DeviceCatalog containing all actuators
+   */
+  private static void sendAllActuatorStatus(NodeAgent agent, DeviceCatalog catalog) {
+      try {
+          if (!agent.isConnected()) {
+              log.error("Connection to broker lost! Shutting down...");
+              System.exit(1);
+          }
+
+          for (var actuator : catalog.getAllActuators()) {
+              agent.sendActuatorStatus(actuator);
+          }
+          
+          log.debug("Sent status for {} actuators", catalog.getActuatorCount());
+      } catch (Exception e) {
+          log.error("Error sending actuator status: {}", e.getMessage());
+      }
   }
 
 
