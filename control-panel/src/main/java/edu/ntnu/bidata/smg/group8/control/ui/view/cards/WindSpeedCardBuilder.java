@@ -95,8 +95,6 @@ public class WindSpeedCardBuilder implements CardBuilder {
     VBox statsBox = new VBox(6, statsTitle, new Separator() , minLabel, avgLabel, maxLabel);
     statsBox.setAlignment(Pos.CENTER);
 
-    //TODO: Implement action
-    // Showing wind-speed history
     Button historyButton = ButtonFactory.createHistoryButton("History");
     card.getFooter().getChildren().add(historyButton);
 

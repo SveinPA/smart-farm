@@ -81,8 +81,6 @@ public class WindSpeedCardController {
     log.debug("WindSpeedCardController started successfully");
   }
 
-
-
   /**
   * Stops this controller and cleans up resources/listeners.
   */
