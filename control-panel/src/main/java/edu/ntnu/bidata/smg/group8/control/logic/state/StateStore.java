@@ -2,6 +2,7 @@ package edu.ntnu.bidata.smg.group8.control.logic.state;
 
 import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -29,6 +30,9 @@ public class StateStore {
 
   private final Map<String, SensorReading> sensors = new ConcurrentHashMap<>();
   private final Map<String, ActuatorReading> actuators = new ConcurrentHashMap<>();
+  private final Map<String, Boolean> nodeOnline = new ConcurrentHashMap<>();
+  private final Map<String, Long> nodeLastSeen = new ConcurrentHashMap<>();
+  private final Map<String, String> commandResults = new ConcurrentHashMap<>();
 
   private final CopyOnWriteArrayList<Consumer<SensorReading>> sensorSinks =
           new CopyOnWriteArrayList<>();
@@ -142,5 +146,93 @@ public class StateStore {
   public void removeSensorSink(Consumer<SensorReading> sink) {
     sensorSinks.remove(sink);
     log.debug("Sensor sink removed. Total sinks: {}", sensorSinks.size());
+  }
+
+  /**
+  *
+  *
+  * @param nodeId
+  */
+  public void touchNodeSeen(String nodeId) {
+    long now = System.currentTimeMillis();
+    nodeOnline.put(nodeId, true);
+    nodeLastSeen.put(nodeId, now);
+  }
+
+  /**
+  *
+  *
+  * @param nodeId
+  * @param online
+  */
+  public void setNodeOnline(String nodeId, boolean online) {
+    nodeOnline.put(nodeId, online);
+    nodeLastSeen.put(nodeId, System.currentTimeMillis());
+  }
+
+  /**
+  *
+  * @return
+  */
+  public List<String> nodeIds() {
+    return new ArrayList<>(nodeOnline.keySet());
+  }
+
+  /**
+  *
+  * @param nodeId
+  * @return
+  */
+  public boolean isOnline(String nodeId) {
+    return Boolean.TRUE.equals(nodeOnline.get(nodeId));
+  }
+
+  /**
+  *
+  * @param nodeId
+  * @return
+  */
+  public long lastSeen(String nodeId) {
+    return nodeLastSeen.getOrDefault(nodeId, 0L);
+  }
+
+  /**
+  *
+  * @param csv
+  */
+  public void replaceAllNodesFromCsv(String csv) {
+    nodeOnline.clear();
+    nodeLastSeen.clear();
+    if (csv == null || csv.isBlank()) {
+      return;
+    }
+
+    final long now = System.currentTimeMillis();
+    final String[] parts = csv.split(",");
+
+    for (final String part : parts) {
+      final String nodeId = part.trim();
+      if (!nodeId.isEmpty()) {
+        nodeOnline.put(nodeId, true);
+        nodeLastSeen.put(nodeId, now);
+      }
+    }
+  }
+
+  public void markCommandAccepted(String commandId, String nodeId,
+                                  boolean accepted, String reason) {
+    if (commandId == null) {
+      return;
+    }
+
+    final String result;
+    if (accepted) {
+      result = "OK";
+    } else {
+      final String r = reason != null ? reason : "";
+      result = "ERR:" + r;
+    }
+
+    commandResults.put(commandId, result);
   }
 }
