@@ -421,7 +421,7 @@ public class FertilizerCardController {
             .truncatedTo(ChronoUnit.SECONDS)
             .toString();
     changeHistory.addFirst(timestamp + "- " + message);
-}
+  }
 
   /**
    * Displays a dialog showing the fertilizer change history.
@@ -451,5 +451,5 @@ public class FertilizerCardController {
 
     dialog.getDialogPane().setContent(listView);
     dialog.showAndWait();
-    }
+  }
 }
