@@ -449,13 +449,13 @@
 }
 
 .close-valve-button {
-    -fx-background-color: #F44336;
+    -fx-background-color: #da6655;
     -fx-text-fill: white;
     -fx-font-weight: BOLD;
 }
 
 .close-valve-button:hover {
-    -fx-background-color: #DA190B;
+    -fx-background-color: #b54d3c;
 }
 
 .close-valve-button:disabled {
