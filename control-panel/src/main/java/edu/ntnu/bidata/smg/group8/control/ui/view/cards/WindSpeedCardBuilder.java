@@ -95,8 +95,6 @@ public class WindSpeedCardBuilder implements CardBuilder {
     VBox statsBox = new VBox(6, statsTitle, new Separator() , minLabel, avgLabel, maxLabel);
     statsBox.setAlignment(Pos.CENTER);
 
-    //TODO: Implement action
-    // Showing wind-speed history
     Button historyButton = ButtonFactory.createHistoryButton("History");
     card.getFooter().getChildren().add(historyButton);
 
@@ -106,13 +104,12 @@ public class WindSpeedCardBuilder implements CardBuilder {
 
     // Connecting UI-components to the controller which updates them with live-data
     var controller = new WindSpeedCardController(card, statusLabel,
-            gustLabel, windBar, minLabel, maxLabel, avgLabel);
+            gustLabel, windBar, minLabel, maxLabel, avgLabel,historyButton);
 
     // Saving controller in the card for later access
     card.setUserData(controller);
 
     return card;
-
   }
 
   /**

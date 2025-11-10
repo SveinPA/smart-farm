@@ -3,9 +3,14 @@ package edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers;
 import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlCard;
 import javafx.application.Platform;
-import javafx.scene.control.Label;
-import javafx.scene.control.ProgressBar;
+import javafx.scene.control.*;
+import javafx.scene.layout.Region;
 import org.slf4j.Logger;
+
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
 * Controller for the Wind Speed control card.
@@ -29,6 +34,9 @@ public class WindSpeedCardController {
   private Label avgLabel;
   private Label gustLabel;
   private ProgressBar windBar;
+  private final List<String> changeHistory = new ArrayList<>();
+  private final Button historyButton;
+
 
 
   /**
@@ -44,10 +52,11 @@ public class WindSpeedCardController {
    * @param minLabel label displaying the 24h minimum wind speed
    * @param maxLabel label displaying the 24h maximum wind speed
    * @param avgLabel label displaying the 24h average wind speed
+   * @param historyButton button to access wind speed history
    */
   public WindSpeedCardController(ControlCard card, Label statusLabel,
                                  Label gustLabel, ProgressBar windBar, Label minLabel,
-                                 Label maxLabel, Label avgLabel) {
+                                 Label maxLabel, Label avgLabel, Button historyButton) {
     this.card = card;
     this.statusLabel = statusLabel;
     this.gustLabel = gustLabel;
@@ -55,6 +64,7 @@ public class WindSpeedCardController {
     this.minLabel = minLabel;
     this.maxLabel = maxLabel;
     this.avgLabel = avgLabel;
+    this.historyButton = historyButton;
     log.debug("WindSpeedCardController wired");
   }
 
@@ -64,10 +74,12 @@ public class WindSpeedCardController {
   public void start() {
     log.info("Starting WindSpeedCardController");
     // TODO: Add initialization logic here
+    historyButton.setOnAction(e -> {
+      log.info("History button clicked - showing wind change history");
+      showHistoryDialog();
+    });
     log.debug("WindSpeedCardController started successfully");
   }
-
-
 
   /**
   * Stops this controller and cleans up resources/listeners.
@@ -94,6 +106,8 @@ public class WindSpeedCardController {
 
       updateWindStatus(speed);
     });
+    addHistoryEntry(String.format("Wind speed updated to %.1f m/s", speed));
+    log.info("Wind speed display and status updated");
   }
 
   /**
@@ -195,5 +209,48 @@ public class WindSpeedCardController {
     } else {
       Platform.runLater(r);
     }
+  }
+
+  /**
+   * Adds a new entry to the wind change history.
+   * The entry includes a timestamp and a descriptive message.
+   *
+   * @param message the message describing the change
+   */
+  private void addHistoryEntry(String message) {
+    String timestamp = LocalDateTime.now()
+            .truncatedTo(ChronoUnit.SECONDS)
+            .toString();
+    changeHistory.addFirst(timestamp + "- " + message);
+  }
+
+  /**
+   * Displays a dialog showing the wind change history.
+   * This dialog lists all recorded changes made during the current session.
+   */
+  private void showHistoryDialog() {
+    Dialog<Void> dialog = new Dialog<>();
+    dialog.setTitle("Wind History");
+    dialog.setHeaderText("Wind changes made during this session:");
+
+    dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+
+    ListView<String> listView = new ListView<>();
+    listView.getItems().setAll(changeHistory);
+
+    int visibleRows = Math.min(changeHistory.size(), 10);
+    double rowHeight = 24;
+
+    listView.setPrefHeight(visibleRows * rowHeight);
+    listView.setMinHeight(Region.USE_PREF_SIZE);
+    listView.setMaxHeight(Region.USE_PREF_SIZE);
+
+    listView.setPrefWidth(500);
+    listView.setPrefHeight(300);
+    dialog.getDialogPane().setPrefWidth(520);
+    dialog.getDialogPane().setPrefHeight(350);
+
+    dialog.getDialogPane().setContent(listView);
+    dialog.showAndWait();
   }
 }
