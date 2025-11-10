@@ -247,6 +247,11 @@ final class ClientHandler implements Runnable {
       return;
     }
 
+    if (Protocol.TYPE_ACTUATOR_STATUS.equals(type)) {
+      handleActuatorStatus(msg, who);
+      return;
+    }
+
     // unknown type -> ERROR handling could be added here
     log.warn("Unknown message type from {}: {}", who, type);
   }
@@ -313,6 +318,25 @@ final class ClientHandler implements Runnable {
       log.error("Failed to forward ACTUATOR_COMMAND to {}: {}", targetNode, e.getMessage());
       // TODO: Send ERROR response to control panel
     }
+  }
+
+  /**
+   * Handle an actuator status message.
+   * Broadcasts actuator state from sensor nodes to control panel.
+   *
+   * @param msg the received message
+   * @param who the client identifier
+   */
+  private void handleActuatorStatus(String msg, String who) {
+    // Only sensor nodes should send actuator status
+    if (!Protocol.ROLE_SENSOR_NODE.equalsIgnoreCase(role)) {
+      log.warn("Rejected ACTUATOR_STATUS from non-sensor {} ({})", who, role);
+      return;
+    }
+    
+    // Broadcast to all control panels (just like sensor data)
+    registry.broadcastToPanels(msg.getBytes(StandardCharsets.UTF_8));
+    log.debug("Broadcasted ACTUATOR_STATUS from {} to all panels", who);
   }
 
   /**
