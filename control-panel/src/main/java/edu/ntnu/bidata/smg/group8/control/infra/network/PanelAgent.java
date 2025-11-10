@@ -182,11 +182,11 @@ public class PanelAgent implements AutoCloseable {
         log.debug("ACTUATOR_STATE applied nodeId={} actuator={} state={}", srcNodeId, actuatorKey, current);
       }
 
-      case Protocol.TYPE_NODE_LIST -> {
-        String csv = msg.get("nodes");
-        state.replaceAllNodesFromCsv(csv);
-        log.info("NODE_LIST received: {}", csv);
-      }
+//      case Protocol.TYPE_NODE_LIST -> {
+//        String csv = msg.get("nodes");
+//        state.replaceAllNodesFromCsv(csv);
+//        log.info("NODE_LIST received: {}", csv);
+//      }
 
       case Protocol.TYPE_NODE_CONNECTED -> {
         String nid = msg.get("nodeId");
@@ -204,23 +204,23 @@ public class PanelAgent implements AutoCloseable {
         }
       }
 
-      case Protocol.TYPE_COMMAND_ACK -> {
-        String cmdId = msg.get("commandId");
-        String target = msg.get("nodeId");
-        String accepted = msg.get("accepted");
-        String reason = msg.get("reason");
-        if (cmdId != null) {
-          boolean ok = "true".equalsIgnoreCase(accepted);
-          state.markCommandAccepted(cmdId, target, ok, reason);
-          if (ok) {
-            log.info("COMMAND_ACK OK [{}] node={}", cmdId, target);
-          } else {
-            log.warn("COMMAND_ACK REJECTED [{}] node={} reason={}", cmdId, target, reason);
-          }
-        } else {
-            log.info("COMMAND_ACK (no commandId) {}", json);
-          }
-        }
+   //   case Protocol.TYPE_COMMAND_ACK -> {
+   //     String cmdId = msg.get("commandId");
+   //     String target = msg.get("nodeId");
+   //     String accepted = msg.get("accepted");
+   //     String reason = msg.get("reason");
+   //     if (cmdId != null) {
+   //       boolean ok = "true".equalsIgnoreCase(accepted);
+   //       state.markCommandAccepted(cmdId, target, ok, reason);
+   //       if (ok) {
+   //         log.info("COMMAND_ACK OK [{}] node={}", cmdId, target);
+   //       } else {
+   //         log.warn("COMMAND_ACK REJECTED [{}] node={} reason={}", cmdId, target, reason);
+   //       }
+   //     } else {
+   //         log.info("COMMAND_ACK (no commandId) {}", json);
+   //       }
+   //     }
 
 
       case Protocol.TYPE_HEARTBEAT -> {
