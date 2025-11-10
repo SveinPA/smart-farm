@@ -1,6 +1,7 @@
 package edu.ntnu.bidata.smg.group8.common.protocol;
 
 import edu.ntnu.bidata.smg.group8.common.protocol.dto.ActuatorCommandMessage;
+import edu.ntnu.bidata.smg.group8.common.protocol.dto.ActuatorStatusMessage;
 import edu.ntnu.bidata.smg.group8.common.protocol.dto.HeartbeatMessage;
 import edu.ntnu.bidata.smg.group8.common.protocol.dto.RegisterMessage;
 import edu.ntnu.bidata.smg.group8.common.protocol.dto.SensorDataMessage;
@@ -157,5 +158,29 @@ public final class MessageParser {
       }
     }
     return null;
+  }
+
+  /**
+   * Parses an ACTUATOR_STATUS message into a DTO.
+   *
+   * <p>The ACTUATOR_STATUS message provides updates on the status of an actuator,
+   * which is used to report the current actuator state after executing a command
+   * or due to other changes, to the control panel.</p>
+   *
+   * @param json The JSON message string
+   * @return Parsed {@link ActuatorStatusMessage}
+   */
+  public static ActuatorStatusMessage parseActuatorStatus(String json) {
+      String nodeId = getField(json, "nodeId");
+      String actuatorKey = getField(json, "actuatorKey");
+      String status = getField(json, "status");
+      String valueStr = getField(json, "value");
+      String timestampStr = getField(json, "timestamp");
+      
+      // Guard against null values and provide defaults
+      double value = valueStr != null ? Double.parseDouble(valueStr) : 0.0; // Default to 0.0 if value is missing
+      long timestamp = timestampStr != null ? Long.parseLong(timestampStr) : 0L; // Default to 0L if timestamp is missing
+      
+      return new ActuatorStatusMessage(nodeId, actuatorKey, status, value, timestamp);
   }
 }
