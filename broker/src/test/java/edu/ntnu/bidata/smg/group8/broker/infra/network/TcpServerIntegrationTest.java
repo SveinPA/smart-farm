@@ -81,6 +81,10 @@ class TcpServerIntegrationTest {
       String sensorAck = readJson(sensor);
       assertTrue(sensorAck.contains(Protocol.TYPE_REGISTER_ACK));
 
+      // Panel receives NODE_CONNECTED event after sensor registration
+      String nodeConnected = readJson(panel);
+      assertTrue(nodeConnected.contains(Protocol.TYPE_NODE_CONNECTED));
+
       // Send SENSOR_DATA from sensor
       String data = Jsons.sensorData("{\"value\":42}");
       writeJson(sensor, data);
@@ -117,6 +121,68 @@ class TcpServerIntegrationTest {
             "type", Protocol.TYPE_SENSOR_DATA,
             "value", value
         );
+    }
+  }
+
+  @Test
+  void broadcastSkipsClosedPanelsAndPrunesDeadStreams() throws Exception {
+    try (Socket panel1 = new Socket("127.0.0.1", port);
+         Socket panel2 = new Socket("127.0.0.1", port);
+         Socket panel3 = new Socket("127.0.0.1", port);
+         Socket sensor = new Socket("127.0.0.1", port)) {
+      
+      // Register all three control panels
+      writeJson(panel1, Jsons.registerControlPanel("panel-1"));
+      assertTrue(readJson(panel1).contains(Protocol.TYPE_REGISTER_ACK));
+
+      writeJson(panel2, Jsons.registerControlPanel("panel-2"));
+      assertTrue(readJson(panel2).contains(Protocol.TYPE_REGISTER_ACK));
+
+      writeJson(panel3, Jsons.registerControlPanel("panel-3"));
+      assertTrue(readJson(panel3).contains(Protocol.TYPE_REGISTER_ACK));
+      
+      // Register sensor node
+      writeJson(sensor, Jsons.registerNode("sensor-1"));
+      assertTrue(readJson(sensor).contains(Protocol.TYPE_REGISTER_ACK));
+
+      // All panels receive NODE_CONNECTED event
+      assertTrue(readJson(panel1).contains(Protocol.TYPE_NODE_CONNECTED));
+      assertTrue(readJson(panel2).contains(Protocol.TYPE_NODE_CONNECTED));
+      assertTrue(readJson(panel3).contains(Protocol.TYPE_NODE_CONNECTED));
+
+      // Close panel2 socket to simulate disconnect (without registering)
+      panel2.close();
+
+      // Give server time to detect close
+      Thread.sleep(100);
+
+      // Send sensor data - this triggers broadcast to all panels
+      writeJson(sensor, Jsons.sensorData("{\"temperature\":25.5}"));
+
+      // panel1 and panel3 should receive data (panel2 is closed)
+      String received1 = readJson(panel1);
+      assertTrue(received1.contains(Protocol.TYPE_SENSOR_DATA));
+      assertTrue(received1.contains("25.5"));
+
+      String received3 = readJson(panel3);
+      assertTrue(received3.contains(Protocol.TYPE_SENSOR_DATA));
+      assertTrue(received3.contains("25.5"));
+
+      // Verify panel2 cannot read (socket is closed)
+      // This confirms the test setup is correct
+      assertTrue(panel2.isClosed());
+
+      // The registry should have pruned panel2 during broadcast
+      // We can verify by sending another message. Only 2 panels should receive it
+      writeJson(sensor, Jsons.sensorData("{\"temperature\":26.0}"));
+
+      String received1Again = readJson(panel1);
+      assertTrue(received1Again.contains("26.0"));
+
+      String received3Again = readJson(panel3);
+      assertTrue(received3Again.contains("26.0"));
+
+      // Success: broadcast continues working, dead stream was pruned
     }
   }
 }

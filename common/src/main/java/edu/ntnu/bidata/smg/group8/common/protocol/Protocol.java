@@ -1,5 +1,9 @@
 package edu.ntnu.bidata.smg.group8.common.protocol;
 
+import java.awt.desktop.PrintFilesEvent;
+
+import javax.sound.sampled.SourceDataLine;
+
 /**
  * Protocol constants for the Smart Farm Messaging Protocol.
  */
@@ -20,6 +24,8 @@ public final class Protocol {
   public static final String TYPE_ACTUATOR_STATE = "ACTUATOR_STATE";
   public static final String TYPE_HEARTBEAT = "HEARTBEAT";
   public static final String TYPE_ERROR = "ERROR";
+  public static final String TYPE_NODE_CONNECTED = "NODE_CONNECTED";
+  public static final String TYPE_NODE_DISCONNECTED = "NODE_DISCONNECTED";
 
   // Roles
   public static final String ROLE_SENSOR_NODE = "SENSOR_NODE";
