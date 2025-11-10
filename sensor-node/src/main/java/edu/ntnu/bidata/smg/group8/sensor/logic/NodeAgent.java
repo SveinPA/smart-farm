@@ -1,6 +1,7 @@
 package edu.ntnu.bidata.smg.group8.sensor.logic;
 
 import edu.ntnu.bidata.smg.group8.common.actuator.AbstractActuator;
+import edu.ntnu.bidata.smg.group8.common.actuator.Actuator;
 import edu.ntnu.bidata.smg.group8.common.protocol.MessageParser;
 import edu.ntnu.bidata.smg.group8.common.protocol.Protocol;
 import edu.ntnu.bidata.smg.group8.common.protocol.dto.ActuatorCommandMessage;
@@ -17,6 +18,7 @@ import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 
 /**
  * <h3>Node Agent - The Sensor Node's "Phone" to the Broker</h3>
@@ -390,6 +392,39 @@ public class NodeAgent {
             log.debug("Sent averaged sensor data: {}", json);
         } catch (IOException e) {
             log.error("Failed to send averaged sensor data: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Sends current actuator status to the broker.
+     *
+     *<p>Phone Analogy: This is like telling the broker "Hey, the heater is ON right now!",
+     * so they know the current state of the heater without having to ask.</p>
+     *
+     * <p>Reports whether the actuator is ON/OFF based on its current value.
+     * Values > 0.5 are considered ON, values <= 0.5 are considered OFF.</p>
+     *
+     * @param actuator The actuator to report status for
+     */
+    public void sendActuatorStatus(Actuator actuator) {
+        try {
+            double currentValue = actuator.getCurrentValue();
+            // Determine status: values > 0.5 = ON, <= 0.5 = OFF
+            String status = currentValue > 0.5 ? "ON" : "OFF";
+            
+            String json = JsonBuilder.build(
+                "type", Protocol.TYPE_ACTUATOR_STATUS,
+                "nodeId", nodeId,
+                "actuatorKey", actuator.getKey(),
+                "status", status,
+                "value", String.format(Locale.US, "%.2f", currentValue),
+                "timestamp", String.valueOf(System.currentTimeMillis())
+            );
+            send(json);
+            log.debug("Sent actuator status: {} = {} (value: {:.2f})", 
+                    actuator.getKey(), status, currentValue);
+        } catch (IOException e) {
+            log.error("Failed to send actuator status: {}", e.getMessage());
         }
     }
 
