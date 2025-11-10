@@ -37,8 +37,6 @@ public class WindSpeedCardController {
   private final List<String> changeHistory = new ArrayList<>();
   private final Button historyButton;
 
-
-
   /**
    * Creates a new WindSpeedCardController with the specified UI components.
    * This constructor wires together all the UI elements that the controller

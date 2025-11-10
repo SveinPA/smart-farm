@@ -44,7 +44,8 @@
 }
 
 .light-stats-box {
-    -fx-spacing: 6px;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
 }
 
 .progress-bar.light-bar {

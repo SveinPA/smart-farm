@@ -5,8 +5,11 @@ import edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers.LightCar
 import edu.ntnu.bidata.smg.group8.control.ui.factory.ButtonFactory;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlCard;
 import javafx.geometry.Pos;
-import javafx.scene.control.*;
-import javafx.scene.layout.HBox;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.ProgressBar;
+import javafx.scene.control.Separator;
+import javafx.scene.control.Tooltip;
 import javafx.scene.layout.VBox;
 import org.slf4j.Logger;
 
@@ -43,12 +46,21 @@ public class LightCardBuilder implements CardBuilder {
   public ControlCard build() {
     log.info("Building Light control card");
 
+    // Status label (e.g., "Status: Cloudy", "Status: Direct Sunlight")
+    Label statusLabel = new Label("Status: --");
+    statusLabel.getStyleClass().addAll("card-subtle", "light-status");
+    statusLabel.setMaxWidth(Double.MAX_VALUE);
+    statusLabel.setAlignment(Pos.CENTER);
+
     // Visual representation of ambient light level
     ProgressBar ambientBar = new ProgressBar(0);
     ambientBar.setMaxWidth(Double.MAX_VALUE);
     ambientBar.setPrefHeight(20);
     ambientBar.getStyleClass().addAll("light-bar", "light-very-low");
     Tooltip.install(ambientBar, new Tooltip("Current ambient light level in greenhouse"));
+
+    VBox currentStateBox = new VBox(6, statusLabel);
+    currentStateBox.setFillWidth(true);
 
     // Minimum ambient light level the last 24h
     Label minLabel = new Label("Min: -- lx");
@@ -70,7 +82,7 @@ public class LightCardBuilder implements CardBuilder {
 
     // Label for ambient light the last 24h
     Label statsTitle = new Label("24h Statistics:");
-    statsTitle.getStyleClass().addAll("card-subtle", "ambient-stats-title");
+    statsTitle.getStyleClass().add("light-stats-title");
     statsTitle.setMaxWidth(Double.MAX_VALUE);
     statsTitle.setAlignment(Pos.CENTER);
 
@@ -82,6 +94,7 @@ public class LightCardBuilder implements CardBuilder {
     card.getFooter().getChildren().add(historyButton);
 
     card.addContent(
+            currentStateBox,
             new Separator(),
             ambientBar,
             statsBox
@@ -93,7 +106,8 @@ public class LightCardBuilder implements CardBuilder {
             minLabel,
             maxLabel,
             avgLabel,
-            historyButton
+            historyButton,
+            statusLabel
     );
 
     card.setUserData(controller);

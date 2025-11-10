@@ -8,9 +8,7 @@ import edu.ntnu.bidata.smg.group8.control.logic.command.CommandInputHandler;
 import edu.ntnu.bidata.smg.group8.control.logic.state.StateStore;
 import edu.ntnu.bidata.smg.group8.control.ui.controller.ControlPanelController;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlPanelView;
-import edu.ntnu.bidata.smg.group8.control.ui.view.DashboardView;
 import java.io.IOException;
-import java.time.Instant;
 import java.util.Objects;
 import javafx.application.Application;
 import javafx.scene.Scene;
@@ -273,8 +271,6 @@ public final class ControlPanelMain extends Application {
           // Light: ±5000 lx per update (simulates changing daylight/cloud cover)
           light += (Math.random() - 0.5) * 10000;
           light = Math.max(0.0, Math.min(80000.0, light));
-
-
 
           // Update sensors - VIKTIG: Bruk Locale.US for punktum som desimalskilletegn
           java.time.Instant now = java.time.Instant.now();

@@ -1,13 +1,8 @@
 package edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers;
 
 import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
-import edu.ntnu.bidata.smg.group8.control.logic.command.CommandInputHandler;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlCard;
-import java.io.IOException;
 import javafx.application.Platform;
-import javafx.beans.value.ChangeListener;
-import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Dialog;
@@ -18,7 +13,6 @@ import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
-import javafx.scene.layout.VBox;
 import org.slf4j.Logger;
 
 /**
@@ -36,10 +30,10 @@ public class LightCardController {
   private static final double MAX_LUX = 80000.0;
 
   // Light level thresholds color coding
-  private static final double L_DARK = 400.0;
-  private static final double L_LOW = 500.0;
-  private static final double L_MEDIUM= 2500.0;
-  private static final double L_BRIGHT = 20000.0;
+  private static final double L_DARK = 1000.0;
+  private static final double L_LOW = 20000.0;
+  private static final double L_MEDIUM= 60000.0;
+  private static final double L_BRIGHT = 70000.0;
 
   private final ControlCard card;
   private final Label minLabel;
@@ -53,13 +47,14 @@ public class LightCardController {
   private String activeZoneClass;
 
   public LightCardController(ControlCard card, ProgressBar ambientBar, Label minLabel,
-                             Label maxLabel, Label avgLabel, Button historyButton) {
+                             Label maxLabel, Label avgLabel, Button historyButton, Label statusLabel) {
     this.card = card;
     this.ambientBar = ambientBar;
     this.minLabel = minLabel;
     this.maxLabel = maxLabel;
     this.avgLabel = avgLabel;
     this.historyButton = historyButton;
+    this.statusLabel = statusLabel;
 
     log.debug("LightCardController wired with range [{}, {}] lx", MIN_LUX, MAX_LUX);
   }
@@ -87,6 +82,28 @@ public class LightCardController {
   }
 
   /**
+   * Updates the light status label based on the current light level.
+   *
+   * @param lightLevel the current light level in lux
+   */
+  private void updateLightStatus(double lightLevel) {
+    String status;
+    if (lightLevel < L_DARK) {
+      status = "Very Dark";
+    } else if (lightLevel < L_LOW) {
+      status = "Dim light";
+    } else if (lightLevel < L_MEDIUM) {
+      status = "Comfortable Light";
+    } else if (lightLevel < L_BRIGHT) {
+      status = "Sunny";
+    } else {
+      status = "Direct sunlight";
+    }
+    statusLabel.setText("Status: " + status);
+    log.info("Light status updated to: {}", status);
+  }
+
+  /**
    * Updated the light/ambient display.
    *
    * @param lightLevel the current light level in lux
@@ -101,6 +118,8 @@ public class LightCardController {
       double progress = (lightLevel - MIN_LUX) / (MAX_LUX - MIN_LUX);
       progress = Math.max(0, Math.min(1, progress)); // Clamp to 0-1
       ambientBar.setProgress(progress);
+
+      updateLightStatus(lightLevel);
 
       log.trace("Progress bar updated: {} ({} lx)",
               String.format("%.2f", progress),
@@ -152,7 +171,7 @@ public class LightCardController {
               lightLevel);
       activeZoneClass = newClass;
     }
-    statusLabel.setText(zone);
+    updateLightStatus(lightLevel);
   }
 
   /**
