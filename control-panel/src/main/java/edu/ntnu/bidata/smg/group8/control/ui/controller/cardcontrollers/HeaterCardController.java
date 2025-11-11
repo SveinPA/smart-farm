@@ -6,6 +6,9 @@ import edu.ntnu.bidata.smg.group8.control.ui.view.ControlCard;
 import edu.ntnu.bidata.smg.group8.control.ui.view.cards.HeaterCardBuilder;
 import java.io.IOException;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
+
+import edu.ntnu.bidata.smg.group8.control.util.UiExecutors;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.event.ActionEvent;
@@ -59,7 +62,7 @@ public class HeaterCardController {
   private final String actuatorKey = "heater";
 
   private volatile boolean suppressSend = false;
-  private Integer lastSentTemp = null;
+  private volatile Integer lastSentTemp = null;
 
 
   /**
@@ -235,7 +238,7 @@ public class HeaterCardController {
   * @param temperature target temperature (0 = OFF)
   */
   private void sendHeaterCommandAsync(int temperature) {
-    new Thread(() -> {
+    UiExecutors.execute(() -> {
       try {
         log.debug("Attempting to send heater command nodeId={} temp={}°C", nodeId, temperature);
         cmdHandler.setValue(nodeId, actuatorKey, temperature);
@@ -244,7 +247,7 @@ public class HeaterCardController {
       } catch (IOException e) {
         log.error("Failed to send heater command nodeId={} temp={}°C", nodeId, temperature, e);
       }
-    }, "heater-cmd-send").start();
+    });
   }
 
   /**
@@ -286,12 +289,9 @@ public class HeaterCardController {
       } else {
         turnOff();
       }
-      new Thread(() -> {
-        try {
-          Thread.sleep(100);
-        } catch (InterruptedException ignored) {}
+      UiExecutors.schedule(() -> {
         suppressSend = false;
-      }).start();
+      }, 100, TimeUnit.MILLISECONDS);
     });
   }
 
