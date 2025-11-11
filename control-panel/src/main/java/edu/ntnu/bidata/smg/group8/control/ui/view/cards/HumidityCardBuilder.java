@@ -70,7 +70,7 @@ public class HumidityCardBuilder implements CardBuilder {
     statsBox.setAlignment(Pos.CENTER);
     VBox.setMargin(statsBox, new Insets(6, 0, 0, 0));
 
-    Button historyButton = ButtonFactory.createHistoryButton("History...");
+    Button historyButton = ButtonFactory.createHistoryButton("History");
     card.getFooter().getChildren().add(historyButton);
 
     card.addContent(

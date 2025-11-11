@@ -273,21 +273,13 @@ public class PanelAgent implements AutoCloseable {
   public synchronized void sendActuatorCommand(String targetNode, String actuator,
                                                String action, String valueOrNull)
           throws IOException {
-    String payload = (valueOrNull != null)
-            ? JsonBuilder.build(
+    final String actionField = (valueOrNull != null ? valueOrNull : action);
+    String payload = JsonBuilder.build(
                     "type", Protocol.TYPE_ACTUATOR_COMMAND,
             "panelId", this.nodeId,
             "targetNode", targetNode,
             "actuator", actuator,
-            "action", action,
-            "value", valueOrNull
-    )
-            : JsonBuilder.build(
-                    "type", Protocol.TYPE_ACTUATOR_COMMAND,
-            "panelId", this.nodeId,
-            "targetNode", targetNode,
-            "actuator", actuator,
-            "action", action
+            "action", actionField
     );
 
     log.info("Sending ACTUATOR_COMMAND: {}", payload);

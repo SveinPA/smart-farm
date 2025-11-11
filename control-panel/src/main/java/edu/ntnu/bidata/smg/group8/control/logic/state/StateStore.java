@@ -149,9 +149,9 @@ public class StateStore {
   }
 
   /**
+  * Marks a node as seen right now and sets its online status to true.
   *
-  *
-  * @param nodeId
+  * @param nodeId the unique identifier of the node
   */
   public void touchNodeSeen(String nodeId) {
     long now = System.currentTimeMillis();
@@ -160,10 +160,10 @@ public class StateStore {
   }
 
   /**
+  * Sets the online status of a node and updates its last-seen timestamp.
   *
-  *
-  * @param nodeId
-  * @param online
+  * @param nodeId the unique identifier of the node
+  * @param online whether the node should be marked as online
   */
   public void setNodeOnline(String nodeId, boolean online) {
     nodeOnline.put(nodeId, online);
@@ -171,34 +171,38 @@ public class StateStore {
   }
 
   /**
+  * Returns a list of all known node IDs.
   *
-  * @return
+  * @return a list containing all node IDs currently tracked
   */
   public List<String> nodeIds() {
     return new ArrayList<>(nodeOnline.keySet());
   }
 
   /**
+  * Checks whether a given node is currently marked as online.
   *
-  * @param nodeId
-  * @return
+  * @param nodeId the unique identifier of the node
+  * @return true if the node is marked online, false otherwise
   */
   public boolean isOnline(String nodeId) {
     return Boolean.TRUE.equals(nodeOnline.get(nodeId));
   }
 
   /**
+  * Returns the timestamp (in milliseconds) when the node was last seen.
   *
-  * @param nodeId
-  * @return
+  * @param nodeId the unique identifier of the node
+  * @return the last-seen timestamp, or 0 if the node is unknown
   */
   public long lastSeen(String nodeId) {
     return nodeLastSeen.getOrDefault(nodeId, 0L);
   }
 
   /**
+  * Replaces all currently known nodes with the node IDs listed in a CSV string.
   *
-  * @param csv
+  * @param csv a comma-separated list of node IDs, may be null or blank
   */
   public void replaceAllNodesFromCsv(String csv) {
     nodeOnline.clear();
@@ -219,6 +223,14 @@ public class StateStore {
     }
   }
 
+  /**
+  * Stores the result of a command execution for a specific node.
+
+  * @param commandId the unique ID of the command
+  * @param nodeId the node that processed the command
+  * @param accepted true if the command was successful
+  * @param reason optional error reason when the command is rejected
+  */
   public void markCommandAccepted(String commandId, String nodeId,
                                   boolean accepted, String reason) {
     if (commandId == null) {
