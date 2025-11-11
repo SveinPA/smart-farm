@@ -75,6 +75,10 @@ class TcpServerIntegrationTest {
       writeJson(panel, Jsons.registerControlPanel("ui-1"));
       String cpAck = readJson(panel);
       assertTrue(cpAck.contains(Protocol.TYPE_REGISTER_ACK));
+      
+      // Read NODE_LIST sent after registration
+      String nodeList = readJson(panel);
+      assertTrue(nodeList.contains(Protocol.TYPE_NODE_LIST));
 
       // Sensor REGISTER
       writeJson(sensor, Jsons.registerNode("dev-1"));
@@ -134,12 +138,18 @@ class TcpServerIntegrationTest {
       // Register all three control panels
       writeJson(panel1, Jsons.registerControlPanel("panel-1"));
       assertTrue(readJson(panel1).contains(Protocol.TYPE_REGISTER_ACK));
+      String nodeList1 = readJson(panel1); // Read NODE_LIST
+      assertTrue(nodeList1.contains(Protocol.TYPE_NODE_LIST));
 
       writeJson(panel2, Jsons.registerControlPanel("panel-2"));
       assertTrue(readJson(panel2).contains(Protocol.TYPE_REGISTER_ACK));
+      String nodeList2 = readJson(panel2); // Read NODE_LIST
+      assertTrue(nodeList2.contains(Protocol.TYPE_NODE_LIST));
 
       writeJson(panel3, Jsons.registerControlPanel("panel-3"));
       assertTrue(readJson(panel3).contains(Protocol.TYPE_REGISTER_ACK));
+      String nodeList3 = readJson(panel3); // Read NODE_LIST
+      assertTrue(nodeList3.contains(Protocol.TYPE_NODE_LIST));
       
       // Register sensor node
       writeJson(sensor, Jsons.registerNode("sensor-1"));

@@ -192,7 +192,17 @@ final class ClientHandler implements Runnable {
       registry.registerPanel(out, who);
       registeredPanelOut = out;
       log.info("Panels connected: {}", registry.controlPanelCount());
+
+      // Send list of all registered sensor nodes
+      String nodeList = registry.getSensorNodeIdList();
+      String nodeListMsg = JsonBuilder.build(
+        "type", Protocol.TYPE_NODE_LIST,
+        "nodes", nodeList
+      );
+      FrameCodec.writeFrame(out, nodeListMsg.getBytes(StandardCharsets.UTF_8));
+      log.info("Sent NODE_LIST to {}: [{}]", who, nodeList);
     }
+
     if (Protocol.ROLE_SENSOR_NODE.equalsIgnoreCase(role)) {
       registry.registerSensorNode(nodeId, out, who);
       registeredSensorOut = out;
