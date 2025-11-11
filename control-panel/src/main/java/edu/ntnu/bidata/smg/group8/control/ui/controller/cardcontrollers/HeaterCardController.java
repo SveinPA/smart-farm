@@ -20,7 +20,7 @@ import org.slf4j.Logger;
 * Controller for the Heater control card.
 *  Handles heater state (ON/OFF) and target temperature settings.
 
-* @author Andrea Sandnes
+* @author Andrea Sandnes & Mona Amundsen
 * @version 28.10.2025
 */
 public class HeaterCardController {
@@ -37,14 +37,12 @@ public class HeaterCardController {
   private static final int TEMP_VERY_HIGH = 35;
 
   private final ControlCard card;
-  private Label targetLabel;
   private Spinner<Integer> tempSpinner;
   private Button applyButton;
   private Button coolButton;
   private Button moderateButton;
   private Button warmButton;
   private Button offButton;
-  private Button scheduleButton;
 
   private boolean isOn = false;
   private Integer currentTargetTemp = null;
@@ -68,30 +66,24 @@ public class HeaterCardController {
   * Creates a new HeaterCardController with the specified UI components.
   *
   * @param card the main card container
-  * @param targetLabel label displaying target temperature
   * @param tempSpinner spinner for setting custom temperature
   * @param applyButton button to apply custom temperature
   * @param coolButton button for cool preset (18°C)
   * @param moderateButton button for moderate preset (22°C)
   * @param warmButton button for warm preset (26°C)
   * @param offButton button to turn heater off
-  * @param scheduleButton button to access scheduling configuration
   */
-  public HeaterCardController(ControlCard card, Label targetLabel,
+  public HeaterCardController(ControlCard card,
                               Spinner<Integer> tempSpinner, Button applyButton,
                               Button coolButton, Button moderateButton,
-                              Button warmButton, Button offButton,
-                              Button scheduleButton) {
+                              Button warmButton, Button offButton) {
     this.card = card;
-    this.targetLabel = targetLabel;
     this.tempSpinner = tempSpinner;
     this.applyButton = applyButton;
     this.coolButton = coolButton;
     this.moderateButton = moderateButton;
     this.warmButton = warmButton;
     this.offButton = offButton;
-    this.scheduleButton = scheduleButton;
-
 
     log.debug("HeaterCardController wired");
   }
@@ -128,11 +120,6 @@ public class HeaterCardController {
 
     offHandler = e -> turnOff();
     offButton.setOnAction(offHandler);
-
-    scheduleButton.setOnAction(e -> {
-      log.info("Schedule button clicked (not implemented)");
-      // TODO: Open scheduling dialog
-    });
 
     log.debug("HeaterCardController started successfully");
   }
@@ -173,8 +160,6 @@ public class HeaterCardController {
       offHandler = null;
     }
 
-    scheduleButton.setOnAction(null);
-
     log.debug("HeaterCardController stopped successfully");
   }
 
@@ -190,7 +175,6 @@ public class HeaterCardController {
 
     fx(() -> {
       tempSpinner.getValueFactory().setValue(temperature);
-      targetLabel.setText("Target: " + temperature + "°C");
       card.setValueText("ON (" + temperature + "°C)");
 
       boolean wasOff = !isOn;
@@ -225,7 +209,6 @@ public class HeaterCardController {
     }
 
     fx(() -> {
-      targetLabel.setText("Target: --°C");
       card.setValueText("OFF");
 
       if (!suppressSend && isOn) {

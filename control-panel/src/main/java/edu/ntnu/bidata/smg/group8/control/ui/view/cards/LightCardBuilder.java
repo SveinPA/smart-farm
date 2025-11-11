@@ -7,11 +7,9 @@ import edu.ntnu.bidata.smg.group8.control.ui.view.ControlCard;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.control.RadioButton;
+import javafx.scene.control.ProgressBar;
 import javafx.scene.control.Separator;
-import javafx.scene.control.Slider;
-import javafx.scene.control.ToggleGroup;
-import javafx.scene.layout.HBox;
+import javafx.scene.control.Tooltip;
 import javafx.scene.layout.VBox;
 import org.slf4j.Logger;
 
@@ -22,7 +20,7 @@ import org.slf4j.Logger;
 * dedicated to controlling greenhouse lighting with ON/OFF state
 * and intensity adjustment.</p>
 
-* @author Andrea Sandnes
+* @author Andrea Sandnes & Mona Amundsen
 * @version 28.10.2025
 */
 public class LightCardBuilder implements CardBuilder {
@@ -36,8 +34,7 @@ public class LightCardBuilder implements CardBuilder {
   */
   public LightCardBuilder() {
     this.card = new ControlCard("Lights");
-    card.setValueText("OFF");
-    log.debug("LightCardBuilder initialized with default state: OFF");
+    card.setValueText("-- lx");
   }
 
   /**
@@ -49,60 +46,72 @@ public class LightCardBuilder implements CardBuilder {
   public ControlCard build() {
     log.info("Building Light control card");
 
-    Label ambientLabel = new Label("Ambient: -- lx");
-    ambientLabel.getStyleClass().add("card-subtle");
+    // Status label (e.g., "Status: Cloudy", "Status: Direct Sunlight")
+    Label statusLabel = new Label("Status: --");
+    statusLabel.getStyleClass().addAll("card-subtle", "light-status");
+    statusLabel.setMaxWidth(Double.MAX_VALUE);
+    statusLabel.setAlignment(Pos.CENTER);
 
-    ToggleGroup stateGroup = new ToggleGroup();
-    RadioButton onButton = new RadioButton("ON");
-    RadioButton offButton = new RadioButton("OFF");
-    onButton.setToggleGroup(stateGroup);
-    offButton.setToggleGroup(stateGroup);
-    offButton.setSelected(true);
+    // Visual representation of ambient light level
+    ProgressBar ambientBar = new ProgressBar(0);
+    ambientBar.setMaxWidth(Double.MAX_VALUE);
+    ambientBar.setPrefHeight(20);
+    ambientBar.getStyleClass().addAll("light-bar", "light-very-low");
+    Tooltip.install(ambientBar, new Tooltip("Current ambient light level in greenhouse"));
 
-    HBox stateRow = new HBox(12, new Label("State:"), onButton, offButton);
-    stateRow.setAlignment(Pos.CENTER);
+    VBox currentStateBox = new VBox(6, statusLabel);
+    currentStateBox.setFillWidth(true);
 
-    Slider intensitySlider = new Slider(0, 100, 60);
-    intensitySlider.setShowTickLabels(false);
-    intensitySlider.setShowTickMarks(false);
-    intensitySlider.setMaxWidth(Double.MAX_VALUE);
-    intensitySlider.getStyleClass().add("light-intensity-slider");
+    // Minimum ambient light level the last 24h
+    Label minLabel = new Label("Min: -- lx");
+    minLabel.getStyleClass().addAll("card-subtle", "light-ambient-label");
+    minLabel.setMaxWidth(Double.MAX_VALUE);
+    minLabel.setAlignment(Pos.CENTER);
 
-    Label intensityLabel = new Label("Intensity: 60%");
-    intensityLabel.getStyleClass().add("light-intensity-label");
+    // Max ambient light level the last 24h
+    Label maxLabel = new Label("Max: -- lx");
+    maxLabel.getStyleClass().addAll("card-subtle", "light-ambient-label");
+    maxLabel.setMaxWidth(Double.MAX_VALUE);
+    maxLabel.setAlignment(Pos.CENTER);
 
-    VBox intensityBox = new VBox(8, intensityLabel, intensitySlider);
-    intensityBox.setAlignment(Pos.CENTER);
+    // Average ambient light level the last 24h
+    Label avgLabel = new Label("Avg: -- lx");
+    avgLabel.getStyleClass().addAll("card-subtle", "light-ambient-label");
+    avgLabel.setMaxWidth(Double.MAX_VALUE);
+    avgLabel.setAlignment(Pos.CENTER);
 
-    // Only show intensity controls when lights are ON
-    intensityBox.visibleProperty().bind(onButton.selectedProperty());
-    intensityBox.managedProperty().bind(intensityBox.visibleProperty());
+    // Label for ambient light the last 24h
+    Label statsTitle = new Label("24h Statistics:");
+    statsTitle.getStyleClass().add("light-stats-title");
+    statsTitle.setMaxWidth(Double.MAX_VALUE);
+    statsTitle.setAlignment(Pos.CENTER);
 
-    Button scheduleButton = ButtonFactory.createButton("Schedule...");
-    card.getFooter().getChildren().add(scheduleButton);
+    VBox statsBox = new VBox(6, statsTitle, new Separator(),minLabel, avgLabel, maxLabel);
+    statsBox.setAlignment(Pos.CENTER);
+    statsBox.getStyleClass().add("light-stats-box");
+
+    Button historyButton = ButtonFactory.createHistoryButton("History");
+    card.getFooter().getChildren().add(historyButton);
 
     card.addContent(
-            ambientLabel,
-            stateRow,
+            currentStateBox,
             new Separator(),
-            intensityBox
+            ambientBar,
+            statsBox
     );
 
     var controller = new LightCardController(
             card,
-            ambientLabel,
-            onButton,
-            offButton,
-            stateGroup,
-            intensitySlider,
-            intensityLabel,
-            intensityBox,
-            scheduleButton
+            ambientBar,
+            minLabel,
+            maxLabel,
+            avgLabel,
+            historyButton,
+            statusLabel
     );
+
     card.setUserData(controller);
-
     log.debug("Light control card built successfully");
-
     return card;
   }
 

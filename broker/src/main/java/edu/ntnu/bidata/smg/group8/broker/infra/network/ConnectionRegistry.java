@@ -108,4 +108,16 @@ final class ConnectionRegistry {
       }
     }
   }
+
+  /**
+   * Get a comma-seperated list of all registered sensor node IDs-
+   * 
+   * @return comma-separated nodeIDs, or empty string if no nodes registered
+   */
+  String getSensorNodeIdList() {
+    if (sensorNodes.isEmpty()) {
+      return "";
+    }
+    return String.join(",", sensorNodes.keySet());
+  }
 }

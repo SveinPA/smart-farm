@@ -4,12 +4,12 @@ import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
 import edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers.HumidityCardController;
 import edu.ntnu.bidata.smg.group8.control.ui.factory.ButtonFactory;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlCard;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.Separator;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import org.slf4j.Logger;
 
@@ -19,7 +19,7 @@ import org.slf4j.Logger;
 * <p>This builder constructs and configures a ControlCard component
 * dedicated to displaying real-time humidity readings and 24h statistics.</p>
 *
-* @author Andrea Sandnes
+* @author Andrea Sandnes & Mona Amundsen
 * @version 28.10.2025
 */
 public class HumidityCardBuilder implements CardBuilder {
@@ -46,9 +46,6 @@ public class HumidityCardBuilder implements CardBuilder {
   public ControlCard build() {
     log.info("Building Humidity control card");
 
-    Label currentLabel = new Label("Current: --%");
-    currentLabel.getStyleClass().addAll("card-subtle", "humidity-current");
-
     ProgressBar humidityBar = new ProgressBar(0);
     humidityBar.setMaxWidth(Double.MAX_VALUE);
     humidityBar.setPrefHeight(20);
@@ -65,31 +62,33 @@ public class HumidityCardBuilder implements CardBuilder {
 
     Label statsTitle = new Label("24h Statistics:");
     statsTitle.getStyleClass().add("humidity-stats-title");
+    VBox statsTitleBox = new VBox(statsTitle);
+    statsTitleBox.setAlignment(Pos.CENTER);
+    VBox.setMargin(statsTitleBox, new Insets(0, 0, 6, 0));
 
-    HBox statsRow1 = new HBox(15, minLabel, maxLabel);
-    statsRow1.setAlignment(Pos.CENTER);
-
-    VBox statsBox = new VBox(4, statsTitle, statsRow1, avgLabel);
+    VBox statsBox = new VBox(6, minLabel, maxLabel, avgLabel);
     statsBox.setAlignment(Pos.CENTER);
+    VBox.setMargin(statsBox, new Insets(6, 0, 0, 0));
 
-    Button historyButton = ButtonFactory.createButton("History...");
+    Button historyButton = ButtonFactory.createHistoryButton("History");
     card.getFooter().getChildren().add(historyButton);
 
     card.addContent(
-            currentLabel,
             new Separator(),
             humidityBar,
+            statsTitleBox,
+            new Separator(),
             statsBox
     );
 
     var controller = new HumidityCardController(
             card,
-            currentLabel,
             humidityBar,
             minLabel,
             maxLabel,
             avgLabel,
-            historyButton
+            historyButton,
+            statsTitle
     );
     card.setUserData(controller);
 

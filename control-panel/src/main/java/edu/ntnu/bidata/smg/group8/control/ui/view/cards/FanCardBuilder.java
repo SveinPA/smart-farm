@@ -4,6 +4,7 @@ import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
 import edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers.FanCardController;
 import edu.ntnu.bidata.smg.group8.control.ui.factory.ButtonFactory;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlCard;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -22,7 +23,7 @@ import org.slf4j.Logger;
 * <p>This builder constructs and configures a ControlCard component
 * dedicated to controlling greenhouse fans with both manual and automatic modes.</p>
 *
-* @author Andrea Sandnes
+* @author Andrea Sandnes & Mona Amundsen
 * @version 28.10.2025
 */
 public class FanCardBuilder implements CardBuilder {
@@ -49,9 +50,6 @@ public class FanCardBuilder implements CardBuilder {
   public ControlCard build() {
     log.info("Building Fan control card");
 
-    Label speedLabel = new Label("Speed: 0%");
-    speedLabel.getStyleClass().addAll("card-subtle", "fan-speed");
-
     ToggleGroup modeGroup = new ToggleGroup();
     RadioButton manualMode = new RadioButton("Manual");
     RadioButton autoMode = new RadioButton("Auto");
@@ -61,6 +59,8 @@ public class FanCardBuilder implements CardBuilder {
 
     HBox modeRow = new HBox(12, new Label("Mode:"), manualMode, autoMode);
     modeRow.setAlignment(Pos.CENTER_LEFT);
+    //Create some spacing above the mode row
+    VBox.setMargin(modeRow, new Insets(13,0,10,0));
 
     // Manual controls
     Button lowButton = ButtonFactory.createPresetButton("Low", 60);
@@ -69,8 +69,18 @@ public class FanCardBuilder implements CardBuilder {
     Button fullButton = ButtonFactory.createPresetButton("Full", 60);
     Button offButton = ButtonFactory.createFullWidthDangerButton("Turn OFF");
 
-    HBox presetsRow = new HBox(6, lowButton, mediumButton, highButton, fullButton);
-    presetsRow.setAlignment(Pos.CENTER_LEFT);
+    double presetWidth = 80;
+    lowButton.setMinWidth(presetWidth);
+    mediumButton.setMinWidth(presetWidth);
+    highButton.setMinWidth(presetWidth);
+    fullButton.setMinWidth(presetWidth);
+
+    HBox presetsRow1 = new HBox(8, lowButton, mediumButton);
+    HBox presetsRow2 = new HBox(8, highButton, fullButton);
+    presetsRow1.setAlignment(Pos.CENTER);
+    presetsRow2.setAlignment(Pos.CENTER);
+    VBox presetsBox = new VBox(6, presetsRow1, presetsRow2);
+    presetsBox.setAlignment(Pos.CENTER);
 
     Label sliderLabel = new Label("Custom: 0%");
     sliderLabel.getStyleClass().add("fan-slider-label");
@@ -85,32 +95,46 @@ public class FanCardBuilder implements CardBuilder {
     VBox sliderBox = new VBox(6, sliderLabel, speedSlider);
     sliderBox.setAlignment(Pos.CENTER_LEFT);
 
-    VBox manualBox = new VBox(8, presetsRow, sliderBox, offButton);
+    VBox manualBox = new VBox(8, presetsBox, sliderBox, offButton);
+    VBox.setMargin(offButton, new Insets(0, 0, 20, 0));
     manualBox.setAlignment(Pos.CENTER_LEFT);
 
     // Auto controls
     Label autoInfoLabel = new Label("Linked to: Temperature & Humidity");
     autoInfoLabel.getStyleClass().add("fan-auto-info");
+    VBox.setMargin(autoInfoLabel, new Insets(10,0,5,0));
 
-    Label tempLabel = new Label("Activate at:");
+    Label tempLabel = new Label("Activate at: ");
     Spinner<Integer> tempSpinner = new Spinner<>(22, 35, 26, 1);
     tempSpinner.setEditable(false);
     tempSpinner.setPrefWidth(75);
-    tempSpinner.getStyleClass().add("fan-auto-spinner");
     Label tempUnit = new Label("°C");
+    HBox tempRow = new HBox(8,tempLabel, tempSpinner, tempUnit);
+    tempRow.setAlignment(Pos.CENTER);
+    tempSpinner.getStyleClass().add("fan-auto-spinner");
 
-    HBox tempBox = new HBox(8, tempLabel, tempSpinner, tempUnit);
-    tempBox.setAlignment(Pos.CENTER_LEFT);
-
-    Label humidityLabel = new Label("Or at:");
+    Label humidityLabel = new Label("Or at: ");
     Spinner<Integer> humiditySpinner = new Spinner<>(60, 90, 75, 5);
     humiditySpinner.setEditable(false);
     humiditySpinner.setPrefWidth(75);
     humiditySpinner.getStyleClass().add("fan-auto-spinner");
     Label humidityUnit = new Label("% RH");
+    HBox humidityRow = new HBox(8, humidityLabel, humiditySpinner, humidityUnit);
+    humidityRow.setAlignment(Pos.CENTER);
 
-    HBox humidityBox = new HBox(8, humidityLabel, humiditySpinner, humidityUnit);
-    humidityBox.setAlignment(Pos.CENTER_LEFT);
+    Label autoIntensityLabel = new Label("Fan intensity: 0%");
+    VBox.setMargin(autoIntensityLabel, new Insets(10,0,0,0));
+    autoIntensityLabel.getStyleClass().add("fan-slider-label");
+
+    Slider autoIntensitySlider = new Slider(0, 100, 0);
+    autoIntensitySlider.setShowTickLabels(false);
+    autoIntensitySlider.setShowTickMarks(true);
+    autoIntensitySlider.setMajorTickUnit(25);
+    autoIntensitySlider.setMaxWidth(Double.MAX_VALUE);
+    autoIntensitySlider.getStyleClass().add("fan-slider");
+
+    VBox autoFanSlider = new VBox(6, autoIntensityLabel, autoIntensitySlider);
+    autoFanSlider.setAlignment(Pos.CENTER_LEFT);
 
     Label autoStatusLabel = new Label("Auto-control: Active");
     autoStatusLabel.getStyleClass().add("fan-auto-status");
@@ -118,7 +142,14 @@ public class FanCardBuilder implements CardBuilder {
     Label noteLabel = new Label("Speed adjusts based on current values");
     noteLabel.getStyleClass().add("fan-auto-note");
 
-    VBox autoBox = new VBox(8, autoInfoLabel, tempBox, humidityBox, autoStatusLabel, noteLabel);
+    VBox autoBox = new VBox(
+            8,
+            autoInfoLabel,
+            tempRow,
+            humidityRow,
+            autoFanSlider,
+            autoStatusLabel,
+            noteLabel);
     autoBox.setAlignment(Pos.CENTER_LEFT);
 
     // Setup visibility bindings
@@ -127,11 +158,7 @@ public class FanCardBuilder implements CardBuilder {
     autoBox.visibleProperty().bind(autoMode.selectedProperty());
     autoBox.managedProperty().bind(autoBox.visibleProperty());
 
-    Button scheduleButton = ButtonFactory.createButton("Schedule...");
-    card.getFooter().getChildren().add(scheduleButton);
-
     card.addContent(
-            speedLabel,
             new Separator(),
             modeRow,
             manualBox,
@@ -140,7 +167,6 @@ public class FanCardBuilder implements CardBuilder {
 
     var controller = new FanCardController(
             card,
-            speedLabel,
             manualMode,
             autoMode,
             modeGroup,
@@ -154,7 +180,8 @@ public class FanCardBuilder implements CardBuilder {
             tempSpinner,
             humiditySpinner,
             autoStatusLabel,
-            scheduleButton
+            autoIntensitySlider,
+            autoIntensityLabel
     );
     card.setUserData(controller);
 

@@ -8,9 +8,7 @@ import edu.ntnu.bidata.smg.group8.control.logic.command.CommandInputHandler;
 import edu.ntnu.bidata.smg.group8.control.logic.state.StateStore;
 import edu.ntnu.bidata.smg.group8.control.ui.controller.ControlPanelController;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlPanelView;
-import edu.ntnu.bidata.smg.group8.control.ui.view.DashboardView;
 import java.io.IOException;
-import java.time.Instant;
 import java.util.Objects;
 import javafx.application.Application;
 import javafx.scene.Scene;
@@ -34,6 +32,7 @@ public final class ControlPanelMain extends Application {
   private Thread consoleInputThread;
   private ConsoleInputLoop consoleInput;
 
+  private Thread dynamicDataThread;
 
   /**
   * Initializes and launches the Control Panel user interface.
@@ -51,25 +50,29 @@ public final class ControlPanelMain extends Application {
       try {
         agent = new PanelAgent(BROKER_HOST(), BROKER_PORT(), PANEL_ID(), stateStore);
         agent.start();
-        log.info("PanelAgent connected to broker at {}:{}", BROKER_HOST(),
-            BROKER_PORT());
+        log.info("PanelAgent connected to broker at {}:{}", BROKER_HOST(), BROKER_PORT());
       } catch (IOException e) {
-        log.error("Failed to connect to broker at {}:{}. Is the broker running?",
-            BROKER_HOST(), BROKER_PORT(), e);
-        showErrorDialog("Connection Failed",
-                "Could not connect to broker at " + BROKER_HOST() + ":" + BROKER_PORT()
-            + "\n\nPlease ensure the broker is running and try again.");
-        return;
+        log.warn("Failed to connect to broker at {}:{}. Using test data only.",
+                BROKER_HOST(), BROKER_PORT(), e);
+        // Continue without broker - will use test data
       }
 
+      // TEMPORARY: Always inject test data for GUI development
+      injectTestData(stateStore);
+      dynamicDataThread = startDynamicTestData(stateStore);
+
       CommandInputHandler cmdHandler = new CommandInputHandler(agent);
+
       ControlPanelView view = new ControlPanelView();
       controller = new ControlPanelController(view, cmdHandler, stateStore, NODE_ID());
       controller.start();
 
-      boolean enableConsoleDisplay = Boolean.parseBoolean(System.getProperty("console.display", "false"));
-      boolean enableConsoleInput   = Boolean.parseBoolean(System.getProperty("console.input", "false"));
-      boolean clearConsole         = Boolean.parseBoolean(System.getProperty("console.clear", "false"));
+      boolean enableConsoleDisplay = Boolean.parseBoolean(
+              System.getProperty("console.display", "false"));
+      boolean enableConsoleInput = Boolean.parseBoolean(
+              System.getProperty("console.input", "false"));
+      boolean clearConsole = Boolean.parseBoolean(
+              System.getProperty("console.clear", "false"));
 
       if (enableConsoleDisplay) {
         consoleDisplay = new DisplayManager(stateStore);
@@ -80,7 +83,7 @@ public final class ControlPanelMain extends Application {
       if (enableConsoleInput) {
         consoleInput = new ConsoleInputLoop(cmdHandler, NODE_ID(), consoleDisplay, stateStore);
         consoleInputThread = new Thread(consoleInput, "console-input");
-        consoleInputThread.setDaemon(true); // allow GUI to exit without waiting for input
+        consoleInputThread.setDaemon(true);
         consoleInputThread.start();
       }
 
@@ -152,6 +155,19 @@ public final class ControlPanelMain extends Application {
       }
     }
 
+    if (dynamicDataThread != null && dynamicDataThread.isAlive()) {
+      try {
+        dynamicDataThread.interrupt();
+        dynamicDataThread.join(200);
+        log.debug("Dynamic data thread stopped");
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        log.warn("Interrupted while waiting for dynamic data thread to finish", e);
+      } finally {
+        dynamicDataThread = null;
+      }
+    }
+
     if (consoleDisplay != null) {
       try {
         consoleDisplay.stop();
@@ -187,6 +203,140 @@ public final class ControlPanelMain extends Application {
     alert.setContentText(message);
     alert.showAndWait();
   }
+
+  /**
+   * Injects test data into the StateStore for testing purposes.
+   * This is a temporary solution for GUI development without a broker.
+   */
+  private void injectTestData(StateStore stateStore) {
+    log.info("Injecting test sensor data...");
+
+    java.time.Instant now = java.time.Instant.now();
+
+    // Initial sensor readings
+    stateStore.applySensor("node-1", "temperature", "28.5", "°C", now);
+    stateStore.applySensor("node-1", "wind", "12.3", "m/s", now);
+    stateStore.applySensor("node-1", "humidity", "65.0", "%", now);
+    stateStore.applySensor("node-1", "pH", "6.8", "", now);
+
+    log.info("Test data injection complete");
+  }
+
+  /**
+   * Starts a background thread that continuously updates test data.
+   * This simulates real sensor readings for testing the auto-mode functionality.
+   *
+   * @param stateStore the state store to inject data into
+   * @return the thread running the dynamic data injection
+   */
+  private Thread startDynamicTestData(StateStore stateStore) {
+    Thread testThread = new Thread(() -> {
+      try {
+        // Initial values
+        double temp = 28.5;
+        double wind = 12.3;
+        double humidity = 65.0;
+        double pH = 6.8;
+        double fertilizer= 90.0;
+        double light = 40000.0;
+         // Actuator states
+        int windowPosition = 50;
+        boolean fanOn = true;
+        boolean heaterOn = false;
+
+
+        while (!Thread.currentThread().isInterrupted()) {
+          // ===== SIMULATE SENSOR CHANGES =====
+
+          // Temperature: ±1°C per update
+          temp += (Math.random() - 0.5) * 2;
+          temp = Math.max(15.0, Math.min(35.0, temp));
+
+          // Wind: ±0.5 m/s per update
+          wind += (Math.random() - 0.5) * 1;
+          wind = Math.max(0.0, Math.min(20.0, wind));
+
+          // Humidity: ±2% per update
+          humidity += (Math.random() - 0.5) * 4;
+          humidity = Math.max(30.0, Math.min(90.0, humidity));
+
+          // pH: ±0.1 per update
+          pH += (Math.random() - 0.5) * 0.2;
+          pH = Math.max(5.5, Math.min(8.0, pH));
+
+          //Fertilizer: ±2% per update
+          fertilizer += (Math.random() - 0.5) * 4;
+          fertilizer = Math.max(0.0, Math.min(300.0, fertilizer));
+
+          // Light: ±5000 lx per update (simulates changing daylight/cloud cover)
+          light += (Math.random() - 0.5) * 10000;
+          light = Math.max(0.0, Math.min(80000.0, light));
+
+          // Update sensors - VIKTIG: Bruk Locale.US for punktum som desimalskilletegn
+          java.time.Instant now = java.time.Instant.now();
+          stateStore.applySensor("node-1", "temperature",
+                  String.format(java.util.Locale.US, "%.1f", temp), "°C", now);
+          stateStore.applySensor("node-1", "wind",
+                  String.format(java.util.Locale.US, "%.1f", wind), "m/s", now);
+          stateStore.applySensor("node-1", "humidity",
+                  String.format(java.util.Locale.US, "%.1f", humidity), "%", now);
+          stateStore.applySensor("node-1", "pH",
+                  String.format(java.util.Locale.US, "%.1f", pH), "", now);
+            stateStore.applySensor("node-1", "fertilizer",
+                  String.format(java.util.Locale.US, "%.1f", fertilizer), "ppm", now);
+          stateStore.applySensor("node-1", "light",
+                  String.format(java.util.Locale.US, "%.1f", light), "lx", now);
+
+
+          // ===== SIMULATE ACTUATOR CHANGES =====
+
+          // Window: adjust based on temperature and wind
+          if (temp > 30 && wind < 15) {
+            windowPosition = Math.min(100, windowPosition + 10);
+          } else if (temp < 20 || wind > 15) {
+            windowPosition = Math.max(0, windowPosition - 10);
+          }
+
+          // Fan: turn on if temperature is high
+          fanOn = temp > 28;
+
+          // Heater: turn on if temperature is low
+          heaterOn = temp < 18;
+
+          // Update actuators
+          stateStore.applyActuator("node-1", "window",
+                  String.valueOf(windowPosition), now);
+          stateStore.applyActuator("node-1", "fan",
+                  fanOn ? "on" : "off", now);
+          stateStore.applyActuator("node-1", "heater",
+                  heaterOn ? "on" : "off", now);
+
+          log.debug("Updated test data: temp={}, wind={}, humidity={}, pH={}, " +
+                          "window={}%, fan={}, heater={}, fertilizer={}",
+                  String.format(java.util.Locale.US, "%.1f", temp),
+                  String.format(java.util.Locale.US, "%.1f", wind),
+                  String.format(java.util.Locale.US, "%.1f", humidity),
+                  String.format(java.util.Locale.US, "%.1f", pH),
+                  String.format(java.util.Locale.US, "%.1f",fertilizer),
+                  windowPosition,
+                  fanOn ? "on" : "off",
+                  heaterOn ? "on" : "off");
+
+          Thread.sleep(2000); // Update every 2 seconds
+        }
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        log.debug("Dynamic test data thread interrupted");
+      }
+    }, "dynamic-test-data");
+
+    testThread.setDaemon(true);
+    testThread.start();
+    log.info("Dynamic test data thread started (updates every 2 seconds)");
+
+    return testThread;
+  }
+
 
 
   /**

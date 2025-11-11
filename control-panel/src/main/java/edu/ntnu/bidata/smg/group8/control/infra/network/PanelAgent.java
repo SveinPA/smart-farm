@@ -163,6 +163,7 @@ public class PanelAgent implements AutoCloseable {
           log.warn("Missing required fields in SENSOR_DATA: {}", json);
           return;
         }
+        state.touchNodeSeen(srcNodeId);
         state.applySensor(srcNodeId, sensorKey, value, unit, Instant.ofEpochMilli(ts));
       }
 
@@ -176,9 +177,51 @@ public class PanelAgent implements AutoCloseable {
           log.warn("Missing required fields in ACTUATOR_STATE: {}", json);
           return;
         }
+        state.touchNodeSeen(srcNodeId);
         state.applyActuator(srcNodeId, actuatorKey, current, Instant.ofEpochMilli(ts));
         log.debug("ACTUATOR_STATE applied nodeId={} actuator={} state={}", srcNodeId, actuatorKey, current);
       }
+
+//      case Protocol.TYPE_NODE_LIST -> {
+//        String csv = msg.get("nodes");
+//        state.replaceAllNodesFromCsv(csv);
+//        log.info("NODE_LIST received: {}", csv);
+//      }
+
+      case Protocol.TYPE_NODE_CONNECTED -> {
+        String nid = msg.get("nodeId");
+        if (nid != null) {
+          state.setNodeOnline(nid, true);
+          log.info("Node connected: {}", nid);
+        }
+      }
+
+      case Protocol.TYPE_NODE_DISCONNECTED -> {
+        String nid = msg.get("nodeId");
+        if (nid != null) {
+          state.setNodeOnline(nid, false);
+          log.warn("Node disconnected: {}", nid);
+        }
+      }
+
+   //   case Protocol.TYPE_COMMAND_ACK -> {
+   //     String cmdId = msg.get("commandId");
+   //     String target = msg.get("nodeId");
+   //     String accepted = msg.get("accepted");
+   //     String reason = msg.get("reason");
+   //     if (cmdId != null) {
+   //       boolean ok = "true".equalsIgnoreCase(accepted);
+   //       state.markCommandAccepted(cmdId, target, ok, reason);
+   //       if (ok) {
+   //         log.info("COMMAND_ACK OK [{}] node={}", cmdId, target);
+   //       } else {
+   //         log.warn("COMMAND_ACK REJECTED [{}] node={} reason={}", cmdId, target, reason);
+   //       }
+   //     } else {
+   //         log.info("COMMAND_ACK (no commandId) {}", json);
+   //       }
+   //     }
+
 
       case Protocol.TYPE_HEARTBEAT -> {
         log.trace("HEARTBEAT received: {}", json);
@@ -219,7 +262,7 @@ public class PanelAgent implements AutoCloseable {
   * This method is synchronized to ensure thread-safe access to the
   * output stream.
   *
-  * @param nodeId the identifier of the target sensor node
+  * @param targetNode the identifier of the target sensor node
   * @param actuator the identifier of the actuator to control
   * @param action the action to perform (e.g, "set", "on", "off")
   * @param valueOrNull optional value parameter for the action, or
@@ -227,24 +270,16 @@ public class PanelAgent implements AutoCloseable {
   * @throws IOException if an I/O error occurs when writing to the
   * output stream
   */
-  public synchronized void sendActuatorCommand(String nodeId, String actuator,
+  public synchronized void sendActuatorCommand(String targetNode, String actuator,
                                                String action, String valueOrNull)
           throws IOException {
-    String payload = (valueOrNull != null)
-            ? JsonBuilder.build(
+    final String actionField = (valueOrNull != null ? valueOrNull : action);
+    String payload = JsonBuilder.build(
                     "type", Protocol.TYPE_ACTUATOR_COMMAND,
             "panelId", this.nodeId,
-            "nodeId", nodeId,
+            "targetNode", targetNode,
             "actuator", actuator,
-            "action", action,
-            "value", valueOrNull
-    )
-            : JsonBuilder.build(
-                    "type", Protocol.TYPE_ACTUATOR_COMMAND,
-            "panelId", this.nodeId,
-            "nodeId", nodeId,
-            "actuator", actuator,
-            "action", action
+            "action", actionField
     );
 
     log.info("Sending ACTUATOR_COMMAND: {}", payload);
@@ -268,32 +303,32 @@ public class PanelAgent implements AutoCloseable {
   * Sends an actuator command with an integer value to a specific node
   * through the broker.
   *
-  * @param nodeId the identifier of the target sensor node
+  * @param targetNode the identifier of the target sensor node
   * @param actuator the identifier of the actuator to control
   * @param action the action to perform (e.g., "SET", "ON", "OFF")
   * @param value the integer value parameter for the action
   * @throws IOException IOException if an I/O error occurs when writing to the
   *                     output stream
   */
-  public void sendActuatorCommand(String nodeId, String actuator, String action,
+  public void sendActuatorCommand(String targetNode, String actuator, String action,
                                   int value) throws IOException {
-    sendActuatorCommand(nodeId, actuator, action, String.valueOf(value));
+    sendActuatorCommand(targetNode, actuator, action, String.valueOf(value));
   }
 
   /**
   * Sends an actuator command with a floating-point value to a specific
   * node through the broker.
    *
-  * @param nodeId the identifier of the target sensor node
+  * @param targetNode the identifier of the target sensor node
   * @param actuator the identifier of the actuator to control
   * @param action the action to perform (e.g., "SET", "ON", "OFF")
   * @param value the floating-point value parameter for the action
   * @throws IOException IOException if an I/O error occurs when writing to the
   *                     output stream
   */
-  public void sendActuatorCommand(String nodeId, String actuator,
+  public void sendActuatorCommand(String targetNode, String actuator,
                                   String action, double value) throws IOException {
-    sendActuatorCommand(nodeId, actuator, action, String.valueOf(value));
+    sendActuatorCommand(targetNode, actuator, action, String.valueOf(value));
   }
 
   /**

@@ -2,13 +2,14 @@ package edu.ntnu.bidata.smg.group8.control.ui.view.cards;
 
 import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
 import edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers.ValveCardController;
-import edu.ntnu.bidata.smg.group8.control.ui.factory.ButtonFactory;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlCard;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.Separator;
+import javafx.scene.control.Slider;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import org.slf4j.Logger;
@@ -48,51 +49,58 @@ public class ValveCardBuilder implements CardBuilder {
   public ControlCard build() {
     log.info("Building valve control card");
 
-    Label stateLabel = new Label("CLOSED");
-    stateLabel.getStyleClass().addAll("card-subtle", "valve-state");
-
+    // Shows the flow in text
     Label flowLabel = new Label("Flow: 0 L/min");
     flowLabel.getStyleClass().addAll("card-subtle", "valve-flow");
 
+    // Shows the flow visually
     ProgressBar flowIndicator = new ProgressBar(0);
     flowIndicator.setMaxWidth(Double.MAX_VALUE);
     flowIndicator.setPrefHeight(15);
     flowIndicator.getStyleClass().add("valve-flow-indicator");
 
+    // Slider for customizing flow
+    Label sliderLabel = new Label("Custom: 0%");
+    Slider openingSlider = new Slider(0, 100, 0);
+    openingSlider.setShowTickMarks(true);
+    openingSlider.setShowTickLabels(false);
+    openingSlider.setMajorTickUnit(25);
+    openingSlider.setMaxWidth(Double.MAX_VALUE);
+
+    VBox sliderBox = new VBox(6, sliderLabel, openingSlider);
+    sliderBox.setAlignment(Pos.CENTER);
+    sliderBox.setPadding(new Insets(8, 0, 8, 0));
+
+    // Open button
     Button openButton = new Button("OPEN");
     openButton.getStyleClass().add("open-valve-button");
 
+    // Close button
     Button closeButton = new Button("CLOSED");
     closeButton.getStyleClass().add("close-valve-button");
-
-    Label actionLabel = new Label("Quick actions:");
-    actionLabel.getStyleClass().add("valve-action-label");
 
     HBox buttonRow = new HBox(10, openButton, closeButton);
     buttonRow.setAlignment(Pos.CENTER);
 
-    VBox buttonBox = new VBox(6, actionLabel, buttonRow);
+    VBox buttonBox = new VBox(6, buttonRow);
     buttonBox.setAlignment(Pos.CENTER);
 
-    Button scheduleButton = ButtonFactory.createScheduleButton("Schedule...");
-    card.getFooter().getChildren().add(scheduleButton);
-
     card.addContent(
-            stateLabel,
             flowLabel,
             flowIndicator,
             new Separator(),
+            sliderBox,
             buttonBox
     );
 
     var controller = new ValveCardController(
         card,
-        stateLabel,
         flowLabel,
         flowIndicator,
+        openingSlider,
+        sliderLabel,
         openButton,
-        closeButton,
-        scheduleButton
+        closeButton
     );
     card.setUserData(controller);
 

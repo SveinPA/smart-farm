@@ -4,6 +4,7 @@ import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
 import edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers.HeaterCardController;
 import edu.ntnu.bidata.smg.group8.control.ui.factory.ButtonFactory;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlCard;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -19,7 +20,7 @@ import org.slf4j.Logger;
 * <p>This builder constructs and configures a ControlCard component
 * dedicated to controlling greenhouse heating with temperature target setting.</p>
 *
-* @author Andrea Sandnes
+* @author Andrea Sandnes & Mona Amundsen
 * @version 28.10.2025
 */
 public class HeaterCardBuilder implements CardBuilder {
@@ -50,9 +51,6 @@ public class HeaterCardBuilder implements CardBuilder {
   public ControlCard build() {
     log.info("Building Heater control card");
 
-    Label targetLabel = new Label("Target: --°C");
-    targetLabel.getStyleClass().addAll("card-subtle", "heater-target");
-
     Spinner<Integer> tempSpinner = new Spinner<>(TEMP_MIN, TEMP_MAX, TEMP_DEFAULT, 1);
     tempSpinner.setEditable(true);
     tempSpinner.setPrefWidth(80);
@@ -63,8 +61,15 @@ public class HeaterCardBuilder implements CardBuilder {
     Label setLabel = new Label("Set target:");
     Label unitLabel = new Label("°C");
 
-    HBox spinnerBox = new HBox(8, setLabel, tempSpinner, unitLabel, applyButton);
+    HBox spinnerBox = new HBox(8, tempSpinner, unitLabel);
     spinnerBox.setAlignment(Pos.CENTER);
+
+    VBox targetBox = new VBox(4, setLabel, spinnerBox);
+    targetBox.setAlignment(Pos.CENTER);
+
+    VBox applyBox = new VBox(8,targetBox, applyButton);
+    VBox.setMargin(applyBox, new Insets(8, 0, 10, 0));
+    applyBox.setAlignment(Pos.CENTER);
 
     Button coolButton = ButtonFactory.createFullWidthButton("Cool (18°C)");
     Button moderateButton = ButtonFactory.createFullWidthButton("Moderate (22°C)");
@@ -74,30 +79,29 @@ public class HeaterCardBuilder implements CardBuilder {
     Label presetsLabel = new Label("Quick presets:");
     presetsLabel.getStyleClass().add("heater-presets-title");
 
-    VBox presetsBox = new VBox(6, presetsLabel, coolButton, moderateButton, warmButton, offButton);
+    VBox presetsLabelBox = new VBox(presetsLabel);
+    VBox.setMargin(presetsLabelBox, new Insets(8, 0, 0, 0));
+
+    VBox presetsBox = new VBox(6, coolButton, moderateButton, warmButton, offButton);
     presetsBox.setAlignment(Pos.CENTER);
 
-    Button scheduleButton = ButtonFactory.createButton("Schedule...");
-    card.getFooter().getChildren().add(scheduleButton);
-
     card.addContent(
-            targetLabel,
             new Separator(),
-            spinnerBox,
+            applyBox,
             new Separator(),
+            presetsLabel,
+            presetsLabelBox,
             presetsBox
     );
 
     var controller = new HeaterCardController(
             card,
-            targetLabel,
             tempSpinner,
             applyButton,
             coolButton,
             moderateButton,
             warmButton,
-            offButton,
-            scheduleButton
+            offButton
     );
     card.setUserData(controller);
 

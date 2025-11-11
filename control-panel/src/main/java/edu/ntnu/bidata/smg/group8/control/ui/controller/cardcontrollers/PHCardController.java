@@ -3,10 +3,12 @@ package edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers;
 import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlCard;
 import javafx.application.Platform;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.ProgressBar;
+import javafx.scene.control.*;
 import org.slf4j.Logger;
+
+import java.time.LocalTime;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
 
 /**
 * Controller for the pH control card.
@@ -30,13 +32,13 @@ public class PHCardController {
   private static final double PH_ALKALINE = 10.0;
 
   private final ControlCard card;
-  private Label currentLabel;
   private Label statusLabel;
   private Label minLabel;
   private Label maxLabel;
   private Label avgLabel;
   private ProgressBar phBar;
   private Button historyButton;
+  private final List<String> historyEntries = new java.util.ArrayList<>();
 
   private String previousStatus = null;
   private String activeZoneClass = null;
@@ -46,19 +48,18 @@ public class PHCardController {
   * Creates a new PHCardController with the specified UI components.
   *
   * @param card the main card container
-  * @param currentLabel label displaying current pH value
   * @param statusLabel label displaying pH status (Acidic/Neutral/Alkaline)
   * @param phBar progress bar visualizing pH level
   * @param minLabel label displaying minimum pH (24h)
   * @param maxLabel label displaying maximum pH (24h)
   * @param avgLabel label displaying average pH (24h)
   * @param historyButton button to access historical data
+   *
   */
-  public PHCardController(ControlCard card, Label currentLabel, Label statusLabel,
+  public PHCardController(ControlCard card, Label statusLabel,
                           ProgressBar phBar, Label minLabel, Label maxLabel,
                           Label avgLabel, Button historyButton) {
     this.card = card;
-    this.currentLabel = currentLabel;
     this.statusLabel = statusLabel;
     this.phBar = phBar;
     this.minLabel = minLabel;
@@ -75,6 +76,10 @@ public class PHCardController {
   public void start() {
     log.info("Starting PHCardController");
     // TODO: Add initialization logic here
+    historyButton.setOnAction(e -> {
+      showHistoryDialog();
+      log.info("History button clicked - showing pH history dialog");
+    });
     log.debug("PHCardController started successfully");
   }
 
@@ -97,7 +102,6 @@ public class PHCardController {
 
     fx(() -> {
       card.setValueText(String.format("%.1f", ph));
-      currentLabel.setText(String.format("Current: %.1f", ph));
 
       // Update progress bar (normalized to 0-1 range)
       double progress = (ph - MIN_PH) / (MAX_PH - MIN_PH);
@@ -110,6 +114,8 @@ public class PHCardController {
 
       // Update status and color
       updatePHStatus(ph);
+      // Add to history
+      addHistoryEntry(ph, previousStatus);
     });
   }
 
@@ -152,6 +158,7 @@ public class PHCardController {
               String.format("%.2f", ph));
       previousStatus = status;
     }
+    statusLabel.setText("Status: " + status);
 
     if (ph < PH_VERY_ACIDIC) {
       log.warn("CRITICAL: pH too acidic ({}) - Risk of nutrient lockout and root damage",
@@ -207,5 +214,42 @@ public class PHCardController {
     }
   }
 
+  /**
+   * Adds a new entry to the pH history.
+   *
+   * <p>The entry includes the timestamp and pH value.</p>
+   *
+   * @param PHLevel the pH value to record
+   * @param zoneText the status zone associated with the pH value
+   */
+  private void addHistoryEntry(double PHLevel, String zoneText) {
+    String time = LocalTime.now()
+            .truncatedTo(ChronoUnit.SECONDS)
+            .toString();
+    String entry = time + " – " + String.format("%.1f pH", PHLevel);
+    historyEntries.addFirst(entry);
+  }
 
+  /**
+   * Displays the history dialog with recorded pH entries.
+   *
+   * <p>The dialog shows a list of recorded pH entries.</p>
+   */
+  private void showHistoryDialog() {
+    Dialog<Void> dialog = new Dialog<>();
+    dialog.setTitle("pH Readings History");
+    dialog.setHeaderText("pH Readings History");
+
+    dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+
+    ListView<String> listView = new ListView<>();
+    listView.getItems().setAll(historyEntries);
+
+    listView.setPrefSize(450, 300);
+    dialog.getDialogPane().setPrefSize(470,340);
+    dialog.setResizable(true);
+
+    dialog.getDialogPane().setContent(listView);
+    dialog.showAndWait();
+  }
 }

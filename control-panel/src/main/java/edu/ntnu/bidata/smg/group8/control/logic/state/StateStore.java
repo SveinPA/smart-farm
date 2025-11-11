@@ -2,6 +2,7 @@ package edu.ntnu.bidata.smg.group8.control.logic.state;
 
 import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -29,6 +30,9 @@ public class StateStore {
 
   private final Map<String, SensorReading> sensors = new ConcurrentHashMap<>();
   private final Map<String, ActuatorReading> actuators = new ConcurrentHashMap<>();
+  private final Map<String, Boolean> nodeOnline = new ConcurrentHashMap<>();
+  private final Map<String, Long> nodeLastSeen = new ConcurrentHashMap<>();
+  private final Map<String, String> commandResults = new ConcurrentHashMap<>();
 
   private final CopyOnWriteArrayList<Consumer<SensorReading>> sensorSinks =
           new CopyOnWriteArrayList<>();
@@ -142,5 +146,105 @@ public class StateStore {
   public void removeSensorSink(Consumer<SensorReading> sink) {
     sensorSinks.remove(sink);
     log.debug("Sensor sink removed. Total sinks: {}", sensorSinks.size());
+  }
+
+  /**
+  * Marks a node as seen right now and sets its online status to true.
+  *
+  * @param nodeId the unique identifier of the node
+  */
+  public void touchNodeSeen(String nodeId) {
+    long now = System.currentTimeMillis();
+    nodeOnline.put(nodeId, true);
+    nodeLastSeen.put(nodeId, now);
+  }
+
+  /**
+  * Sets the online status of a node and updates its last-seen timestamp.
+  *
+  * @param nodeId the unique identifier of the node
+  * @param online whether the node should be marked as online
+  */
+  public void setNodeOnline(String nodeId, boolean online) {
+    nodeOnline.put(nodeId, online);
+    nodeLastSeen.put(nodeId, System.currentTimeMillis());
+  }
+
+  /**
+  * Returns a list of all known node IDs.
+  *
+  * @return a list containing all node IDs currently tracked
+  */
+  public List<String> nodeIds() {
+    return new ArrayList<>(nodeOnline.keySet());
+  }
+
+  /**
+  * Checks whether a given node is currently marked as online.
+  *
+  * @param nodeId the unique identifier of the node
+  * @return true if the node is marked online, false otherwise
+  */
+  public boolean isOnline(String nodeId) {
+    return Boolean.TRUE.equals(nodeOnline.get(nodeId));
+  }
+
+  /**
+  * Returns the timestamp (in milliseconds) when the node was last seen.
+  *
+  * @param nodeId the unique identifier of the node
+  * @return the last-seen timestamp, or 0 if the node is unknown
+  */
+  public long lastSeen(String nodeId) {
+    return nodeLastSeen.getOrDefault(nodeId, 0L);
+  }
+
+  /**
+  * Replaces all currently known nodes with the node IDs listed in a CSV string.
+  *
+  * @param csv a comma-separated list of node IDs, may be null or blank
+  */
+  public void replaceAllNodesFromCsv(String csv) {
+    nodeOnline.clear();
+    nodeLastSeen.clear();
+    if (csv == null || csv.isBlank()) {
+      return;
+    }
+
+    final long now = System.currentTimeMillis();
+    final String[] parts = csv.split(",");
+
+    for (final String part : parts) {
+      final String nodeId = part.trim();
+      if (!nodeId.isEmpty()) {
+        nodeOnline.put(nodeId, true);
+        nodeLastSeen.put(nodeId, now);
+      }
+    }
+  }
+
+  /**
+  * Stores the result of a command execution for a specific node.
+
+  * @param commandId the unique ID of the command
+  * @param nodeId the node that processed the command
+  * @param accepted true if the command was successful
+  * @param reason optional error reason when the command is rejected
+  */
+  public void markCommandAccepted(String commandId, String nodeId,
+                                  boolean accepted, String reason) {
+    if (commandId == null) {
+      return;
+    }
+
+    final String result;
+    if (accepted) {
+      result = "OK";
+    } else {
+      final String r = reason != null ? reason : "";
+      result = "ERR:" + r;
+    }
+
+    commandResults.put(commandId, result);
   }
 }

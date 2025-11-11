@@ -192,7 +192,17 @@ final class ClientHandler implements Runnable {
       registry.registerPanel(out, who);
       registeredPanelOut = out;
       log.info("Panels connected: {}", registry.controlPanelCount());
+
+      // Send list of all registered sensor nodes
+      String nodeList = registry.getSensorNodeIdList();
+      String nodeListMsg = JsonBuilder.build(
+        "type", Protocol.TYPE_NODE_LIST,
+        "nodes", nodeList
+      );
+      FrameCodec.writeFrame(out, nodeListMsg.getBytes(StandardCharsets.UTF_8));
+      log.info("Sent NODE_LIST to {}: [{}]", who, nodeList);
     }
+
     if (Protocol.ROLE_SENSOR_NODE.equalsIgnoreCase(role)) {
       registry.registerSensorNode(nodeId, out, who);
       registeredSensorOut = out;
@@ -252,6 +262,11 @@ final class ClientHandler implements Runnable {
       return;
     }
 
+    if (Protocol.TYPE_COMMAND_ACK.equals(type)) {
+      handleCommandAck(msg, who);
+      return;
+    }
+
     // unknown type -> ERROR handling could be added here
     log.warn("Unknown message type from {}: {}", who, type);
   }
@@ -306,7 +321,17 @@ final class ClientHandler implements Runnable {
     OutputStream targetOut = registry.getSensorNodeStream(targetNode);
     if (targetOut == null) {
       log.warn("ACTUATOR_COMMAND from {} to unknown/disconnected node {}", who, targetNode);
-      // TODO: Send ERROR response to control panel
+      // Send ERROR response to control panel
+      try {
+        String error = JsonBuilder.build(
+          "type", Protocol.TYPE_ERROR,
+          "message", "Target node '" + targetNode + "' not found or disconnected"
+        );
+        FrameCodec.writeFrame(registeredPanelOut, error.getBytes(StandardCharsets.UTF_8));
+        log.info("Sent ERROR to {} for unknown target node {}", who, targetNode);
+      } catch (IOException e) {
+        log.warn("Failed to send ERROR response to {}: {}", who, e.getMessage());
+      }
       return;
     }
 
@@ -316,7 +341,17 @@ final class ClientHandler implements Runnable {
       log.info("Routed ACTUATOR_COMMAND from {} to sensor node {}", who, targetNode);
     } catch (IOException e) {
       log.error("Failed to forward ACTUATOR_COMMAND to {}: {}", targetNode, e.getMessage());
-      // TODO: Send ERROR response to control panel
+      // Send ERROR response to control panel
+      try {
+        String error = JsonBuilder.build(
+          "type", Protocol.TYPE_ERROR,
+          "message", "Failed to forward command to node '" + targetNode + "': " + e.getMessage()
+        );
+        FrameCodec.writeFrame(registeredPanelOut, error.getBytes(StandardCharsets.UTF_8));
+        log.info("Sent ERROR to {} for forward failure to {}", who, targetNode);
+      } catch (IOException ioError) {
+        log.warn("Failed to send ERROR response to {}: {}", who, ioError.getMessage());
+      }
     }
   }
 
@@ -337,6 +372,25 @@ final class ClientHandler implements Runnable {
     // Broadcast to all control panels (just like sensor data)
     registry.broadcastToPanels(msg.getBytes(StandardCharsets.UTF_8));
     log.debug("Broadcasted ACTUATOR_STATUS from {} to all panels", who);
+  }
+
+  /**
+   * Handle a command acknowledgment message.
+   * Broadcasts command ACK from sensor nodes to all control panels.
+   * 
+   * @param msg the received message
+   * @param who the client identifier
+   */
+  private void handleCommandAck(String msg, String who){
+    // Only sensor nodes should send command ACKs
+    if (!Protocol.ROLE_SENSOR_NODE.equalsIgnoreCase(role)) {
+      log.warn("Rejected COMMAND_ACK from non-sensor {} ({})", who, role);
+      return;
+    }
+
+    // Broadcast to all control panels
+    registry.broadcastToPanels(msg.getBytes(StandardCharsets.UTF_8));
+    log.debug("Broadcasted COMMAND_ACK from {} to all panels", who);
   }
 
   /**
