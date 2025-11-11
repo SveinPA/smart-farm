@@ -3,16 +3,20 @@ package edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers;
 import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
 import edu.ntnu.bidata.smg.group8.control.logic.command.CommandInputHandler;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlCard;
+import edu.ntnu.bidata.smg.group8.control.util.UiExecutors;
 import java.io.IOException;
+import java.util.Objects;
+import java.util.concurrent.TimeUnit;
+import javafx.application.Platform;
+import javafx.beans.value.ChangeListener;
+import javafx.event.EventHandler;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.RadioButton;
 import javafx.scene.control.Slider;
 import javafx.scene.control.Spinner;
 import javafx.scene.control.ToggleGroup;
-import java.util.Objects;
-import javafx.application.Platform;
-import javafx.beans.value.ChangeListener;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.VBox;
 import org.slf4j.Logger;
 
@@ -69,13 +73,16 @@ public class WindowsCardController {
 
   private ChangeListener<Object> modeListener;
   private ChangeListener<Number> sliderListener;
+  private EventHandler<MouseEvent> sliderMouseReleasedHandler;
+  private ChangeListener<Number> tempSpinnerListener;
+  private ChangeListener<Number> windSpinnerListener;
 
   private CommandInputHandler cmdHandler;
   private String nodeId;
   private final String actuatorKey = "window";
 
   private volatile boolean suppressSend = false;
-  private Integer lastSentPosition = null;
+  private volatile Integer lastSentPosition = null;
 
   /**
    * Creates new WindowsCardController with the specified UI components.
@@ -154,10 +161,11 @@ public class WindowsCardController {
     };
     openingSlider.valueProperty().addListener(sliderListener);
 
-    openingSlider.setOnMouseReleased(e -> {
+    sliderMouseReleasedHandler = e -> {
       int finalPosition = (int) openingSlider.getValue();
       sendWindowPositionIfNeeded(finalPosition);
-    });
+    };
+    openingSlider.setOnMouseReleased(sliderMouseReleasedHandler);
 
     closedButton.setOnAction(e -> setManualPosition(POSITION_CLOSED));
     slightButton.setOnAction(e -> setManualPosition(POSITION_SLIGHT));
@@ -165,10 +173,11 @@ public class WindowsCardController {
     mostlyButton.setOnAction(e -> setManualPosition(POSITION_MOSTLY));
     openButton.setOnAction(e -> setManualPosition(POSITION_OPEN));
 
+    tempSpinnerListener = (o, ov, nv) -> onThresholdChanged();
+    tempSpinner.valueProperty().addListener(tempSpinnerListener);
 
-    tempSpinner.valueProperty().addListener((o, ov, nv) -> onThresholdChanged());
-    windSpinner.valueProperty().addListener((o, ov, nv) -> onThresholdChanged());
-
+    windSpinnerListener = (o, ov, nv) -> onThresholdChanged();
+    windSpinner.valueProperty().addListener(windSpinnerListener);
 
     fx(() -> {
       applyMode(true); // Manual by default
@@ -192,13 +201,24 @@ public class WindowsCardController {
       openingSlider.valueProperty().removeListener(sliderListener);
       sliderListener = null;
     }
+    if (sliderMouseReleasedHandler != null) {
+      openingSlider.setOnMouseReleased(null);
+      sliderMouseReleasedHandler = null;
+    }
+    if (tempSpinnerListener != null) {
+      tempSpinner.valueProperty().removeListener(tempSpinnerListener);
+      tempSpinnerListener = null;
+    }
+    if (windSpinnerListener != null) {
+      windSpinner.valueProperty().removeListener(windSpinnerListener);
+      windSpinnerListener = null;
+    }
 
     closedButton.setOnAction(null);
     slightButton.setOnAction(null);
     halfButton.setOnAction(null);
     mostlyButton.setOnAction(null);
     openButton.setOnAction(null);
-    openingSlider.setOnMouseReleased(null);
 
     log.debug("WindowsCardController stopped successfully");
   }
@@ -227,7 +247,10 @@ public class WindowsCardController {
     Platform.runLater(() -> {
       suppressSend = true;
       updateWindowPosition(position);
-      Platform.runLater(() -> suppressSend = false);
+
+      UiExecutors.schedule(() -> {
+        suppressSend = false;
+      }, 100, TimeUnit.MILLISECONDS);
     });
   }
 
@@ -301,7 +324,8 @@ public class WindowsCardController {
     } else if (currentWind > windCautionThreshold) {
       if (currentTemp >= tempThreshold) {
         target = WIND_CAUTION_MAX_OPENING;
-        updateAutoStatus(true, String.format("Moderate wind (%.1f m/s) - limited opening", currentWind));
+        updateAutoStatus(true, String.format(
+                "Moderate wind (%.1f m/s) - limited opening", currentWind));
       } else {
         target = POSITION_CLOSED;
         updateAutoStatus(true, String.format("Moderate wind (%.1f m/s) - closing", currentWind));
@@ -319,6 +343,7 @@ public class WindowsCardController {
       sendWindowPositionIfNeeded(target);
     }
   }
+
   /**
   * Gets the current selected control mode.
   *
@@ -407,7 +432,7 @@ public class WindowsCardController {
   * @param position window opening percentage (0-100)
   */
   private void sendWindowCommandAsync(int position) {
-    new Thread(() -> {
+    UiExecutors.execute(() -> {
       try {
         log.debug("Attempting to send window command nodeId={} "
                 + "position={}%", nodeId, position);
@@ -419,7 +444,7 @@ public class WindowsCardController {
         log.error("Failed to send window command nodeId={} "
                 + "position={}%", nodeId, position, e);
       }
-    }, "window-cmd-send").start();
+    });
   }
 
   /**
