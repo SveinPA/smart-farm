@@ -4,16 +4,21 @@ import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
 import edu.ntnu.bidata.smg.group8.control.logic.command.CommandInputHandler;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlCard;
 import java.io.IOException;
+import javafx.collections.ObservableList;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Objects;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.Spinner;
+import javafx.scene.control.*;
+
+import java.util.List;
+
+import javafx.scene.layout.Region;
 import org.slf4j.Logger;
 
 
@@ -25,11 +30,18 @@ import org.slf4j.Logger;
 * It also provides real-time nitrogen level monitoring and warnings
 * for potentially harmful dose levels</p>
 *
-* @author Andrea Sandnes
+* @author Andrea Sandnes & Mona Amundsen
 * @version 28.10.2025
 */
 public class FertilizerCardController {
   private static final Logger log = AppLogger.get(FertilizerCardController.class);
+  private static final List<String> FERT_ZONE_CLASSES = List.of(
+      "fertilizer-zone-very-low",
+      "fertilizer-zone-low",
+      "fertilizer-zone-optimal",
+      "fertilizer-zone-high",
+      "fertilizer-zone-very-high"
+  );
 
   private static final int DOSE_QUICK_SMALL = 50;
   private static final int DOSE_QUICK_MEDIUM = 100;
@@ -49,7 +61,9 @@ public class FertilizerCardController {
   private final Button quickDose50Button;
   private final Button quickDose100Button;
   private final Button quickDose200Button;
-  private final Button scheduleButton;
+  private final Button historyButton;
+  private final ProgressBar nitrogenBar;
+  private final List<String> changeHistory = new ArrayList<>();
 
   private LocalDateTime lastDoseTime = null;
   private int lastDoseAmount = 0;
@@ -78,13 +92,14 @@ public class FertilizerCardController {
   * @param quickDose50Button button for quick 50ml dose
   * @param quickDose100Button button for quick 100ml dose
   * @param quickDose200Button button for quick 200ml dose
-  * @param scheduleButton button to access scheduling configuration
+  * @param historyButton button to access scheduling configuration
+  * @param nitrogenBar progress bar showing current nitrogen level
   */
   public FertilizerCardController(ControlCard card, Label statusLabel,
                                   Label lastDoseLabel, Spinner<Integer> doseSpinner,
                                   Button applyButton, Button quickDose50Button,
                                   Button quickDose100Button, Button quickDose200Button,
-                                  Button scheduleButton) {
+                                  Button historyButton, ProgressBar nitrogenBar) {
     this.card = card;
     this.statusLabel = statusLabel;
     this.lastDoseLabel = lastDoseLabel;
@@ -93,7 +108,8 @@ public class FertilizerCardController {
     this.quickDose50Button = quickDose50Button;
     this.quickDose100Button = quickDose100Button;
     this.quickDose200Button = quickDose200Button;
-    this.scheduleButton = scheduleButton;
+    this.historyButton = historyButton;
+    this.nitrogenBar= nitrogenBar;
 
     log.debug("FertilizerCardController wired");
   }
@@ -125,9 +141,9 @@ public class FertilizerCardController {
     quickDose200Handler = e -> applyDose(DOSE_QUICK_LARGE, "Quick Dose");
     quickDose200Button.setOnAction(quickDose200Handler);
 
-    scheduleButton.setOnAction(e -> {
-      log.info("Schedule button clicked (not implemented)");
-      // TODO: Open scheduling dialog
+    historyButton.setOnAction(e -> {
+      log.info("History button clicked - showing fertilizer history dialog");
+      showHistoryDialog();
     });
 
     log.debug("FertilizerCardController started successfully");
@@ -163,7 +179,7 @@ public class FertilizerCardController {
       quickDose200Handler = null;
     }
 
-    scheduleButton.setOnAction(null);
+    historyButton.setOnAction(null);
 
     log.debug("FertilizerCardController stopped successfully");
   }
@@ -206,6 +222,8 @@ public class FertilizerCardController {
       });
     });
     sendDoseCommandIfNeeded(amount);
+    addHistoryEntry(String.format("Applied %d ml (%s)", amount, source));
+    log.info("Fertilizer dose noted into history");
   }
 
   /**
@@ -300,20 +318,40 @@ public class FertilizerCardController {
   */
   public void updateNitrogenLevel(double nitrogenPpm) {
     log.info("Nitrogen level updated: {} ppm", String.format("%.1f", nitrogenPpm));
-
     currentNitrogenLevel = nitrogenPpm;
 
     fx(() -> {
+      double clamped = Math.max(0, Math.min(300, nitrogenPpm));
       card.setValueText(String.format("%.1f ppm", nitrogenPpm));
 
+      if (nitrogenBar != null) {
+        double progress = clamped / 300.0;
+        nitrogenBar.setProgress(progress);
+      }
+
+      String zoneClass;
+
       if (nitrogenPpm < 50) {
-        statusLabel.setText("Status: Very Low - Deficiency Risk");
+        statusLabel.setText("Status: \n Very Low - Deficiency Risk");
+        zoneClass = "fertilizer-very-low";
+        } else if (nitrogenPpm <= 100) {
+        statusLabel.setText("Status: \n Low - Supplement Recommended");
+        zoneClass = "fertilizer-low";
       } else if (nitrogenPpm <= 150) {
-        statusLabel.setText("Status: Optimal Range");
+        statusLabel.setText("Status: \n Optimal Range");
+        zoneClass = "fertilizer-optimal";
       } else if (nitrogenPpm <= 200) {
-        statusLabel.setText("Status: High - Good for Heavy Feeders");
+        statusLabel.setText("Status: \n High - Good for Heavy Feeders");
+        zoneClass = "fertilizer-high";
       } else {
-        statusLabel.setText("Status: Very High - Burn Risk");
+        statusLabel.setText("Status: \n Very High - Burn Risk");
+        zoneClass = "fertilizer-very-high";
+      }
+
+      if (nitrogenBar != null) {
+        ObservableList<String> classes = nitrogenBar.getStyleClass();
+        classes.removeAll(FERT_ZONE_CLASSES);
+        classes.add(zoneClass);
       }
     });
   }
@@ -368,5 +406,50 @@ public class FertilizerCardController {
     } else {
       Platform.runLater(r);
     }
+  }
+
+  /**
+   * Adds an entry to the fertilizer change history.
+   *
+   * <p>This method prepends a timestamped message to the change history list,
+   * which can later be displayed in a dialog.</p>
+   *
+   * @param message the message describing the change
+   */
+  private void addHistoryEntry(String message) {
+    String timestamp = LocalDateTime.now()
+            .truncatedTo(ChronoUnit.SECONDS)
+            .toString();
+    changeHistory.addFirst(timestamp + "- " + message);
+  }
+
+  /**
+   * Displays a dialog showing the fertilizer change history.
+   * This dialog lists all recorded changes made during the current session.
+   */
+  private void showHistoryDialog() {
+    Dialog<Void> dialog = new Dialog<>();
+    dialog.setTitle("Fertilizer History");
+    dialog.setHeaderText("Changes made during this session:");
+
+    dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+
+    ListView<String> listView = new ListView<>();
+    listView.getItems().setAll(changeHistory);
+
+    int visibleRows = Math.min(changeHistory.size(), 10);
+    double rowHeight = 24;
+
+    listView.setPrefHeight(visibleRows * rowHeight);
+    listView.setMinHeight(Region.USE_PREF_SIZE);
+    listView.setMaxHeight(Region.USE_PREF_SIZE);
+
+    listView.setPrefWidth(500);
+    listView.setPrefHeight(300);
+    dialog.getDialogPane().setPrefWidth(520);
+    dialog.getDialogPane().setPrefHeight(350);
+
+    dialog.getDialogPane().setContent(listView);
+    dialog.showAndWait();
   }
 }

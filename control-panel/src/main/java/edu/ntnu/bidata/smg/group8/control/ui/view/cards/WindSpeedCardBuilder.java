@@ -1,6 +1,5 @@
 package edu.ntnu.bidata.smg.group8.control.ui.view.cards;
 
-
 import edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers.WindSpeedCardController;
 import edu.ntnu.bidata.smg.group8.control.ui.factory.ButtonFactory;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlCard;
@@ -9,7 +8,6 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.Separator;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 
 /**
@@ -54,48 +52,64 @@ public class WindSpeedCardBuilder implements CardBuilder {
   */
   @Override
   public ControlCard build() {
-    Label currentLabel = new Label("Current: -- m/s");
-    currentLabel.getStyleClass().addAll("card-subtle", "current-wind-speed");
 
+    // Status label (breeze, moderate etc.)
     Label statusLabel = new Label("Status: --");
     statusLabel.getStyleClass().addAll("card-subtle", "wind-speed-status");
+    statusLabel.setMaxWidth(Double.MAX_VALUE);
+    statusLabel.setAlignment(Pos.CENTER);
 
+    // Label for showing gust
     Label gustLabel = new Label("Gust: -- m/s");
     gustLabel.getStyleClass().addAll("card-subtle", "wind-speed-gust");
+    gustLabel.setMaxWidth(Double.MAX_VALUE);
+    gustLabel.setAlignment(Pos.CENTER);
 
+    // ProgressBar for visualizing the wind-intensity now
     ProgressBar windBar = new ProgressBar(0);
     windBar.setMaxWidth(Double.MAX_VALUE);
     windBar.getStyleClass().add("wind-speed-bar");
 
+    // Header for min, avg and max labels
     Label statsTitle = new Label("24h Statistics:");
     statsTitle.getStyleClass().add("wind-speed-stats-title");
 
+    // The lowest wind-speed the last 24 hours.
     Label minLabel = new Label("Min: -- m/s");
-    Label maxLabel = new Label("Max: -- m/s");
-    Label avgLabel = new Label("Avg: -- m/s");
     minLabel.getStyleClass().add("wind-speed-stat");
-    maxLabel.getStyleClass().add("wind-speed-stat");
+    minLabel.setAlignment(Pos.CENTER);
+
+    // The average wind-speed the last 24 hours.
+    Label avgLabel = new Label("Avg: -- m/s");
     avgLabel.getStyleClass().add("wind-speed-stat");
+    avgLabel.setAlignment(Pos.CENTER);
 
-    HBox statsRow1 = new HBox(15, minLabel, maxLabel);
-    statsRow1.setAlignment(Pos.CENTER);
+    // The highest wind-speed the last 24 hours.
+    Label maxLabel = new Label("Max: -- m/s");
+    maxLabel.getStyleClass().add("wind-speed-stat");
+    maxLabel.setAlignment(Pos.CENTER);
 
-    VBox statsBox = new VBox(4, statsTitle, statsRow1, avgLabel);
+    VBox currentStatsBox = new VBox(6, statusLabel, gustLabel);
+    currentStatsBox.setFillWidth(true);
+
+    VBox statsBox = new VBox(6, statsTitle, new Separator() , minLabel, avgLabel, maxLabel);
     statsBox.setAlignment(Pos.CENTER);
 
-    Button historyButton = ButtonFactory.createButton("History...");
+    Button historyButton = ButtonFactory.createHistoryButton("History");
     card.getFooter().getChildren().add(historyButton);
 
-    card.addContent(currentLabel, statusLabel, gustLabel,
+    // Add content to the card
+    card.addContent(currentStatsBox,
             new Separator(), windBar, statsBox);
 
-    var controller = new WindSpeedCardController(card, currentLabel, statusLabel,
-            gustLabel, windBar, minLabel, maxLabel, avgLabel);
+    // Connecting UI-components to the controller which updates them with live-data
+    var controller = new WindSpeedCardController(card, statusLabel,
+            gustLabel, windBar, minLabel, maxLabel, avgLabel,historyButton);
 
+    // Saving controller in the card for later access
     card.setUserData(controller);
 
     return card;
-
   }
 
   /**

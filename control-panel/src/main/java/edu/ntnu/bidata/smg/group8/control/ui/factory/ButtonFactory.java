@@ -23,9 +23,8 @@ import org.slf4j.Logger;
 */
 public class ButtonFactory {
   private static final Logger log = AppLogger.get(ButtonFactory.class);
-
   private static final String DANGER_STYLE =
-          "-fx-background-color: #f44336; -fx-text-fill: white;";
+          "-fx-background-color: #da6655; -fx-text-fill: white;";
   private static final String PRIMARY_STYLE =
           "-fx-background-color: #2196f3; -fx-text-fill: white;";
   private static final String SUCCESS_STYLE =
@@ -277,6 +276,14 @@ public class ButtonFactory {
     Button button = new Button(text);
     button.getStyleClass().add("schedule-button");
     return button;
+  }
+
+  public static Button createHistoryButton(String text) {
+    log.debug("Creating history button: {}", text);
+
+    Button historyButton = new Button(text);
+    historyButton.setId("history-button");
+    return historyButton;
   }
 
 

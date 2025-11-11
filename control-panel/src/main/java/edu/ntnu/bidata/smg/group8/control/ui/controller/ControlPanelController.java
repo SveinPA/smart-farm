@@ -68,7 +68,6 @@ public class ControlPanelController {
   private Consumer<SensorReading> lightSink;
   private Consumer<SensorReading> phSink;
 
-
   /**
   * Creates a new ControlPanelController for the given view.
    *
@@ -199,16 +198,16 @@ public class ControlPanelController {
     stateStore.addActuatorSink(heaterSink);
 
     valveSink = ar -> {
-      if (!nodeId.equals(ar.nodeId())) {
-        return;
-      }
-      if (!"valve".equalsIgnoreCase(ar.type())) {
-        return;
-      }
+      if (!nodeId.equals(ar.nodeId())) return;
+      if (!"valve".equalsIgnoreCase(ar.type())) return;
       try {
-        int state = Integer.parseInt(ar.state());
+        int v = Integer.parseInt(ar.state().trim());
         if (valveController != null) {
-          valveController.updateValveState(state == 1);
+          if (v >= 0 && v <= 100) {
+            valveController.updateValvePositionExternal(v);
+          } else {
+            valveController.updateValveState(v == 1);
+          }
         }
       } catch (NumberFormatException e) {
         log.warn("Invalid valve state '{}' for nodeId={}", ar.state(), ar.nodeId());
@@ -241,13 +240,20 @@ public class ControlPanelController {
       if (!"temperature".equalsIgnoreCase(sr.type())) {
         return;
       }
-      if (temperatureController != null) {
-        try {
-          double temp = Double.parseDouble(sr.value());
+      try {
+        double temp = Double.parseDouble(sr.value());
+        if (temperatureController != null) {
           temperatureController.updateTemperature(temp);
-        } catch (NumberFormatException e) {
-          log.warn("Invalid temperature value '{}' for nodeId={}", sr.value(), sr.nodeId());
         }
+        if (windowsController != null) {
+          windowsController.updateTemperature(temp);
+        }
+
+        if (fanController != null) {
+          fanController.updateTemperature(temp);
+        }
+      } catch (NumberFormatException e) {
+        log.warn("Invalid temperature value '{}' for nodeId={}", sr.value(), sr.nodeId());
       }
     };
     stateStore.addSensorSink(temperatureSink);
@@ -263,6 +269,11 @@ public class ControlPanelController {
         try {
           double humidity = Double.parseDouble(sr.value());
           humidityController.updateHumidity(humidity);
+
+          if (fanController != null) {
+            fanController.updateHumidity(humidity);
+          }
+
         } catch (NumberFormatException e) {
           log.warn("Invalid humidity value '{}' for nodeId={}", sr.value(), sr.nodeId());
         }
@@ -277,13 +288,17 @@ public class ControlPanelController {
       if (!"wind".equalsIgnoreCase(sr.type())) {
         return;
       }
-      if (windSpeedController != null) {
-        try {
-          double windSpeed = Double.parseDouble(sr.value());
+      try {
+        double windSpeed = Double.parseDouble(sr.value());
+        if (windSpeedController != null) {
           windSpeedController.updateWindSpeed(windSpeed);
-        } catch (NumberFormatException e) {
-          log.warn("Invalid wind speed value '{}' for nodeId={}", sr.value(), sr.nodeId());
         }
+        if (windowsController != null) {
+          windowsController.updateWindSpeed(windSpeed);
+        }
+
+      } catch (NumberFormatException e) {
+        log.warn("Invalid wind speed value '{}' for nodeId={}", sr.value(), sr.nodeId());
       }
     };
     stateStore.addSensorSink(windSpeedSink);
@@ -309,33 +324,6 @@ public class ControlPanelController {
     };
     stateStore.addSensorSink(lightSink);
 
-    // Artificial light
-    artificialLightSink = ar -> {
-      if (!nodeId.equals(ar.nodeId())) {
-        return;
-      }
-      if (!"artificial_light".equalsIgnoreCase(ar.type())
-              && !"grow_light".equalsIgnoreCase(ar.type())) {
-        return;
-      }
-      if (lightController != null) {
-        try {
-          int intensity = Integer.parseInt(ar.state());
-          if (intensity > 0) {
-            lightController.setLightState(true);
-            lightController.setIntensity(intensity);
-            log.info("Artificial lights turned ON at {}% (nodeId={})", intensity, nodeId);
-          } else {
-            lightController.setLightState(false);
-            log.info("Artificial lights turned OFF (nodeId={})", nodeId);
-          }
-        } catch (NumberFormatException e) {
-          log.warn("Invalid artificial light state '{}' for nodeId={}", ar.state(), ar.nodeId());
-        }
-      }
-    };
-    stateStore.addActuatorSink(artificialLightSink);
-
     // pH sensor sink
     phSink = sr -> {
       if (!nodeId.equals(sr.nodeId())) {
@@ -358,10 +346,14 @@ public class ControlPanelController {
     log.info("All sensor sinks registered successfully");
 
     fertilizerSink = sr -> {
+      log.info("DEBUG: Received sensor reading - nodeId={}, type={}, value={}",
+              sr.nodeId(), sr.type(), sr.value()); // ADD THIS LINE
+
       if (!nodeId.equals(sr.nodeId())) {
         return;
       }
       if (!"fertilizer".equalsIgnoreCase(sr.type())) {
+        log.warn("DEBUG: Type mismatch! Expected 'fertilizer', got '{}'", sr.type());
         return;
       }
       if (fertilizerController != null) {
@@ -624,8 +616,6 @@ public class ControlPanelController {
   public FanCardController getFanController() {
     return fanController;
   }
-
-
 
 }
 

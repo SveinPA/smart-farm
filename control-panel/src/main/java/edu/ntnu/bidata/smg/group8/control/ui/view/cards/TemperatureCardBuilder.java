@@ -19,7 +19,7 @@ import org.slf4j.Logger;
 * <p>This builder constructs and configures a ControlCard component
 * dedicated to displaying real-time temperature readings and 24h statistics</p>
 
-* @author Andrea Sandnes
+* @author Andrea Sandnes & Mona Amundsen
 * @version 27.10.2025
 */
 public class TemperatureCardBuilder implements CardBuilder {
@@ -46,27 +46,32 @@ public class TemperatureCardBuilder implements CardBuilder {
   public ControlCard build() {
     log.info("Building Temperature control card");
 
+    // Visual representation of temperature
     ProgressBar temperatureBar = new ProgressBar(0);
     temperatureBar.setMaxWidth(Double.MAX_VALUE);
     temperatureBar.setPrefHeight(20);
     temperatureBar.getStyleClass().addAll("temp-bar", "temp-cool");
     Tooltip.install(temperatureBar, new Tooltip("Current temperature status"));
 
+    // Minimum temperature the last 24h
     Label minLabel = new Label("Min: --°C");
     minLabel.getStyleClass().addAll("card-subtle", "temp-stat");
     minLabel.setMaxWidth(Double.MAX_VALUE);
     minLabel.setAlignment(Pos.CENTER);
 
+    // Maximum temperature the last 24h
     Label maxLabel = new Label("Max: --°C");
     maxLabel.getStyleClass().addAll("card-subtle", "temp-stat");
     maxLabel.setMaxWidth(Double.MAX_VALUE);
     maxLabel.setAlignment(Pos.CENTER);
 
+    // Average temperature the last 24h
     Label avgLabel = new Label("Avg: --°C");
     avgLabel.getStyleClass().addAll("card-subtle", "temp-stat");
     avgLabel.setMaxWidth(Double.MAX_VALUE);
     avgLabel.setAlignment(Pos.CENTER);
 
+    // Label for temperature the last 24h
     Label statsTitle = new Label("24h Statistics:");
     statsTitle.getStyleClass().add("temp-stats-title");
     statsTitle.setMaxWidth(Double.MAX_VALUE);
@@ -76,8 +81,7 @@ public class TemperatureCardBuilder implements CardBuilder {
     statsBox.setAlignment(Pos.CENTER);
     statsBox.getStyleClass().add("temp-stats-box");
 
-    Button historyButton = ButtonFactory.createButton("History...");
-    historyButton.setTooltip(new Tooltip("View temperature history (24h)"));
+    Button historyButton = ButtonFactory.createHistoryButton("History");
     card.getFooter().getChildren().add(historyButton);
 
     card.addContent(
@@ -109,5 +113,4 @@ public class TemperatureCardBuilder implements CardBuilder {
   public ControlCard getCard() {
     return card;
   }
-
 }
