@@ -321,7 +321,17 @@ final class ClientHandler implements Runnable {
     OutputStream targetOut = registry.getSensorNodeStream(targetNode);
     if (targetOut == null) {
       log.warn("ACTUATOR_COMMAND from {} to unknown/disconnected node {}", who, targetNode);
-      // TODO: Send ERROR response to control panel
+      // Send ERROR response to control panel
+      try {
+        String error = JsonBuilder.build(
+          "type", Protocol.TYPE_ERROR,
+          "message", "Target node '" + targetNode + "' not found or disconnected"
+        );
+        FrameCodec.writeFrame(registeredPanelOut, error.getBytes(StandardCharsets.UTF_8));
+        log.info("Sent ERROR to {} for unknown target node {}", who, targetNode);
+      } catch (IOException e) {
+        log.warn("Failed to send ERROR response to {}: {}", who, e.getMessage());
+      }
       return;
     }
 
@@ -331,7 +341,17 @@ final class ClientHandler implements Runnable {
       log.info("Routed ACTUATOR_COMMAND from {} to sensor node {}", who, targetNode);
     } catch (IOException e) {
       log.error("Failed to forward ACTUATOR_COMMAND to {}: {}", targetNode, e.getMessage());
-      // TODO: Send ERROR response to control panel
+      // Send ERROR response to control panel
+      try {
+        String error = JsonBuilder.build(
+          "type", Protocol.TYPE_ERROR,
+          "message", "Failed to forward command to node '" + targetNode + "': " + e.getMessage()
+        );
+        FrameCodec.writeFrame(registeredPanelOut, error.getBytes(StandardCharsets.UTF_8));
+        log.info("Sent ERROR to {} for forward failure to {}", who, targetNode);
+      } catch (IOException ioError) {
+        log.warn("Failed to send ERROR response to {}: {}", who, ioError.getMessage());
+      }
     }
   }
 
