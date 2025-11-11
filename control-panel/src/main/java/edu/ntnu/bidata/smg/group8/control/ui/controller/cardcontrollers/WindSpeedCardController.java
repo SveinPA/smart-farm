@@ -26,7 +26,7 @@ import org.slf4j.Logger;
 * of wind speed measurements, gust information and statistical data. It applies
 * visual styling to provide intuitive feedback about current wind conditions
 
-* @author Andrea Sandnes
+* @author Andrea Sandnes & Mona Amundsen
 * @version 28.10.2025
 */
 public class WindSpeedCardController {
