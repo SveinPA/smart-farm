@@ -7,7 +7,10 @@ import edu.ntnu.bidata.smg.group8.control.infra.network.PanelAgent;
 import edu.ntnu.bidata.smg.group8.control.logic.command.CommandInputHandler;
 import edu.ntnu.bidata.smg.group8.control.logic.state.StateStore;
 import edu.ntnu.bidata.smg.group8.control.ui.controller.ControlPanelController;
+import edu.ntnu.bidata.smg.group8.control.ui.controller.DashboardController;
+import edu.ntnu.bidata.smg.group8.control.ui.controller.SceneManager;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlPanelView;
+import edu.ntnu.bidata.smg.group8.control.ui.view.DashboardView;
 import edu.ntnu.bidata.smg.group8.control.util.UiExecutors;
 import java.io.IOException;
 import java.util.Objects;
@@ -27,6 +30,8 @@ public final class ControlPanelMain extends Application {
 
   private PanelAgent agent;
   private ControlPanelController controller;
+  private DashboardController dashboardController;
+  private SceneManager sceneManager;
 
   private DisplayManager consoleDisplay;
 
@@ -64,9 +69,27 @@ public final class ControlPanelMain extends Application {
 
       CommandInputHandler cmdHandler = new CommandInputHandler(agent);
 
-      ControlPanelView view = new ControlPanelView();
-      controller = new ControlPanelController(view, cmdHandler, stateStore, NODE_ID());
+      ControlPanelView controlPanelView = new ControlPanelView();
+      DashboardView dashboardView = new DashboardView();
+
+      controller = new ControlPanelController(controlPanelView, cmdHandler, stateStore, NODE_ID());
+      sceneManager = new SceneManager();
+      sceneManager.registerView("dashboard", dashboardView.getRootNode());
+      sceneManager.registerView("control-panel", controlPanelView.getRootNode());
+      log.info("Views registered with SceneManager");
+
+      dashboardController = new DashboardController(dashboardView, sceneManager);
+
       controller.start();
+      dashboardController.start();
+
+      controlPanelView.getReturnButton().setOnAction(e -> {
+        log.info("Return button clicked");
+        sceneManager.showView("dashboard");
+      });
+
+      sceneManager.showView("dashboard");
+      log.info("DashboardController and ControlPanelController initialized and started");
 
       boolean enableConsoleDisplay = Boolean.parseBoolean(
               System.getProperty("console.display", "false"));
@@ -89,7 +112,7 @@ public final class ControlPanelMain extends Application {
       }
 
       log.debug("Creating Scene with dimensions 1000x700");
-      Scene scene = new Scene(view.getRootNode(), 1000, 700);
+      Scene scene = new Scene(sceneManager.getContainer(), 1000, 700);
 
       String cssPath = "/css/styleSheet.css";
       log.debug("Loading CSS from: {}", cssPath);
@@ -98,8 +121,8 @@ public final class ControlPanelMain extends Application {
                       "stylesheet not found: " + cssPath).toExternalForm());
       log.debug("CSS stylesheet loaded successfully");
 
-      stage.setTitle("Control Panel - Node " + NODE_ID()
-              + " @ " + BROKER_HOST() + ":" + BROKER_PORT());
+      stage.setTitle("Smart Farm - Dashboard (Node " + NODE_ID()
+              + " @ " + BROKER_HOST() + ":" + BROKER_PORT() + ")");
       stage.setScene(scene);
 
       stage.setOnCloseRequest(e -> shutdown());
@@ -122,10 +145,22 @@ public final class ControlPanelMain extends Application {
   }
 
   /**
-  * Gracefully shuts down the control panel and all its components.
+  * Gracefully shuts down the control panel, and all
+   * its components.
   */
   private void shutdown() {
     log.info("Shutting down Control Panel");
+
+    if (dashboardController != null) {
+      try {
+        dashboardController.stop();
+        log.debug("DashboardController stopped");
+      } catch (Exception e) {
+        log.error("Error stopping dashboard controller", e);
+      } finally {
+        dashboardController = null;
+      }
+    }
 
     if (controller != null) {
       try {
@@ -356,8 +391,6 @@ public final class ControlPanelMain extends Application {
 
     return testThread;
   }
-
-
 
   /**
   * Main entry point for the application.
