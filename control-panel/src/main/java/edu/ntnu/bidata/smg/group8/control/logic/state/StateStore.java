@@ -3,6 +3,8 @@ package edu.ntnu.bidata.smg.group8.control.logic.state;
 import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -28,11 +30,35 @@ import org.slf4j.Logger;
 public class StateStore {
   private static final Logger log = AppLogger.get(StateStore.class);
 
+  private static final int MAX_COMMAND_RESULTS = 1000;
+
   private final Map<String, SensorReading> sensors = new ConcurrentHashMap<>();
   private final Map<String, ActuatorReading> actuators = new ConcurrentHashMap<>();
   private final Map<String, Boolean> nodeOnline = new ConcurrentHashMap<>();
   private final Map<String, Long> nodeLastSeen = new ConcurrentHashMap<>();
-  private final Map<String, String> commandResults = new ConcurrentHashMap<>();
+  private final Map<String, String> commandResults = Collections.synchronizedMap(
+          new LinkedHashMap<String, String>(MAX_COMMAND_RESULTS + 1, 0.75f, true) {
+
+            /**
+            * Evicts the least recently used entry when the cache
+            * exceeds MAX_COMMAND_RESULTS.
+            *
+            * @param eldest the current eldest (LRU entry)
+            * @return true to remove the eldest when size > MAX_COMMAND_RESULTS,
+            * false otherwise
+            */
+            @Override
+            protected  boolean removeEldestEntry(Map.Entry<String, String> eldest) {
+              boolean evict = size() > MAX_COMMAND_RESULTS;
+
+              if (evict) {
+                log.debug("Evicting command results (eldest): {} -> {}",
+                        eldest.getKey(), eldest.getValue());
+              }
+              return evict;
+            }
+          });
+
 
   private final CopyOnWriteArrayList<Consumer<SensorReading>> sensorSinks =
           new CopyOnWriteArrayList<>();

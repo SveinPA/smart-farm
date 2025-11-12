@@ -3,21 +3,27 @@ package edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers;
 import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
 import edu.ntnu.bidata.smg.group8.control.logic.command.CommandInputHandler;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlCard;
+import edu.ntnu.bidata.smg.group8.control.util.UiExecutors;
 import java.io.IOException;
-import javafx.collections.ObservableList;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
+import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
-import javafx.scene.control.*;
-
-import java.util.List;
-
+import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.Dialog;
+import javafx.scene.control.Label;
+import javafx.scene.control.ListView;
+import javafx.scene.control.ProgressBar;
+import javafx.scene.control.Spinner;
 import javafx.scene.layout.Region;
 import org.slf4j.Logger;
 
@@ -25,7 +31,7 @@ import org.slf4j.Logger;
 /**
 * Controller for the Fertilizer control card.
 *
-* <p> This class handles fertilizer dosing operations, user interactions
+* <p>This class handles fertilizer dosing operations, user interactions
 * and synchronization of status updates with the backend system.
 * It also provides real-time nitrogen level monitoring and warnings
 * for potentially harmful dose levels</p>
@@ -109,7 +115,7 @@ public class FertilizerCardController {
     this.quickDose100Button = quickDose100Button;
     this.quickDose200Button = quickDose200Button;
     this.historyButton = historyButton;
-    this.nitrogenBar= nitrogenBar;
+    this.nitrogenBar = nitrogenBar;
 
     log.debug("FertilizerCardController wired");
   }
@@ -193,34 +199,24 @@ public class FertilizerCardController {
     log.info("Applying fertilizer dose: {} ml (Source: {})", amount, source);
 
     fx(() -> {
-      // Update status to "Dosing..."
       statusLabel.setText("Status: Dosing...");
       card.setValueText("DOSING");
-
-      // Simulate dosing operation
-      Platform.runLater(() -> {
-        try {
-          // Simulate delay for dosing operation
-          Thread.sleep(2000);
-
-          fx(() -> {
-            lastDoseTime = LocalDateTime.now();
-            lastDoseAmount = amount;
-
-            String timeStr = lastDoseTime.format(TIME_FORMAT);
-            lastDoseLabel.setText(String.format("Last dose: %d ml at %s", amount, timeStr));
-            statusLabel.setText("Status: Ready");
-            card.setValueText("READY");
-
-            log.info("Fertilizer dose applied successfully: {} ml at {}", amount, timeStr);
-            checkDoseWarnings(amount);
-          });
-        } catch (InterruptedException e) {
-          log.error("Dosing operation interrupted", e);
-          Thread.currentThread().interrupt();
-        }
-      });
     });
+
+    UiExecutors.schedule(() -> {
+      fx(() -> {
+        lastDoseTime = LocalDateTime.now();
+        lastDoseAmount = amount;
+
+        String timeStr = lastDoseTime.format(TIME_FORMAT);
+        lastDoseLabel.setText(String.format("Last dose: %d ml at %s", amount, timeStr));
+        statusLabel.setText("Status: Ready");
+        card.setValueText("READY");
+
+        log.info("Fertilizer dose applied successfully: {} ml at {}", amount, timeStr);
+        checkDoseWarnings(amount);
+      });
+    }, 2, TimeUnit.SECONDS);
     sendDoseCommandIfNeeded(amount);
     addHistoryEntry(String.format("Applied %d ml (%s)", amount, source));
     log.info("Fertilizer dose noted into history");
@@ -244,7 +240,7 @@ public class FertilizerCardController {
   * @param amount the dose amount in milliliters to send
   */
   private void sendDoseCommandAsync(int amount) {
-    new Thread(() -> {
+    UiExecutors.execute(() -> {
       try {
         log.debug("Attempting to send fertilizer dose command nodeId={} amount={}ml",
                 nodeId, amount);
@@ -260,7 +256,7 @@ public class FertilizerCardController {
           card.setValueText("ERROR");
         });
       }
-    }, "fertilizer-cmd-send").start();
+    });
   }
 
   /**
@@ -334,7 +330,7 @@ public class FertilizerCardController {
       if (nitrogenPpm < 50) {
         statusLabel.setText("Status: \n Very Low - Deficiency Risk");
         zoneClass = "fertilizer-very-low";
-        } else if (nitrogenPpm <= 100) {
+      } else if (nitrogenPpm <= 100) {
         statusLabel.setText("Status: \n Low - Supplement Recommended");
         zoneClass = "fertilizer-low";
       } else if (nitrogenPpm <= 150) {
@@ -369,12 +365,12 @@ public class FertilizerCardController {
   * Injects required dependencies for this fertilizer card controller.
   *
   * @param cmdHandler the command input handler
-  * @param nodeID the node ID this controller manages
+  * @param nodeId the node ID this controller manages
   */
-  public void setDependencies(CommandInputHandler cmdHandler, String nodeID) {
+  public void setDependencies(CommandInputHandler cmdHandler, String nodeId) {
     this.cmdHandler = Objects.requireNonNull(cmdHandler, "cmdHandler");
-    this.nodeId = Objects.requireNonNull(nodeID, "nodeId");
-    log.debug("FertilizerCardController dependencies injected (nodeId={})", nodeID);
+    this.nodeId = Objects.requireNonNull(nodeId, "nodeId");
+    log.debug("FertilizerCardController dependencies injected (nodeId={})", nodeId);
   }
 
   /**

@@ -2,15 +2,23 @@ package edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers;
 
 import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlCard;
-import javafx.application.Platform;
-import javafx.scene.control.*;
-import javafx.scene.layout.Region;
-import org.slf4j.Logger;
-
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import javafx.application.Platform;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
+import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.Dialog;
+import javafx.scene.control.Label;
+import javafx.scene.control.ListView;
+import javafx.scene.control.ProgressBar;
+import javafx.scene.layout.Region;
+import org.slf4j.Logger;
+
+
 
 /**
 * Controller for the Wind Speed control card.
@@ -18,7 +26,7 @@ import java.util.List;
 * of wind speed measurements, gust information and statistical data. It applies
 * visual styling to provide intuitive feedback about current wind conditions
 
-* @author Andrea Sandnes
+* @author Andrea Sandnes & Mona Amundsen
 * @version 28.10.2025
 */
 public class WindSpeedCardController {
@@ -36,6 +44,8 @@ public class WindSpeedCardController {
   private ProgressBar windBar;
   private final List<String> changeHistory = new ArrayList<>();
   private final Button historyButton;
+
+  private EventHandler<ActionEvent> historyButtonHandler;
 
   /**
    * Creates a new WindSpeedCardController with the specified UI components.
@@ -71,12 +81,11 @@ public class WindSpeedCardController {
   */
   public void start() {
     log.info("Starting WindSpeedCardController");
-    // TODO: Add initialization logic here
-    historyButton.setOnAction(e -> {
+    historyButtonHandler = e -> {
       log.info("History button clicked - showing wind change history");
       showHistoryDialog();
-    });
-    log.debug("WindSpeedCardController started successfully");
+    };
+    historyButton.setOnAction(historyButtonHandler);
   }
 
   /**
@@ -84,7 +93,10 @@ public class WindSpeedCardController {
   */
   public void stop() {
     log.info("Stopping WindSpeedCardController");
-    // TODO: Add cleanup logic here
+    if (historyButtonHandler != null) {
+      historyButton.setOnAction(null);
+      historyButtonHandler = null;
+    }
     log.debug("WindSpeedCardController stopped successfully");
   }
 
@@ -219,7 +231,7 @@ public class WindSpeedCardController {
     String timestamp = LocalDateTime.now()
             .truncatedTo(ChronoUnit.SECONDS)
             .toString();
-    changeHistory.addFirst(timestamp + "- " + message);
+    changeHistory.addFirst(timestamp + " - " + message);
   }
 
   /**

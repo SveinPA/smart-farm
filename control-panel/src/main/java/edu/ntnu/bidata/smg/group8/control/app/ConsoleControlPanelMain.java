@@ -28,7 +28,6 @@ public class ConsoleControlPanelMain {
   private Thread inputThread;
   private Thread mockThread;
 
-
   /**
   * Launches the console control panel.
   *
@@ -194,7 +193,8 @@ public class ConsoleControlPanelMain {
 
     if (mockThread != null) {
       try {
-        mockThread.join(200);
+        mockThread.interrupt();
+        mockThread.join(1000);
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
       } finally {

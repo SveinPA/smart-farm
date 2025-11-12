@@ -1,5 +1,6 @@
 package edu.ntnu.bidata.smg.group8.control.infra.network;
 
+import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.EOFException;
@@ -7,6 +8,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import org.slf4j.Logger;
 
 /**
 * Utility class for encoding and decoding length-prefixed frames for
@@ -26,6 +28,8 @@ import java.nio.charset.StandardCharsets;
 * @version 30.10.25
 */
 public class ClientFrameCodec {
+  private static final Logger log = AppLogger.get(ClientFrameCodec.class);
+
   public static final int MAX_FRAME_BYTES = 1_048_576; // 1MB
 
   /**
@@ -37,7 +41,7 @@ public class ClientFrameCodec {
   * Reads a length-prefixed frame from the input stream.
   * This method reads a 4-byte integer indicating the payload length,
   * then reads exactly that many bytes for the payload. If the length is
-  * invalid (zero, negative or exceeds MAX_FRAME_BYTES, an exception is
+  * invalid (zero, negative or exceeds MAX_FRAME_BYTES), an exception is
   * thrown.
   *
   * @param in the input stream to read from
@@ -47,12 +51,19 @@ public class ClientFrameCodec {
   * length is invalid.
   */
   public static byte[] readFrame(InputStream in) throws IOException {
-    DataInputStream din = (in instanceof  DataInputStream)
+    if (in == null) {
+      throw new IllegalArgumentException("InputStream cannot be null");
+    }
+    DataInputStream din = (in instanceof DataInputStream)
             ? (DataInputStream) in :
             new DataInputStream(in);
     int len = din.readInt();
-    if (len <= 0 || len > MAX_FRAME_BYTES) {
-      throw  new EOFException("Invalid frame length: " + len);
+    log.trace("Reading frame of length: {}", len);
+    if (len <= 0) {
+      throw  new EOFException("Invalid frame length (must be positive): " + len);
+    }
+    if (len > MAX_FRAME_BYTES) {
+      throw new EOFException("Frame length " + len + " exceeds maximum " + MAX_FRAME_BYTES);
     }
     byte[] payload = new byte[len];
     din.readFully(payload);

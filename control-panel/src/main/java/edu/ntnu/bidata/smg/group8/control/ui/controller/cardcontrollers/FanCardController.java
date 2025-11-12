@@ -5,6 +5,9 @@ import edu.ntnu.bidata.smg.group8.control.logic.command.CommandInputHandler;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlCard;
 import java.io.IOException;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
+
+import edu.ntnu.bidata.smg.group8.control.util.UiExecutors;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.event.ActionEvent;
@@ -74,7 +77,7 @@ public class FanCardController {
   private final String actuatorKey = "fan";
 
   private volatile boolean suppressSend = false;
-  private Integer lastSentSpeed = null;
+  private volatile Integer lastSentSpeed = null;
 
   /**
    * Creates a new FanCardController with the specified UI components.
@@ -308,7 +311,7 @@ public class FanCardController {
   * @param speed the fan speed percentage (0–100) to send to the backend node
   */
   private void sendFanSpeedAsync(int speed) {
-    new Thread(() -> {
+    UiExecutors.execute(() -> {
       try {
         log.debug("Attempting to send fan speed command nodeId={} speed={}", nodeId, speed);
         cmdHandler.setValue(nodeId, actuatorKey, speed);
@@ -317,7 +320,7 @@ public class FanCardController {
       } catch (IOException e) {
         log.error("Failed to send fan speed command nodeId={} speed={}", nodeId, speed, e);
       }
-    }, "fan-cmd-send").start();
+    });
   }
 
   /**
@@ -354,15 +357,9 @@ public class FanCardController {
       suppressSend = true;
       setFanSpeed(speed);
 
-      new Thread(() -> {
-        try {
-          Thread.sleep(100);
-        } catch (InterruptedException e) {
-          log.warn("FanCardController sleep was interrupted before completion", e);
-          Thread.currentThread().interrupt();
-        }
+      UiExecutors.schedule(() -> {
         suppressSend = false;
-      }).start();
+      }, 100, TimeUnit.MILLISECONDS);
     });
   }
 

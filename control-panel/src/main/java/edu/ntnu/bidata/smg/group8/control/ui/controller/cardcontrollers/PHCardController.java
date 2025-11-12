@@ -75,7 +75,6 @@ public class PHCardController {
    */
   public void start() {
     log.info("Starting PHCardController");
-    // TODO: Add initialization logic here
     historyButton.setOnAction(e -> {
       showHistoryDialog();
       log.info("History button clicked - showing pH history dialog");
@@ -88,7 +87,8 @@ public class PHCardController {
    */
   public void stop() {
     log.info("Stopping PHCardController");
-    // TODO: Add cleanup logic here
+    historyButton.setOnAction(null);
+    log.debug("pH history button action cleared");
     log.debug("PHCardController stopped successfully");
   }
 

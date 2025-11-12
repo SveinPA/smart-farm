@@ -40,6 +40,11 @@ public class ButtonFactory {
   * @param button The ToggleButton to enhance with a switch graphic
   */
   public static void attachSwitch(ToggleButton button) {
+    if (Boolean.TRUE.equals(button.getProperties().get("switchAttached"))) {
+      return;
+    }
+    button.getProperties().put("switchAttached", true);
+
     log.debug("Attaching ON/OFF switch to ToggleButton");
 
     button.setContentDisplay((ContentDisplay.RIGHT));
@@ -278,6 +283,12 @@ public class ButtonFactory {
     return button;
   }
 
+  /**
+  * Creates a styled history button with the given label text.
+
+  * @param text the label to display on the button
+  * @return a new Button
+  */
   public static Button createHistoryButton(String text) {
     log.debug("Creating history button: {}", text);
 
@@ -291,7 +302,7 @@ public class ButtonFactory {
   * Creates a standard button with default styling.
   *
   * @param text the button text
-  * @return a new Button instance
+  * @return a new Button configured as a history button
   */
   public static Button createButton(String text) {
     log.trace("Creating button: {}", text);

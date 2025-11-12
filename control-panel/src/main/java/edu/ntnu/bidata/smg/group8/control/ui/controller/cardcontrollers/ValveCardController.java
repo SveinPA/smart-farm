@@ -3,15 +3,21 @@ package edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers;
 import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
 import edu.ntnu.bidata.smg.group8.control.logic.command.CommandInputHandler;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlCard;
+import edu.ntnu.bidata.smg.group8.control.util.UiExecutors;
 import java.io.IOException;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 import javafx.application.Platform;
+import javafx.beans.value.ChangeListener;
+import javafx.event.EventHandler;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.Slider;
+import javafx.scene.input.MouseEvent;
 import org.slf4j.Logger;
+
 
 /**
 * Controller for the Valve control card.
@@ -41,8 +47,11 @@ public class ValveCardController {
   private final String actuatorKey = "valve";
 
   private volatile boolean suppressSend = false;
-  private Integer lastSentOpening = null;
+  private volatile Integer lastSentOpening = null;
 
+  private ChangeListener<Number> sliderValueListener;
+  private EventHandler<MouseEvent> sliderMouseReleasedHandler;
+  private ChangeListener<Boolean> sliderValueChangingListener;
 
   /**
    * Creates a new ValveCardController with the specified UI components.
@@ -79,48 +88,51 @@ public class ValveCardController {
   public void start() {
     log.info("Starting ValveCardController");
 
-    openingSlider.valueProperty().addListener((obs, ov, nv) -> {
+    sliderValueListener = (obs, ov, nv) -> {
       int p = clampPercent(nv.intValue());
       sliderLabel.setText("Custom: " + p + "%");
       double flow = percentToFlow(p);
       flowLabel.setText(String.format(Locale.US, "Flow: %.1f L/min", flow));
       flowIndicator.setProgress(Math.min(1.0, flow / MAX_FLOW_RATE));
-    });
+    };
+    openingSlider.valueProperty().addListener(sliderValueListener);
 
-    openingSlider.setOnMouseReleased(e -> {
+    sliderMouseReleasedHandler = e -> {
       int p = clampPercent((int) openingSlider.getValue());
 
       if (currentOpeningPercent > 0) {
-        applyOpeningUI(p);
+        applyOpeningUi(p);
         sendValveCommandIfNeeded(p);
       } else {
         if (p > 0) {
           openValveToSlider();
         } else {
-          applyOpeningUI(0);
+          applyOpeningUi(0);
         }
       }
-    });
+    };
+    openingSlider.setOnMouseReleased(sliderMouseReleasedHandler);
 
-    openingSlider.valueChangingProperty().addListener((obs, wasChanging, isChanging) -> {
+    sliderValueChangingListener = (obs, wasChanging, isChanging) -> {
       if (!isChanging) {
         int p = clampPercent((int) openingSlider.getValue());
         if (currentOpeningPercent > 0) {
-          applyOpeningUI(p);
+          applyOpeningUi(p);
           sendValveCommandIfNeeded(p);
         } else if (p > 0) {
           openValveToSlider();
         } else {
-          applyOpeningUI(0);
+          applyOpeningUi(0);
         }
       }
-    });
+    };
+    openingSlider.valueChangingProperty().addListener(sliderValueChangingListener);
 
     openButton.setOnAction(e -> openValveToSlider());
     closeButton.setOnAction(e -> closeValve());
 
     fx(() -> {
-      applyOpeningUI(0);
+      applyOpeningUi(0);
       closeButton.setDisable(true);
       openButton.setDisable(false);
     });
@@ -134,8 +146,19 @@ public class ValveCardController {
   public void stop() {
     log.info("Stopping ValveCardController");
 
-    openingSlider.valueProperty().addListener((obs, ov, nv) -> {});
-    openingSlider.setOnMouseReleased(null);
+    if (sliderValueListener != null) {
+      openingSlider.valueProperty().removeListener(sliderValueListener);
+      sliderValueListener = null;
+    }
+    if (sliderMouseReleasedHandler != null) {
+      openingSlider.setOnMouseReleased(null);
+      sliderMouseReleasedHandler = null;
+    }
+    if (sliderValueChangingListener != null) {
+      openingSlider.valueChangingProperty().removeListener(sliderValueChangingListener);
+      sliderValueChangingListener = null;
+    }
+
     openButton.setOnAction(null);
     closeButton.setOnAction(null);
 
@@ -150,7 +173,7 @@ public class ValveCardController {
     int p = clampPercent((int) openingSlider.getValue());
     log.info("Valve OPEN command to {}%", p);
     fx(() -> {
-      applyOpeningUI(p);
+      applyOpeningUi(p);
       openButton.setDisable(true);
       closeButton.setDisable(false);
     });
@@ -170,8 +193,11 @@ public class ValveCardController {
     log.info("External valve opening update: {}%", p);
     Platform.runLater(() -> {
       suppressSend = true;
-      applyOpeningUI(p);
-      Platform.runLater(() -> suppressSend = false);
+      applyOpeningUi(p);
+
+      UiExecutors.schedule(() -> {
+        suppressSend = false;
+      }, 100, TimeUnit.MILLISECONDS);
     });
   }
 
@@ -184,7 +210,7 @@ public class ValveCardController {
     }
 
     fx(() -> {
-      applyOpeningUI(0);
+      applyOpeningUi(0);
       openButton.setDisable(false);
       closeButton.setDisable(true);
     });
@@ -205,8 +231,11 @@ public class ValveCardController {
     Platform.runLater(() -> {
       suppressSend = true;
       int p = open ? Math.max(1, clampPercent((int) openingSlider.getValue())) : 0;
-      applyOpeningUI(p);
-      Platform.runLater(() -> suppressSend = false);
+      applyOpeningUi(p);
+
+      UiExecutors.schedule(() -> {
+        suppressSend = false;
+      }, 100, TimeUnit.MILLISECONDS);
     });
   }
 
@@ -218,7 +247,7 @@ public class ValveCardController {
 
   * @param percent the valve opening percentage
   */
-  private void applyOpeningUI(int percent) {
+  private void applyOpeningUi(int percent) {
     currentOpeningPercent = percent;
     openingSlider.setValue(percent);
 
@@ -262,7 +291,7 @@ public class ValveCardController {
   * @param value the valve opening percentage to send
   */
   private void sendValveCommandAsync(int value) {
-    new Thread(() -> {
+    UiExecutors.execute(() -> {
       try {
         log.debug("Attempting to send valve command nodeId={} opening={}%", nodeId, value);
         cmdHandler.setValue(nodeId, actuatorKey, value); // 0..100 til backend
@@ -271,7 +300,7 @@ public class ValveCardController {
       } catch (IOException e) {
         log.error("Failed to send valve command nodeId={} opening={}%", nodeId, value, e);
       }
-    }, "valve-cmd-send").start();
+    });
   }
 
   /**

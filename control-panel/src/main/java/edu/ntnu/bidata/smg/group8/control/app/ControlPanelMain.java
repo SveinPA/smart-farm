@@ -8,6 +8,7 @@ import edu.ntnu.bidata.smg.group8.control.logic.command.CommandInputHandler;
 import edu.ntnu.bidata.smg.group8.control.logic.state.StateStore;
 import edu.ntnu.bidata.smg.group8.control.ui.controller.ControlPanelController;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlPanelView;
+import edu.ntnu.bidata.smg.group8.control.util.UiExecutors;
 import java.io.IOException;
 import java.util.Objects;
 import javafx.application.Application;
@@ -129,9 +130,20 @@ public final class ControlPanelMain extends Application {
     if (controller != null) {
       try {
         controller.stop();
+        log.debug("ControlPanelController stopped");
       } catch (Exception e) {
         log.error("Error stopping controller", e);
+      } finally {
+        controller = null;
       }
+    }
+
+    try {
+      log.info("Shutting down UiExecutors thread pool");
+      UiExecutors.shutDown();
+      log.debug("UiExecutors shutdown complete");
+    } catch (Exception e) {
+      log.error("Error shutting down UiExecutors", e);
     }
 
     if (consoleInput != null) {
@@ -155,11 +167,15 @@ public final class ControlPanelMain extends Application {
       }
     }
 
-    if (dynamicDataThread != null && dynamicDataThread.isAlive()) {
+    if (dynamicDataThread != null) {
       try {
         dynamicDataThread.interrupt();
-        dynamicDataThread.join(200);
-        log.debug("Dynamic data thread stopped");
+        dynamicDataThread.join(2500);
+        if (dynamicDataThread.isAlive()) {
+          log.warn("Dynamic data thread did not stop within timeout");
+        } else {
+          log.debug("Dynamic data thread stopped");
+        }
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
         log.warn("Interrupted while waiting for dynamic data thread to finish", e);
@@ -171,6 +187,7 @@ public final class ControlPanelMain extends Application {
     if (consoleDisplay != null) {
       try {
         consoleDisplay.stop();
+        log.debug("DisplayManager stopped");
       } catch (Exception e) {
         log.warn("Error stopping console display", e);
       } finally {
@@ -181,8 +198,11 @@ public final class ControlPanelMain extends Application {
     if (agent != null) {
       try {
         agent.close();
+        log.debug("PanelAgent closed");
       } catch (Exception e) {
         log.error("Error closing agent", e);
+      } finally {
+        agent = null;
       }
     }
     log.info("Control Panel shutdown complete");
@@ -237,9 +257,9 @@ public final class ControlPanelMain extends Application {
         double wind = 12.3;
         double humidity = 65.0;
         double pH = 6.8;
-        double fertilizer= 90.0;
+        double fertilizer = 90.0;
         double light = 40000.0;
-         // Actuator states
+        // Actuator states
         int windowPosition = 50;
         boolean fanOn = true;
         boolean heaterOn = false;
@@ -282,7 +302,7 @@ public final class ControlPanelMain extends Application {
                   String.format(java.util.Locale.US, "%.1f", humidity), "%", now);
           stateStore.applySensor("node-1", "pH",
                   String.format(java.util.Locale.US, "%.1f", pH), "", now);
-            stateStore.applySensor("node-1", "fertilizer",
+          stateStore.applySensor("node-1", "fertilizer",
                   String.format(java.util.Locale.US, "%.1f", fertilizer), "ppm", now);
           stateStore.applySensor("node-1", "light",
                   String.format(java.util.Locale.US, "%.1f", light), "lx", now);
@@ -311,13 +331,13 @@ public final class ControlPanelMain extends Application {
           stateStore.applyActuator("node-1", "heater",
                   heaterOn ? "on" : "off", now);
 
-          log.debug("Updated test data: temp={}, wind={}, humidity={}, pH={}, " +
-                          "window={}%, fan={}, heater={}, fertilizer={}",
+          log.debug("Updated test data: temp={}, wind={}, humidity={}, pH={}, "
+                          + "window={}%, fan={}, heater={}, fertilizer={}",
                   String.format(java.util.Locale.US, "%.1f", temp),
                   String.format(java.util.Locale.US, "%.1f", wind),
                   String.format(java.util.Locale.US, "%.1f", humidity),
                   String.format(java.util.Locale.US, "%.1f", pH),
-                  String.format(java.util.Locale.US, "%.1f",fertilizer),
+                  String.format(java.util.Locale.US, "%.1f", fertilizer),
                   windowPosition,
                   fanOn ? "on" : "off",
                   heaterOn ? "on" : "off");
