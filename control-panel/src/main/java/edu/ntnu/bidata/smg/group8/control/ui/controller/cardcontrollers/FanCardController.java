@@ -2,6 +2,7 @@ package edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers;
 
 import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
 import edu.ntnu.bidata.smg.group8.control.logic.command.CommandInputHandler;
+import edu.ntnu.bidata.smg.group8.control.ui.controller.ControlPanelController;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlCard;
 import java.io.IOException;
 import java.util.Objects;
@@ -73,7 +74,7 @@ public class FanCardController {
   private ChangeListener<Number> autoIntensityListener;
 
   private CommandInputHandler cmdHandler;
-  private String nodeId;
+  private ControlPanelController controller;
   private final String actuatorKey = "fan";
 
   private volatile boolean suppressSend = false;
@@ -293,7 +294,7 @@ public class FanCardController {
       updateCardValue(s);
     });
 
-    if (!suppressSend && cmdHandler != null && nodeId != null) {
+    if (!suppressSend && cmdHandler != null && controller != null) {
       if (lastSentSpeed != null && lastSentSpeed == s) {
         log.debug("Skipping duplicate fan speed send ({}%)", s);
         return;
@@ -313,12 +314,18 @@ public class FanCardController {
   private void sendFanSpeedAsync(int speed) {
     UiExecutors.execute(() -> {
       try {
+        String nodeId = controller != null ? controller.getSelectedNodeId() : null;
+        if (nodeId == null) {
+          log.warn("Cannot send fan speed command: no node selected");
+          return;
+        }
+
         log.debug("Attempting to send fan speed command nodeId={} speed={}", nodeId, speed);
         cmdHandler.setValue(nodeId, actuatorKey, speed);
         lastSentSpeed = speed;
         log.info("Fan speed command sent successfully nodeId={} speed={}", nodeId, speed);
       } catch (IOException e) {
-        log.error("Failed to send fan speed command nodeId={} speed={}", nodeId, speed, e);
+        log.error("Failed to send fan speed command speed={}", speed, e);
       }
     });
   }
@@ -416,19 +423,15 @@ public class FanCardController {
   }
 
   /**
-  * Injects required dependencies for this fan card controller.
-  * This method must be called before the controller can be used, typically during
-  * initialization or setup phase. Both parameters are required and cannot be null.
+   * Injects required dependencies for this fan card controller.
   *
-  * @param cmdHandler the command input handler used to process user commands
-  *                   and interactions with the fan card
-  * @param nodeId the unique identifier for the node this controller manages
-  * @throws NullPointerException if either cmdHandler or nodeId is null
+  * @param cmdHandler the command input handler
+  * controller the main control panel controller
   */
-  public void setDependencies(CommandInputHandler cmdHandler, String nodeId) {
+  public void setDependencies(CommandInputHandler cmdHandler, ControlPanelController controller) {
     this.cmdHandler = Objects.requireNonNull(cmdHandler, "cmdHandler");
-    this.nodeId = Objects.requireNonNull(nodeId, "nodeId");
-    log.debug("FanCardController dependencies injected (nodeId={})", nodeId);
+    this.controller = Objects.requireNonNull(controller, "controller");
+    log.debug("FanCardController dependencies injected");
   }
 
   /**

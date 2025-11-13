@@ -109,7 +109,7 @@ public class ConsoleControlPanelMain {
     // Start input loop only when agent is available (i.e., not mock-only)
     if (agent != null) {
       CommandInputHandler cmdHandler = new CommandInputHandler(agent);
-      inputLoop = new ConsoleInputLoop(cmdHandler, nodeId, display, stateStore);
+      inputLoop = new ConsoleInputLoop(cmdHandler, null, display, stateStore);
       inputThread = new Thread(inputLoop, "console-input");
       inputThread.setDaemon(false);
       inputThread.start();

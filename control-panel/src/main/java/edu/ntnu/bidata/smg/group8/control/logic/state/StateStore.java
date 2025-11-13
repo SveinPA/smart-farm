@@ -273,4 +273,73 @@ public class StateStore {
 
     commandResults.put(commandId, result);
   }
+
+  /**
+  * Retrieves the latest sensor reading for a specific node and sensor type.
+  *
+  * @param nodeId the unique identifier of the sensor node
+  * @param type the type of sensor (temperature, humidity etc.)
+  * @return the latest SensorReading, or null if not found
+  */
+  public SensorReading getSensor(String nodeId, String type) {
+    return sensors.get(nodeId + ":" + type);
+  }
+
+  /**
+  * Retrieves the latest actuator reading for a specific node and actuator type.
+  *
+  * @param nodeId the unique identifier of the actuator node
+  * @param type the type of actuator (fan, heater etc.)
+  * @return the Latest ActuatorReading, or null if not found
+  */
+  public ActuatorReading getActuator(String nodeId, String type) {
+    return actuators.get(nodeId + ":" + type);
+  }
+
+  /**
+  * Returns all sensor readings for a specific node.
+  *
+  * @param nodeId the unique identifier of the sensor node
+  * @return a list of all sensor readings for that node
+  */
+  public List<SensorReading> getSensorsForNode(String nodeId) {
+    List<SensorReading> result = new ArrayList<>();
+    String prefix = nodeId + ":";
+
+    for (Map.Entry<String, SensorReading> entry : sensors.entrySet()) {
+      if (entry.getKey().startsWith(prefix)) {
+        result.add(entry.getValue());
+      }
+    }
+    return result;
+  }
+
+  /**
+   * Returns all actuator readings for a specific node.
+   *
+   * @param nodeId the unique identifier of the actuator node
+   * @return a list of all actuator readings for that node
+   */
+  public List<ActuatorReading> getActuatorsForNode(String nodeId) {
+    List<ActuatorReading> result = new ArrayList<>();
+    String prefix = nodeId + ":";
+
+    for (Map.Entry<String, ActuatorReading> entry : actuators.entrySet()) {
+      if (entry.getKey().startsWith(prefix)) {
+        result.add(entry.getValue());
+      }
+    }
+    return result;
+  }
+
+  /**
+  * Retrieves the result of previously executed command
+  *
+  *  @param commandId the unique ID of the command
+  * @return "OK" if accepted, "ERR:reason" if rejected, or null if not found
+  */
+  public String getCommandResult(String commandId) {
+    return commandResults.get(commandId);
+  }
+
 }

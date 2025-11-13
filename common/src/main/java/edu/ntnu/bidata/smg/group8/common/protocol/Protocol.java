@@ -1,8 +1,5 @@
 package edu.ntnu.bidata.smg.group8.common.protocol;
 
-import java.awt.desktop.PrintFilesEvent;
-
-import javax.sound.sampled.SourceDataLine;
 
 /**
  * Protocol constants for the Smart Farm Messaging Protocol.

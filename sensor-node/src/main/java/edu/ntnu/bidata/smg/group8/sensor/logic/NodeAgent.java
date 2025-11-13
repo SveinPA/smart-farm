@@ -409,8 +409,15 @@ public class NodeAgent {
     public void sendActuatorStatus(Actuator actuator) {
         try {
             double currentValue = actuator.getCurrentValue();
-            // Determine status: values > 0.5 = ON, <= 0.5 = OFF
-            String status = currentValue > 0.5 ? "ON" : "OFF";
+            String status;
+
+            if ("window".equals(actuator.getKey()) || "valve".equals(actuator.getKey())) {
+                status = String.format(Locale.US, "%.0f", currentValue);
+            }
+
+            else {
+                status = currentValue > 0.5 ? "ON" : "OFF";
+            }
             
             String json = JsonBuilder.build(
                 "type", Protocol.TYPE_ACTUATOR_STATUS,

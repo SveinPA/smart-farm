@@ -1,5 +1,6 @@
 package edu.ntnu.bidata.smg.group8.control.infra.network;
 
+import edu.ntnu.bidata.smg.group8.common.protocol.FrameCodec;
 import edu.ntnu.bidata.smg.group8.common.protocol.Protocol;
 import edu.ntnu.bidata.smg.group8.control.logic.state.StateSnapshot;
 import edu.ntnu.bidata.smg.group8.control.logic.state.StateStore;
@@ -69,7 +70,7 @@ public class PanelAgentIntegrationTest {
           OutputStream out = client.getOutputStream();
 
           // Read and validate the registration message
-          byte[] regFrame = ClientFrameCodec.readFrame(in);
+          byte[] regFrame = FrameCodec.readFrame(in);
           String regJson = new String(regFrame, StandardCharsets.UTF_8);
           if (regJson.contains(Protocol.TYPE_REGISTER_CONTROL_PANEL)) {
             registerReceived.countDown();
@@ -80,10 +81,10 @@ public class PanelAgentIntegrationTest {
                   "{\"type\":\"" + Protocol.TYPE_SENSOR_DATA + "\","
                   + "\"nodeId\":\"7\",\"sensorKey\":\"temperature\",\"value\":\"22.9\","
                   + "\"unit\":\"C\",\"timestamp\":\"1730380000000\"}";
-          ClientFrameCodec.writeFrame(out, sensorJson.getBytes(StandardCharsets.UTF_8));
+          FrameCodec.writeFrame(out, sensorJson.getBytes(StandardCharsets.UTF_8));
 
           // Read the actuator command that the agent sends
-          byte[] cmdFrame = ClientFrameCodec.readFrame(in);
+          byte[] cmdFrame = FrameCodec.readFrame(in);
           String cmdJson = new String(cmdFrame, StandardCharsets.UTF_8);
           if (cmdJson.contains(Protocol.TYPE_ACTUATOR_COMMAND)
                   && cmdJson.contains("\"targetNode\":\"7\"")

@@ -16,8 +16,11 @@ import edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers.ValveCar
 import edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers.WindSpeedCardController;
 import edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers.WindowsCardController;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlPanelView;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
+import javafx.application.Platform;
 import org.slf4j.Logger;
 
 /**
@@ -42,7 +45,8 @@ public class ControlPanelController {
   private final ControlPanelView view;
   private final CommandInputHandler cmdHandler;
   private final StateStore stateStore;
-  private final String nodeId;
+  private String selectedNodeId;
+  private final List<String> availableNodes = new ArrayList<>();
 
   private FanCardController fanController;
   private FertilizerCardController fertilizerController;
@@ -59,8 +63,6 @@ public class ControlPanelController {
   private Consumer<ActuatorReading> heaterSink;
   private Consumer<ActuatorReading> valveSink;
   private Consumer<ActuatorReading> windowSink;
-  private Consumer<ActuatorReading> artificialLightSink;
-
   private Consumer<SensorReading> fertilizerSink;
   private Consumer<SensorReading> temperatureSink;
   private Consumer<SensorReading> humiditySink;
@@ -74,17 +76,16 @@ public class ControlPanelController {
   * @param view the ControlPanelView instance to control
   * @param cmdHandler handler for sending actuator commands
   * @param stateStore state store for subscribing to backend updates
-  * @param nodeId the node ID this panel controls
   */
   public ControlPanelController(ControlPanelView view, CommandInputHandler cmdHandler,
-                                StateStore stateStore, String nodeId) {
+                                StateStore stateStore) {
     this.view = view;
     this.cmdHandler = Objects.requireNonNull(cmdHandler, "cmdHandler");
     this.stateStore = Objects.requireNonNull(stateStore, "stateStore");
-    this.nodeId = Objects.requireNonNull(nodeId, "nodeId");
 
-    log.debug("ControlPanelController created for view class: {} nodeId: {}",
-            view.getClass().getSimpleName(), nodeId);
+
+    log.debug("ControlPanelController created for view class: {}",
+            view.getClass().getSimpleName());
     initializeControllers();
   }
 
@@ -162,16 +163,24 @@ public class ControlPanelController {
     injectDependencies();
 
     fanSink = ar -> {
-      if (!nodeId.equals(ar.nodeId())) {
-        return;
-      }
       if (!"fan".equalsIgnoreCase(ar.type())) {
         return;
       }
       try {
-        int speed = Integer.parseInt(ar.state());
-        if (fanController != null) {
-          fanController.updateFanSpeed(speed);
+        String state = ar.state().toLowerCase().trim();
+        if ("on".equals(state)) {
+          if (fanController != null) {
+            fanController.updateFanSpeed(100);
+          }
+        } else if ("off".equals(state)) {
+          if (fanController != null) {
+            fanController.updateFanSpeed(0);
+          }
+        } else {
+          int speed = Integer.parseInt(ar.state());
+          if (fanController != null) {
+            fanController.updateFanSpeed(speed);
+          }
         }
       } catch (NumberFormatException e) {
         log.warn("Invalid fan state '{}' for nodeId={}", ar.state(), ar.nodeId());
@@ -180,16 +189,24 @@ public class ControlPanelController {
     stateStore.addActuatorSink(fanSink);
 
     heaterSink = ar -> {
-      if (!nodeId.equals(ar.nodeId())) {
-        return;
-      }
       if (!"heater".equalsIgnoreCase(ar.type())) {
         return;
       }
       try {
-        int temp = Integer.parseInt(ar.state());
-        if (heaterController != null) {
-          heaterController.updateHeaterTemperature(temp);
+        String state = ar.state().toLowerCase().trim();
+        if ("on".equals(state)) {
+          if (heaterController != null) {
+            heaterController.updateHeaterTemperature(25);
+          }
+        } else if ("off".equals(state)) {
+          if (heaterController != null) {
+            heaterController.updateHeaterTemperature(0);
+          }
+        } else {
+          int temp = Integer.parseInt(ar.state());
+          if (heaterController != null) {
+            heaterController.updateHeaterTemperature(temp);
+          }
         }
       } catch (NumberFormatException e) {
         log.warn("Invalid heater state '{}' for nodeId={}", ar.state(), ar.nodeId());
@@ -198,8 +215,9 @@ public class ControlPanelController {
     stateStore.addActuatorSink(heaterSink);
 
     valveSink = ar -> {
-      if (!nodeId.equals(ar.nodeId())) return;
-      if (!"valve".equalsIgnoreCase(ar.type())) return;
+      if (!"valve".equalsIgnoreCase(ar.type())) {
+        return;
+      }
       try {
         int v = Integer.parseInt(ar.state().trim());
         if (valveController != null) {
@@ -216,12 +234,10 @@ public class ControlPanelController {
     stateStore.addActuatorSink(valveSink);
 
     windowSink = ar -> {
-      if (!nodeId.equals(ar.nodeId())) {
-        return;
-      }
       if (!"window".equalsIgnoreCase(ar.type())) {
         return;
       }
+
       try {
         int position = Integer.parseInt(ar.state());
         if (windowsController != null) {
@@ -234,10 +250,7 @@ public class ControlPanelController {
     stateStore.addActuatorSink(windowSink);
 
     temperatureSink = sr -> {
-      if (!nodeId.equals(sr.nodeId())) {
-        return;
-      }
-      if (!"temperature".equalsIgnoreCase(sr.type())) {
+      if (!"temp".equalsIgnoreCase(sr.type())) {
         return;
       }
       try {
@@ -259,10 +272,7 @@ public class ControlPanelController {
     stateStore.addSensorSink(temperatureSink);
 
     humiditySink = sr -> {
-      if (!nodeId.equals(sr.nodeId())) {
-        return;
-      }
-      if (!"humidity".equalsIgnoreCase(sr.type())) {
+      if (!"hum".equalsIgnoreCase(sr.type())) {
         return;
       }
       if (humidityController != null) {
@@ -282,9 +292,6 @@ public class ControlPanelController {
     stateStore.addSensorSink(humiditySink);
 
     windSpeedSink = sr -> {
-      if (!nodeId.equals(sr.nodeId())) {
-        return;
-      }
       if (!"wind".equalsIgnoreCase(sr.type())) {
         return;
       }
@@ -303,11 +310,7 @@ public class ControlPanelController {
     };
     stateStore.addSensorSink(windSpeedSink);
 
-    // Natural light
     lightSink = sr -> {
-      if (!nodeId.equals(sr.nodeId())) {
-        return;
-      }
       if (!"light".equalsIgnoreCase(sr.type())
               && !"ambient_light".equalsIgnoreCase(sr.type())) {
         return;
@@ -316,7 +319,7 @@ public class ControlPanelController {
         try {
           double lux = Double.parseDouble(sr.value());
           lightController.updateAmbientLight(lux);
-          log.debug("Ambient light sensor updated: {} lux (nodeId={})", lux, nodeId);
+          log.debug("Ambient light sensor updated: {} lux", lux);
         } catch (NumberFormatException e) {
           log.warn("Invalid ambient light value '{}' for nodeId={}", sr.value(), sr.nodeId());
         }
@@ -326,9 +329,6 @@ public class ControlPanelController {
 
     // pH sensor sink
     phSink = sr -> {
-      if (!nodeId.equals(sr.nodeId())) {
-        return;
-      }
       if (!"ph".equalsIgnoreCase(sr.type())) {
         return;
       }
@@ -343,17 +343,9 @@ public class ControlPanelController {
     };
     stateStore.addSensorSink(phSink);
 
-    log.info("All sensor sinks registered successfully");
 
     fertilizerSink = sr -> {
-      log.info("DEBUG: Received sensor reading - nodeId={}, type={}, value={}",
-              sr.nodeId(), sr.type(), sr.value()); // ADD THIS LINE
-
-      if (!nodeId.equals(sr.nodeId())) {
-        return;
-      }
-      if (!"fertilizer".equalsIgnoreCase(sr.type())) {
-        log.warn("DEBUG: Type mismatch! Expected 'fertilizer', got '{}'", sr.type());
+      if (!"fert".equalsIgnoreCase(sr.type())) {
         return;
       }
       if (fertilizerController != null) {
@@ -367,6 +359,9 @@ public class ControlPanelController {
     };
     stateStore.addSensorSink(fertilizerSink);
 
+    log.info("All sensor sinks registered successfully");
+
+
     safeStart(fanController, "FanCardController");
     safeStart(fertilizerController, "FertilizerCardController");
     safeStart(heaterController, "HeaterCardController");
@@ -379,6 +374,63 @@ public class ControlPanelController {
     safeStart(windSpeedController, "WindSpeedCardController");
 
     log.info("ControlPanelController started successfully");
+  }
+
+  /**
+  * Updates the list of available sensor nodes.
+  * This is called when the broker sends an updated node list.
+  *
+  * @param nodes List of node IDs currently connected to the broker
+  */
+  public void updateAvailableNodes(List<String> nodes) {
+    Platform.runLater(() -> {
+      log.info("Updating available nodes: {}", nodes);
+
+      availableNodes.clear();
+      availableNodes.addAll(nodes);
+
+      if (selectedNodeId == null && !nodes.isEmpty()) {
+        setSelectedNode(nodes.get(0));
+        log.info("Auto-selected first available node: {}", nodes.get(0));
+      }
+
+      if (selectedNodeId != null && !nodes.contains(selectedNodeId)) {
+        log.warn("Previously selected node {} is no longer available", selectedNodeId);
+        selectedNodeId = null;
+      }
+
+    });
+  }
+
+  /**
+  * Sets the currently selected sensor node.
+  * Commands will be sent to this node.
+  *
+  * @param nodeId the node ID to select
+  */
+  public void setSelectedNode(String nodeId) {
+    if (nodeId == null) {
+      log.warn("Attempted to select null node");
+      return;
+    }
+
+    if (!availableNodes.contains(nodeId)) {
+      log.warn("Attempted to select unavailable node: {}", nodeId);
+      return;
+    }
+
+    this.selectedNodeId = nodeId;
+    log.info("Selected node changed to: {}", nodeId);
+
+  }
+
+  /**
+  * Returns the currently selected node ID.
+  *
+  * @return The selected node ID, or null if none selected
+  */
+  public String getSelectedNodeId() {
+    return selectedNodeId;
   }
 
   /**
@@ -400,11 +452,11 @@ public class ControlPanelController {
   }
 
   /**
-   * Injects dependencies (cmdHandler, nodeId) into all card controllers
-   * that support setDependencies().
-   */
+  * Injects dependencies (cmdHandler, controller) into all card controllers
+  * that support setDependencies().
+  */
   private void injectDependencies() {
-    log.debug("Injecting dependencies into card controllers (nodeId={})", nodeId);
+    log.debug("Injecting dependencies into card controllers");
 
     safeInject(fanController, "FanCardController");
     safeInject(fertilizerController, "FertilizerCardController");
@@ -421,7 +473,7 @@ public class ControlPanelController {
   }
 
   /**
-   * Safely invokes setDependencies(cmdHandler, nodeId) on a controller if it exists.
+   * Safely invokes setDependencies(cmdHandler, controller) on a controller if it exists.
    *
    * @param controller the controller instance
    * @param name the descriptive name for logging
@@ -430,8 +482,9 @@ public class ControlPanelController {
     if (controller != null) {
       try {
         controller.getClass()
-                .getMethod("setDependencies", CommandInputHandler.class, String.class)
-                .invoke(controller, cmdHandler, nodeId);
+                .getMethod("setDependencies", CommandInputHandler.class,
+                        ControlPanelController.class)
+                .invoke(controller, cmdHandler, this);
         log.debug("{} dependencies injected", name);
       } catch (NoSuchMethodException e) {
 
@@ -483,10 +536,6 @@ public class ControlPanelController {
     if (lightSink != null) {
       stateStore.removeSensorSink(lightSink);
       lightSink = null;
-    }
-    if (artificialLightSink != null) {
-      stateStore.removeActuatorSink(artificialLightSink);
-      artificialLightSink = null;
     }
     if (phSink != null) {
       stateStore.removeSensorSink(phSink);

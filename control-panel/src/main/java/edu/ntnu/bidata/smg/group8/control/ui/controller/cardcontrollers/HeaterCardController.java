@@ -2,19 +2,17 @@ package edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers;
 
 import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
 import edu.ntnu.bidata.smg.group8.control.logic.command.CommandInputHandler;
+import edu.ntnu.bidata.smg.group8.control.ui.controller.ControlPanelController;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlCard;
-import edu.ntnu.bidata.smg.group8.control.ui.view.cards.HeaterCardBuilder;
+import edu.ntnu.bidata.smg.group8.control.util.UiExecutors;
 import java.io.IOException;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
-
-import edu.ntnu.bidata.smg.group8.control.util.UiExecutors;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.scene.control.Button;
-import javafx.scene.control.Label;
 import javafx.scene.control.Spinner;
 import org.slf4j.Logger;
 
@@ -58,7 +56,7 @@ public class HeaterCardController {
   private EventHandler<ActionEvent> offHandler;
 
   private CommandInputHandler cmdHandler;
-  private String nodeId;
+  private ControlPanelController controller;
   private final String actuatorKey = "heater";
 
   private volatile boolean suppressSend = false;
@@ -194,7 +192,7 @@ public class HeaterCardController {
       }
     });
 
-    if (!suppressSend && cmdHandler != null && nodeId != null) {
+    if (!suppressSend && cmdHandler != null && controller != null) {
       if (lastSentTemp != null && lastSentTemp.equals(temperature)) {
         log.debug("Skipping duplicate heater temperature send ({}°C)", temperature);
         return;
@@ -223,7 +221,7 @@ public class HeaterCardController {
       currentTargetTemp = null;
     });
 
-    if (!suppressSend && cmdHandler != null && nodeId != null) {
+    if (!suppressSend && cmdHandler != null && controller != null) {
       if (lastSentTemp != null && lastSentTemp == 0) {
         log.debug("Skipping duplicate heater OFF send");
         return;
@@ -240,12 +238,18 @@ public class HeaterCardController {
   private void sendHeaterCommandAsync(int temperature) {
     UiExecutors.execute(() -> {
       try {
+        String nodeId = controller != null ? controller.getSelectedNodeId() : null;
+        if (nodeId == null) {
+          log.warn("Cannot send heater command: no node selected");
+          return;
+        }
+
         log.debug("Attempting to send heater command nodeId={} temp={}°C", nodeId, temperature);
         cmdHandler.setValue(nodeId, actuatorKey, temperature);
         lastSentTemp = temperature;
         log.info("Heater command sent successfully nodeId={} temp={}°C", nodeId, temperature);
       } catch (IOException e) {
-        log.error("Failed to send heater command nodeId={} temp={}°C", nodeId, temperature, e);
+        log.error("Failed to send heater command temp={}°C", temperature, e);
       }
     });
   }
@@ -335,12 +339,12 @@ public class HeaterCardController {
   * Injects required dependencies for this heater card controller.
   *
   * @param cmdHandler the command input handler
-  * @param nodeId the node ID this controller manages
+  * @param controller the main control panel controller
   */
-  public void setDependencies(CommandInputHandler cmdHandler, String nodeId) {
+  public void setDependencies(CommandInputHandler cmdHandler, ControlPanelController controller) {
     this.cmdHandler = Objects.requireNonNull(cmdHandler, "cmdHandler");
-    this.nodeId = Objects.requireNonNull(nodeId, "nodeId");
-    log.debug("HeaterCardController dependencies injected (nodeId={})", nodeId);
+    this.controller = Objects.requireNonNull(controller, "controller");
+    log.debug("HeaterCardController dependencies injected");
   }
 
   /**

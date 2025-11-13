@@ -2,6 +2,7 @@ package edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers;
 
 import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
 import edu.ntnu.bidata.smg.group8.control.logic.command.CommandInputHandler;
+import edu.ntnu.bidata.smg.group8.control.ui.controller.ControlPanelController;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlCard;
 import edu.ntnu.bidata.smg.group8.control.util.UiExecutors;
 import java.io.IOException;
@@ -78,7 +79,7 @@ public class WindowsCardController {
   private ChangeListener<Number> windSpinnerListener;
 
   private CommandInputHandler cmdHandler;
-  private String nodeId;
+  private ControlPanelController controller;
   private final String actuatorKey = "window";
 
   private volatile boolean suppressSend = false;
@@ -434,15 +435,18 @@ public class WindowsCardController {
   private void sendWindowCommandAsync(int position) {
     UiExecutors.execute(() -> {
       try {
-        log.debug("Attempting to send window command nodeId={} "
-                + "position={}%", nodeId, position);
+        String nodeId = controller != null ? controller.getSelectedNodeId() : null;
+        if (nodeId == null) {
+          log.warn("Cannot send window command: no node selected");
+          return;
+        }
+
+        log.debug("Attempting to send window command nodeId={} position={}%", nodeId, position);
         cmdHandler.setValue(nodeId, actuatorKey, position);
         lastSentPosition = position;
-        log.info("Window command sent successfully nodeId={} "
-                + "position={}%", nodeId, position);
+        log.info("Window command sent successfully nodeId={} position={}%", nodeId, position);
       } catch (IOException e) {
-        log.error("Failed to send window command nodeId={} "
-                + "position={}%", nodeId, position, e);
+        log.error("Failed to send window command position={}%", position, e);
       }
     });
   }
@@ -453,7 +457,7 @@ public class WindowsCardController {
   * @param position target position (0-100)
   */
   private void sendWindowPositionIfNeeded(int position) {
-    if (!suppressSend && cmdHandler != null && nodeId != null) {
+    if (!suppressSend && cmdHandler != null && controller != null) {
       if (lastSentPosition != null && lastSentPosition == position) {
         log.debug("Skipping duplicate window position send ({}%)", position);
         return;
@@ -518,12 +522,12 @@ public class WindowsCardController {
   * Injects required dependencies for this window card controller.
   *
   * @param cmdHandler the command input handler
-  * @param nodeId the node ID this controller manages
+  * @param controller the main control panel controller
   */
-  public void setDependencies(CommandInputHandler cmdHandler, String nodeId) {
+  public void setDependencies(CommandInputHandler cmdHandler, ControlPanelController controller) {
     this.cmdHandler = Objects.requireNonNull(cmdHandler, "cmdHandler");
-    this.nodeId = Objects.requireNonNull(nodeId, "nodeId");
-    log.debug("WindowsCardController dependencies injected (nodeId={})", nodeId);
+    this.controller = Objects.requireNonNull(controller, "controller");
+    log.debug("WindowsCardController dependencies injected");
   }
 
   /**
