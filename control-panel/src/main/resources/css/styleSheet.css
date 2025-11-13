@@ -1,0 +1,759 @@
+
+/*--------------- GLOBAL STYLES ---------------*/
+
+/* Root background color */
+.root {
+    -fx-background-color: #CDFAFB;
+}
+
+#upper-border {
+ -fx-background-color: #CDFAFB;
+ -fx-pref-height: 50px;
+ }
+
+  /*--------------- HEADER SECTION ---------------*/
+
+#upper-border-title {
+  -fx-font-family: "Courier New", Courier, monospace;
+  -fx-font-size: 60px;
+  -fx-fill:BLACK;
+}
+
+.progress-bar.light-ambient-bar {
+    -fx-padding: 2, 0, 2, 0;
+}
+
+
+/*--------------- LIGHT TOGGLE BUTTON ---------------*/
+
+#light-toggle-button {
+    -fx-border-radius: 25px;
+    -fx-background-radius: 25px;
+    -fx-background-color: #FEE7EA;
+    -fx-border-color: black;
+    -fx-border-width: 2;
+    -fx-text-fill: black;
+    -fx-font-weight: bold;
+    -fx-font-size: 16px;
+    -fx-padding: 10px 20px;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.30), 2, 0, 0, 2);
+}
+
+.light-ambient-stats-box {
+    -fx-spacing: 6px;
+}
+
+.light-stats-box {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+
+.progress-bar.light-bar {
+    -fx-pref-height: 20px;
+}
+
+/* Light intensity zones */
+.progress-bar.light-very-low .bar {
+    -fx-accent: #f44336;   /* red - very dark */
+}
+
+.progress-bar.light-low .bar {
+    -fx-accent: #ff9800;   /* orange - dim */
+}
+
+.progress-bar.light-moderate .bar {
+    -fx-accent: #8bc34a;   /* green - bright */
+}
+
+.progress-bar.light-high .bar {
+    -fx-accent: #2196f3;   /* blue - sunny */
+}
+
+.progress-bar.light-very-high .bar {
+    -fx-accent: #9c27b0;   /* purple - intense */
+}
+  /*--------------- WINDOW TOGGLE BUTTON ---------------*/
+
+#window-toggle-button {
+    -fx-border-radius: 25px;
+    -fx-background-radius: 25px;
+    -fx-background-color: #E9FEE7;
+    -fx-border-color: black;
+    -fx-border-width: 2;
+    -fx-text-fill: black;
+    -fx-font-weight: bold;
+    -fx-font-size: 16px;
+    -fx-padding: 10px 20px;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.30), 2, 0, 0, 2);
+}
+
+#window-toggle-button:hover {
+    -fx-background-color: #DFF5D9;
+    -fx-border-color: #2C3E50;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.35), 12, 0.4, 0, 4);
+    -fx-scale-x: 1.03;
+    -fx-scale-y: 1.03;
+}
+
+#window-toggle-button .switch-track {
+    -fx-background-color: #A5D6A7;
+    -fx-background-radius: 14;
+    -fx-text-fill: black;
+}
+#window-toggle-button:selected .switch-track {
+    -fx-background-color: #A5F9A9;
+}
+
+#window-toggle-button .switch-thumb {
+    -fx-background-color: white;
+    -fx-background-radius: 999;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.25), 6, 0.2, 0, 1);
+}
+#window-toggle-button.switch-label {
+    -fx-font-size: 10px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #333;
+}
+
+#window-toggle-button:selected {
+    -fx-text-fill: black;
+}
+
+/*--------------- HISTORY  BUTTON ---------------*/
+#history-button {
+    -fx-border-radius: 0px;
+    -fx-background-radius: 0px;
+    -fx-background-color:  #6B9B76;
+    -fx-border-color:#6B9B79;
+    -fx-border-width: 2;
+    -fx-text-fill: #0F1C13;
+    -fx-font-weight: bold;
+    -fx-font-size: 12px;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.25), 8, 0.3, 0, 3);
+    -fx-cursor: hand;
+
+}
+
+#history-button:hover {
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.35), 12, 0.4, 0, 4);
+    -fx-scale-x: 1.02;
+    -fx-scale-y: 1.02;
+}
+
+#history-button:pressed {
+    -fx-background-color: #5B9B99;
+}
+
+
+  /*--------------- CONTROL PANEL BUTTON ---------------*/
+
+#control-panel-button {
+    -fx-border-radius: 25px;
+    -fx-background-radius: 25px;
+    -fx-background-color: #F9FEE7;
+    -fx-border-color: black;
+    -fx-border-width: 2;
+    -fx-text-fill: black;
+    -fx-font-weight: bold;
+    -fx-font-size: 16px;
+    -fx-padding: 10px 20px;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.25), 8, 0.3, 0, 3);
+    -fx-cursor: hand;
+}
+
+#control-panel-button:hover {
+    -fx-background-color: #F5F9D5;
+    -fx-border-color: #2C3E50;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.35), 12, 0.4, 0, 4);
+    -fx-scale-x: 1.03;
+    -fx-scale-y: 1.03;
+}
+
+#control-panel-button:pressed {
+    -fx-background-color: #E8F0C0;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.15), 4, 0.2, 0, 1);
+    -fx-scale-x: 0.98;
+    -fx-scale-y: 0.98;
+    -fx-translate-y: 2px;
+}
+
+  /*--------------- DISPLAY AREA (STATUS CARDS) ---------------*/
+
+#display-area {
+    -fx-border-radius: 30px;
+    -fx-background-radius: 30px;
+    -fx-background-color: #F1F6F8;
+    -fx-border-color: black;
+    -fx-border-width: 2;
+    -fx-text-fill: black;
+    -fx-font-weight: bold;
+    -fx-font-size: 20px;
+    -fx-padding: 10px 20px;
+}
+
+
+/*--------------- CONTROL PANEL ---------------*/
+
+.control-surface {
+    -fx-background-color: white;
+    -fx-border-color: black;
+    -fx-border-width: 2;
+    -fx-background-radius: 30;
+    -fx-border-radius: 30;
+    -fx-padding: 24;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.12), 16, 0.25, 0, 4);
+}
+
+.control-card {
+    -fx-background-color: #AFC7B2;
+    -fx-border-color: #AAC7B2;
+    -fx-border-width: 2;
+    -fx-background-radius: 20;
+    -fx-border-radius: 20;
+    -fx-padding: 15;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.20), 6, 0.2, 0, 2);
+    -fx-cursor: hand;
+    -fx-scale-x: 1.0;
+    -fx-scale-y: 1.0;
+    -fx-transition: all 160ms ease-in-out;
+}
+
+.control-card:hover {
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.25), 14, 0.4, 0, 4);
+    -fx-scale-x: 1.02;
+    -fx-scale-y: 1.02;
+}
+
+.control-card-title {
+    -fx-font-family: "Arial";
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: black;
+}
+
+.control-card-value {
+    -fx-font-family: "Arial";
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #222;
+}
+
+.control-card .button {
+    -fx-font-size: 12px;
+    -fx-padding: 4 8;
+}
+
+.label.card-subtle {
+    -fx-font-size: 11px;
+    -fx-opacity: 0.9;
+    -fx-text-fill: #444444;
+}
+
+.transparent-scroll {
+    -fx-background-color: transparent;
+}
+
+.transparent-scroll > .viewport {
+    -fx-background-color: transparent;
+}
+
+/*--------------- Temperature card ---------------*/
+
+.label.temp-current {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-alignment: center;
+}
+
+.label.temp-stat {
+    -fx-font-size: 11px;
+}
+
+.temp-stats-title {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+
+.temp-stats-box {
+    -fx-spacing: 6px;
+}
+
+.progress-bar .track {
+    -fx-background-color: #e6e6e6;
+}
+
+.progress-bar.temp-bar {
+    -fx-accent: #FF5722;
+}
+
+.progress-bar.temp-cold .bar {
+    -fx-accent: #2196F3;
+}
+
+.progress-bar.temp-cool .bar {
+    -fx-accent: #4CAF50;
+}
+
+.progress-bar.temp-optimal .bar {
+    -fx-accent: #8BC34A;
+}
+
+.progress-bar.temp-warm  .bar {
+    -fx-accent: #FF9800;
+}
+
+.progress-bar.temp-hot .bar {
+    -fx-accent: #F44336;
+}
+
+/*--------------- Wind-Speed card ---------------*/
+
+/* Labels */
+
+.current-wind-speed {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+}
+
+.wind-speed-status {
+    -fx-font-size: 12px;
+    -fx-font-style: italic;
+}
+
+.wind-speed-gust {
+    -fx-font-size: 11px;
+}
+
+.wind-speed-stats-title {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+
+.wind-speed-stat {
+    -fx-font-size: 11px;
+}
+
+/* Colors for the Labels */
+
+.wind-speed-calm {
+    -fx-text-fill: #4CAF50;
+}
+.wind-speed-light {
+    -fx-text-fill: #8BC34A;
+}
+
+.wind-speed-breeze {
+    -fx-text-fill: #2196F3;
+}
+
+.wind-speed-moderate {
+    -fx-text-fill: #FF9800;
+}
+
+.wind-speed-strong {
+    -fx-text-fill: #F44336;
+}
+
+.wind-speed-gale {
+    -fx-text-fill: #D32D2F;
+}
+
+/* Progress bar colors */
+
+.progress-bar.wind-speed-bar {
+    -fx-padding: 2, 0, 2, 0;
+}
+
+.progress-bar.wind-speed-calm .bar {
+    -fx-accent: #4CAF50;
+}
+.progress-bar.wind-speed-light .bar {
+    -fx-accent: #8BC34A;
+}
+.progress-bar.wind-speed-breeze .bar {
+    -fx-accent: #2196F3;
+}
+.progress-bar.wind-speed-moderate .bar {
+    -fx-accent: #FF9800;
+}
+.progress-bar.wind-speed-strong .bar {
+    -fx-accent: #F44336;
+}
+.progress-bar.wind-speed-gale .bar {
+    -fx-accent: #D32D2F;
+}
+
+/*--------------- Windows card ---------------*/
+
+.window-auto-info {
+    -fx-font-size: 10px;
+    -fx-text-fill: #888888;
+}
+
+.window-auto-status {
+    -fx-font-size: 11px;
+    -fx-text-fill: #4CAF50
+}
+
+.window-auto-status.active {
+    -fx-text-fill: #4CAF50;
+}
+
+.window-auto-status.standby {
+    -fx-text-fill: #888888;
+}
+
+/*--------------- Valve card ---------------*/
+
+.valve-state {
+    -fx-font-weight: bold;
+}
+
+.valve-state.valve-open {
+    -fx-text-fill: #4CAF50;
+}
+
+.valve-state.valve-closed {
+    -fx-text-fill: #888888;
+}
+
+.valve-flow {
+    -fx-font-size: 11px;
+}
+
+.valve-flow-indicator {
+    -fx-pref-height: 15px;
+}
+
+.valve-flow-indicator.valve-flow-open {
+    -fx-accent: #4CAF50;
+}
+
+.valve-flow-indicator.valve-flow-closed {
+    -fx-accent: #2196F3;
+}
+
+.valve-action-label {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+
+.open-valve-button {
+    -fx-background-color: #4CAF50;
+    -fx-text-fill: white;
+    -fx-font-weight: BOLD;
+}
+
+.open-valve-button:hover {
+    -fx-background-color: #45A049;
+}
+
+.open-valve-button:disabled {
+    -fx-opacity: 0.5;
+}
+
+.close-valve-button {
+    -fx-background-color: #da6655;
+    -fx-text-fill: white;
+    -fx-font-weight: BOLD;
+}
+
+.close-valve-button:hover {
+    -fx-background-color: #b54d3c;
+}
+
+.close-valve-button:disabled {
+    -fx-opacity: 0.5;
+}
+
+.valve-action-label {
+    -fx-font-size: 11px;
+    -fx-font-weight: BOLD;
+}
+
+
+/*--------------- pH Card ---------------*/
+
+/* Status label - base style */
+.ph-status {
+    -fx-font-size: 12px;
+    -fx-font-style: italic;
+    -fx-alignment: CENTER;
+}
+
+/* pH zone colors for status label */
+.ph-status.ph-very-acidic {
+    -fx-text-fill: #f44336;
+    -fx-alignment: CENTER;
+}
+
+.ph-status.ph-acidic {
+    -fx-text-fill: #ff9800;
+    -fx-alignment: CENTER;
+}
+
+.ph-status.ph-slightly-acidic {
+    -fx-text-fill: #8bc34a;
+    -fx-alignment: CENTER;
+}
+
+.ph-status.ph-neutral {
+    -fx-text-fill: #4caf50;
+    -fx-alignment: CENTER;
+}
+
+.ph-status.ph-slightly-alkaline {
+    -fx-text-fill: #2196f3;
+    -fx-alignment: CENTER;
+}
+
+.ph-status.ph-alkaline {
+    -fx-text-fill: #3f51b5;
+    -fx-alignment: CENTER;
+}
+
+.ph-status.ph-very-alkaline {
+    -fx-text-fill: #9c27b0;
+    -fx-alignment: CENTER;
+}
+
+/* pH progress bar - base style */
+.ph-bar {
+    -fx-pref-height: 20px;
+}
+
+/* pH zone colors for progress bar */
+.progress-bar.ph-very-acidic .bar {
+    -fx-accent: #f44336;
+}
+
+.progress-bar.ph-acidic .bar {
+    -fx-accent: #ff9800;
+}
+
+.progress-bar.ph-slightly-acidic .bar {
+    -fx-accent: #8bc34a;
+}
+
+.progress-bar.ph-neutral .bar {
+    -fx-accent: #4caf50;
+}
+
+.progress-bar.ph-slightly-alkaline .bar {
+    -fx-accent: #2196f3;
+}
+
+.progress-bar.ph-alkaline .bar {
+    -fx-accent: #3f51b5;
+}
+
+.progress-bar.ph-very-alkaline .bar {
+    -fx-accent: #9c27b0;
+}
+
+/* Statistics */
+.ph-stat {
+    -fx-font-size: 11px;
+}
+
+.ph-stats-title {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+
+/*--------------- Light Card ---------------*/
+
+.light-intensity-label {
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+}
+
+.light-intensity-slider {
+    -fx-pref-width: 200px;
+}
+
+.light-intensity-slider .track {
+    -fx-background-color: #e0e0e0;
+}
+
+.light-intensity-slider .thumb {
+    -fx-background-color: #ffc107;
+}
+
+.light-intensity-slider .thumb:hover {
+    -fx-background-color: #ffb300;
+}
+
+.light-intensity-slider .bar {
+    -fx-background-color: linear-gradient(to right, #555555, #ffc107);
+}
+
+/*--------------- Humidity Card ---------------*/
+
+.humidity-current {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+}
+
+.humidity-bar {
+    -fx-pref-height: 20px;
+}
+
+.progress-bar.humidity-very-dry .bar {
+    -fx-accent: #f44336;
+}
+
+.progress-bar.humidity-dry .bar {
+    -fx-accent: #ff9800;
+}
+
+.progress-bar.humidity-optimal .bar {
+    -fx-accent: #4caf50;
+}
+
+.progress-bar.humidity-slightly-humid .bar {
+    -fx-accent: #2196f3;
+}
+
+.progress-bar.humidity-humid .bar {
+    -fx-accent: #3f51b5;
+}
+
+.progress-bar.humidity-very-humid .bar {
+    -fx-accent: #9c27b0;
+}
+
+.humidity-stat {
+    -fx-font-size: 11px;
+}
+
+.humidity-stats-title {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+
+/*--------------- Heater Card ---------------*/
+
+.heater-target {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+}
+
+.heater-spinner {
+    -fx-pref-width: 80px;
+}
+
+.heater-spinner .text-field {
+    -fx-alignment: center;
+}
+
+.heater-presets-title {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+
+.heater-preset-button {
+    -fx-background-color: #e3f2fd;
+    -fx-text-fill: #1976d2;
+}
+
+.heater-preset-button:hover {
+    -fx-background-color: #bbdefb;
+}
+
+/*--------------- Fertilizer Card ---------------*/
+
+.fertilizer-status {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+}
+
+.fertilizer-last-dose {
+    -fx-font-size: 11px;
+}
+
+.fertilizer-spinner {
+    -fx-pref-width: 100px;
+}
+
+.fertilizer-spinner .text-field {
+    -fx-alignment: center;
+}
+
+.fertilizer-presets-title {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+
+.fertilizer-quick-button {
+    -fx-background-color: #e8f5e9;
+    -fx-text-fill: #2e7d32;
+}
+
+.fertilizer-quick-button:hover {
+    -fx-background-color: #c8e6c9;
+}
+.progress-bar.fertilizer-bar {
+    -fx-pref-height: 20px;
+}
+
+
+.progress-bar.fertilizer-very-low .bar {
+    -fx-accent: #F44336;
+}
+
+.progress-bar.fertilizer-low .bar {
+    -fx-accent: #ff9800;
+}
+
+.progress-bar.fertilizer-optimal .bar {
+    -fx-accent: #4CAF50;
+}
+
+.progress-bar.fertilizer-high .bar {
+    -fx-accent: #2196f3;
+}
+
+.progress-bar.fertilizer-very-high .bar {
+    -fx-accent: #9c27b0;
+}
+
+/*--------------- Fan Card ---------------*/
+
+.fan-speed {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+}
+
+.fan-slider-label {
+    -fx-font-size: 11px;
+}
+
+.fan-slider {
+    -fx-pref-height: 20px;
+}
+
+.fan-auto-info {
+    -fx-font-size: 10px;
+    -fx-text-fill: #888;
+}
+
+.fan-auto-spinner {
+    -fx-pref-width: 75px;
+}
+
+.fan-auto-spinner .text-field {
+    -fx-alignment: center;
+}
+
+.fan-auto-status {
+    -fx-font-size: 11px;
+    -fx-text-fill: #4caf50;
+    -fx-font-weight: bold;
+}
+
+.fan-auto-note {
+    -fx-font-size: 10px;
+    -fx-font-style: italic;
+    -fx-text-fill: #888;
+}

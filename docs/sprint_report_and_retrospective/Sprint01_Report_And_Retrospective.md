@@ -18,7 +18,7 @@
 
 
 - **Project:**
-  🌱Smart farm
+  Smart farm🌱
 
 ## Completed Work
 ### Finished tasks
@@ -28,7 +28,7 @@ Created main repository with proper branching strategy and commit rules establis
 Implemented folder structure for code, documentation, and reports.
 - [x] **Sprint Report Template:** 
 Created a standardized template for future sprint reports.
-- [] **:** [Description of what was accomplished]
+
 
 ## Partially completed tasks:
 - [◐] **protocol.md Draft:** Status and remaining work ##
@@ -81,7 +81,8 @@ Next Sprint Focus
 - **Priority tasks:** 
     - Sensor integration
     - Actuator integration
-    - Logger
+    - Logger implementation
+    - network intergration
   
 
 - **Expected challenges:** 

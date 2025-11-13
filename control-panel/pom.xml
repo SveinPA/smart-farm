@@ -1,6 +1,6 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
@@ -10,8 +10,10 @@
   </parent>
 
   <artifactId>control-panel</artifactId>
+  <name>Smart-Farm Control Panel</name>
 
   <dependencies>
+    <!-- Felles kode -->
     <dependency>
       <groupId>edu.ntnu.bidata.smg.group8</groupId>
       <artifactId>common</artifactId>
@@ -25,6 +27,13 @@
       <version>23.0.1</version>
     </dependency>
 
+    <!-- ANSI-support -->
+    <dependency>
+      <groupId>org.fusesource.jansi</groupId>
+      <artifactId>jansi</artifactId>
+      <version>2.4.1</version>
+    </dependency>
+
     <!-- Tester -->
     <dependency>
       <groupId>org.junit.jupiter</groupId>
@@ -36,7 +45,7 @@
 
   <build>
     <plugins>
-      <!-- Arver versjon/konfig fra parent -->
+      <!-- Versjoner arves fra root -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
@@ -45,13 +54,25 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
       </plugin>
-      <!-- Dev-kjøring -->
+
+      <!-- JavaFX-kjøring (GUI) -->
       <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>exec-maven-plugin</artifactId>
+        <groupId>org.openjfx</groupId>
+        <artifactId>javafx-maven-plugin</artifactId>
+        <version>0.0.8</version>
         <configuration>
           <mainClass>edu.ntnu.bidata.smg.group8.control.app.ControlPanelMain</mainClass>
         </configuration>
+      </plugin>
+
+      <!-- Konsoll-kjøring (CLI) -->
+      <plugin>
+      <groupId>org.codehaus.mojo</groupId>
+      <artifactId>exec-maven-plugin</artifactId>
+      <version>3.3.0</version>
+      <configuration>
+      <mainClass>edu.ntnu.bidata.smg.group8.control.app.ConsoleControlPanelMain</mainClass>
+      </configuration>
       </plugin>
     </plugins>
   </build>
