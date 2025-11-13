@@ -2,6 +2,7 @@ package edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers;
 
 import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
 import edu.ntnu.bidata.smg.group8.control.logic.command.CommandInputHandler;
+import edu.ntnu.bidata.smg.group8.control.ui.controller.ControlPanelController;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlCard;
 import edu.ntnu.bidata.smg.group8.control.util.UiExecutors;
 import java.io.IOException;
@@ -43,7 +44,7 @@ public class ValveCardController {
   private final ProgressBar flowIndicator;
 
   private CommandInputHandler cmdHandler;
-  private String nodeId;
+  private ControlPanelController controller;
   private final String actuatorKey = "valve";
 
   private volatile boolean suppressSend = false;
@@ -178,7 +179,7 @@ public class ValveCardController {
       closeButton.setDisable(false);
     });
 
-    if (!suppressSend && cmdHandler != null && nodeId != null) {
+    if (!suppressSend && cmdHandler != null && controller != null) {
       sendValveCommandIfNeeded(p);
     }
   }
@@ -215,7 +216,7 @@ public class ValveCardController {
       closeButton.setDisable(true);
     });
 
-    if (!suppressSend && cmdHandler != null && nodeId != null) {
+    if (!suppressSend && cmdHandler != null && controller != null) {
       sendValveCommandIfNeeded(0);
     }
   }
@@ -274,7 +275,7 @@ public class ValveCardController {
   * @param percent the valve opening percentage to send
   */
   private void sendValveCommandIfNeeded(int percent) {
-    if (suppressSend || cmdHandler == null || nodeId == null) {
+    if (suppressSend || cmdHandler == null || controller == null) {
       return;
     }
 
@@ -293,12 +294,18 @@ public class ValveCardController {
   private void sendValveCommandAsync(int value) {
     UiExecutors.execute(() -> {
       try {
+        String nodeId = controller != null ? controller.getSelectedNodeId() : null;
+        if (nodeId == null) {
+          log.warn("Cannot send valve command: no node selected");
+          return;
+        }
+
         log.debug("Attempting to send valve command nodeId={} opening={}%", nodeId, value);
-        cmdHandler.setValue(nodeId, actuatorKey, value); // 0..100 til backend
+        cmdHandler.setValue(nodeId, actuatorKey, value);
         lastSentOpening = value;
         log.info("Valve command sent successfully nodeId={} opening={}%", nodeId, value);
       } catch (IOException e) {
-        log.error("Failed to send valve command nodeId={} opening={}%", nodeId, value, e);
+        log.error("Failed to send valve command opening={}%", value, e);
       }
     });
   }
@@ -336,12 +343,12 @@ public class ValveCardController {
   * Injects required dependencies for this valve card controller.
   *
   * @param cmdHandler the command input handler
-  * @param nodeId the node ID this controller manages
+  * @param controller the main control panel controller
   */
-  public void setDependencies(CommandInputHandler cmdHandler, String nodeId) {
+  public void setDependencies(CommandInputHandler cmdHandler, ControlPanelController controller) {
     this.cmdHandler = Objects.requireNonNull(cmdHandler, "cmdHandler");
-    this.nodeId = Objects.requireNonNull(nodeId, "nodeId");
-    log.debug("ValveCardController dependencies injected (nodeId={})", nodeId);
+    this.controller = Objects.requireNonNull(controller, "controller");
+    log.debug("ValveCardController dependencies injected");
   }
 
   /**

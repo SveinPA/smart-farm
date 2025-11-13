@@ -2,6 +2,7 @@ package edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers;
 
 import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
 import edu.ntnu.bidata.smg.group8.control.logic.command.CommandInputHandler;
+import edu.ntnu.bidata.smg.group8.control.ui.controller.ControlPanelController;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlCard;
 import edu.ntnu.bidata.smg.group8.control.util.UiExecutors;
 import java.io.IOException;
@@ -81,7 +82,7 @@ public class FertilizerCardController {
   private EventHandler<ActionEvent> quickDose200Handler;
 
   private CommandInputHandler cmdHandler;
-  private String nodeId;
+  private ControlPanelController controller;
   private static final String ACTUATOR_KEY = "fertilizer";
 
   private volatile boolean suppressSend = false;
@@ -228,7 +229,7 @@ public class FertilizerCardController {
   * @param amount dose amount in milliliters
   */
   private void sendDoseCommandIfNeeded(int amount) {
-    if (!suppressSend && cmdHandler != null && nodeId != null) {
+    if (!suppressSend && cmdHandler != null && controller != null) {
       sendDoseCommandAsync(amount);
     }
   }
@@ -242,14 +243,23 @@ public class FertilizerCardController {
   private void sendDoseCommandAsync(int amount) {
     UiExecutors.execute(() -> {
       try {
+        String nodeId = controller != null ? controller.getSelectedNodeId() : null;
+        if (nodeId == null) {
+          log.warn("Cannot send fertilizer dose command: no node selected");
+          fx(() -> {
+            statusLabel.setText("Status: Error - No node selected");
+            card.setValueText("ERROR");
+          });
+          return;
+        }
+
         log.debug("Attempting to send fertilizer dose command nodeId={} amount={}ml",
                 nodeId, amount);
         cmdHandler.setValue(nodeId, ACTUATOR_KEY, amount);
         log.info("Fertilizer dose command sent successfully nodeId={} amount={}ml",
                 nodeId, amount);
       } catch (IOException e) {
-        log.error("Failed to send fertilizer dose command nodeId={} amount={}ml",
-                nodeId, amount, e);
+        log.error("Failed to send fertilizer dose command amount={}ml", amount, e);
 
         fx(() -> {
           statusLabel.setText("Status: Error - Command failed");
@@ -365,12 +375,12 @@ public class FertilizerCardController {
   * Injects required dependencies for this fertilizer card controller.
   *
   * @param cmdHandler the command input handler
-  * @param nodeId the node ID this controller manages
+  * @param controller the main control panel controller
   */
-  public void setDependencies(CommandInputHandler cmdHandler, String nodeId) {
+  public void setDependencies(CommandInputHandler cmdHandler, ControlPanelController controller) {
     this.cmdHandler = Objects.requireNonNull(cmdHandler, "cmdHandler");
-    this.nodeId = Objects.requireNonNull(nodeId, "nodeId");
-    log.debug("FertilizerCardController dependencies injected (nodeId={})", nodeId);
+    this.controller = Objects.requireNonNull(controller, "controller");
+    log.debug("FertilizerCardController dependencies injected");
   }
 
   /**
