@@ -87,13 +87,14 @@ public class PanelAgentIntegrationTest {
           byte[] cmdFrame = FrameCodec.readFrame(in);
           String cmdJson = new String(cmdFrame, StandardCharsets.UTF_8);
           if (cmdJson.contains(Protocol.TYPE_ACTUATOR_COMMAND)
-                  && cmdJson.contains("\"nodeId\":\"7\"")
+                  && cmdJson.contains("\"targetNode\":\"7\"")
                   && cmdJson.contains("\"actuator\":\"heater\"")
                   && cmdJson.contains("\"action\":\"SET\"")
                   && cmdJson.contains("\"value\":\"30\"")) {
             commandReceived.countDown();
           }
-        } catch (Exception ignored) { }
+        } catch (Exception ignored) {
+        }
       }, "mock-broker");
       broker.setDaemon(true);
       broker.start();

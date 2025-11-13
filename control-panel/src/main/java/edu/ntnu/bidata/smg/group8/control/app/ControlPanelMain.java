@@ -7,7 +7,10 @@ import edu.ntnu.bidata.smg.group8.control.infra.network.PanelAgent;
 import edu.ntnu.bidata.smg.group8.control.logic.command.CommandInputHandler;
 import edu.ntnu.bidata.smg.group8.control.logic.state.StateStore;
 import edu.ntnu.bidata.smg.group8.control.ui.controller.ControlPanelController;
+import edu.ntnu.bidata.smg.group8.control.ui.controller.DashboardController;
+import edu.ntnu.bidata.smg.group8.control.ui.controller.SceneManager;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlPanelView;
+import edu.ntnu.bidata.smg.group8.control.ui.view.DashboardView;
 import edu.ntnu.bidata.smg.group8.control.util.UiExecutors;
 import java.io.IOException;
 import java.util.Objects;
@@ -27,6 +30,8 @@ public final class ControlPanelMain extends Application {
 
   private PanelAgent agent;
   private ControlPanelController controller;
+  private DashboardController dashboardController;
+  private SceneManager sceneManager;
 
   private DisplayManager consoleDisplay;
 
@@ -42,8 +47,8 @@ public final class ControlPanelMain extends Application {
   */
   @Override
   public void start(Stage stage) {
-    log.info("Starting application (host={} port={} panelId={})",
-            BROKER_HOST(), BROKER_PORT(), PANEL_ID());
+    log.info("Starting application (host={} port={} panelId={} nodeId={})",
+            BROKER_HOST(), BROKER_PORT(), PANEL_ID(), NODE_ID());
 
     try {
       StateStore stateStore = new StateStore();
@@ -59,19 +64,32 @@ public final class ControlPanelMain extends Application {
       }
 
       // TEMPORARY: Always inject test data for GUI development
-//      injectTestData(stateStore);
-//      dynamicDataThread = startDynamicTestData(stateStore);
+      injectTestData(stateStore);
+      dynamicDataThread = startDynamicTestData(stateStore);
 
       CommandInputHandler cmdHandler = new CommandInputHandler(agent);
 
-      ControlPanelView view = new ControlPanelView();
-      controller = new ControlPanelController(view, cmdHandler, stateStore);
+      ControlPanelView controlPanelView = new ControlPanelView();
+      DashboardView dashboardView = new DashboardView();
 
-      if (agent != null) {
-        agent.addNodeListListener(controller::updateAvailableNodes);
-      }
+      controller = new ControlPanelController(controlPanelView, cmdHandler, stateStore, NODE_ID());
+      sceneManager = new SceneManager();
+      sceneManager.registerView("dashboard", dashboardView.getRootNode());
+      sceneManager.registerView("control-panel", controlPanelView.getRootNode());
+      log.info("Views registered with SceneManager");
+
+      dashboardController = new DashboardController(dashboardView, sceneManager);
 
       controller.start();
+      dashboardController.start();
+
+      controlPanelView.getReturnButton().setOnAction(e -> {
+        log.info("Return button clicked");
+        sceneManager.showView("dashboard");
+      });
+
+      sceneManager.showView("dashboard");
+      log.info("DashboardController and ControlPanelController initialized and started");
 
       boolean enableConsoleDisplay = Boolean.parseBoolean(
               System.getProperty("console.display", "false"));
@@ -87,14 +105,14 @@ public final class ControlPanelMain extends Application {
       }
 
       if (enableConsoleInput) {
-        consoleInput = new ConsoleInputLoop(cmdHandler, controller, consoleDisplay, stateStore);
+        consoleInput = new ConsoleInputLoop(cmdHandler, NODE_ID(), consoleDisplay, stateStore);
         consoleInputThread = new Thread(consoleInput, "console-input");
         consoleInputThread.setDaemon(true);
         consoleInputThread.start();
       }
 
       log.debug("Creating Scene with dimensions 1000x700");
-      Scene scene = new Scene(view.getRootNode(), 1000, 700);
+      Scene scene = new Scene(sceneManager.getContainer(), 1000, 700);
 
       String cssPath = "/css/styleSheet.css";
       log.debug("Loading CSS from: {}", cssPath);
@@ -103,7 +121,8 @@ public final class ControlPanelMain extends Application {
                       "stylesheet not found: " + cssPath).toExternalForm());
       log.debug("CSS stylesheet loaded successfully");
 
-      stage.setTitle("Control Panel @ " + BROKER_HOST() + ":" + BROKER_PORT());
+      stage.setTitle("Smart Farm - Dashboard (Node " + NODE_ID()
+              + " @ " + BROKER_HOST() + ":" + BROKER_PORT() + ")");
       stage.setScene(scene);
 
       stage.setOnCloseRequest(e -> shutdown());
@@ -126,10 +145,22 @@ public final class ControlPanelMain extends Application {
   }
 
   /**
-  * Gracefully shuts down the control panel and all its components.
+  * Gracefully shuts down the control panel, and all
+   * its components.
   */
   private void shutdown() {
     log.info("Shutting down Control Panel");
+
+    if (dashboardController != null) {
+      try {
+        dashboardController.stop();
+        log.debug("DashboardController stopped");
+      } catch (Exception e) {
+        log.error("Error stopping dashboard controller", e);
+      } finally {
+        dashboardController = null;
+      }
+    }
 
     if (controller != null) {
       try {
@@ -361,8 +392,6 @@ public final class ControlPanelMain extends Application {
     return testThread;
   }
 
-
-
   /**
   * Main entry point for the application.
 
@@ -412,4 +441,12 @@ public final class ControlPanelMain extends Application {
     return System.getProperty("panel.id", "panel-1");
   }
 
+  /**
+  * Gets the node identifier that this control panel manages.
+  *
+  * @return the node ID
+  */
+  private static String NODE_ID() {
+    return System.getProperty("node.id", "node-1");
+  }
 }

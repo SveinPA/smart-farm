@@ -9,6 +9,8 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
 import javafx.scene.control.ToggleButton;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.util.Duration;
@@ -397,6 +399,31 @@ public class ButtonFactory {
 
     Button button = createButton(text);
     button.setStyle(PRIMARY_STYLE);
+    return button;
+  }
+
+  /**
+   * Creates a return button styled as a primary button.
+   *
+   * @param text the button text
+   * @return a styled return button
+   */
+  public static Button createReturnButton(String text) {
+    log.debug("Creating return button: {}", text);
+
+    Button button = createButton(text);
+
+    Image returnIcon = new Image(ButtonFactory.class.getResourceAsStream("/images/returnIcon.png"));
+    ImageView iconView = new ImageView(returnIcon);
+
+    iconView.setFitWidth(16);
+    iconView.setFitHeight(16);
+
+    button.setGraphic(iconView);
+
+    button.setPrefWidth(105);
+    button.setPrefHeight(50);
+
     return button;
   }
 }

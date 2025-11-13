@@ -22,7 +22,25 @@
 .progress-bar.light-ambient-bar {
     -fx-padding: 2, 0, 2, 0;
 }
+/*--------------- RETURN BUTTON ---------------*/
+#return-button {
+    -fx-font-family: "Inter";
+    -fx-font-weight: BOLD;
+    -fx-background-color: #9bdbdc;
+    -fx-border-color: black;
+    -fx-border-radius: 7;
+    -fx-font-size: 14px;
+    -fx-fill: BLACK;
+}
 
+#return-button:hover {
+    -fx-background-color: #87cfd0;
+    -fx-border-color: #2C3E50;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.35), 12, 0.4, 0, 4);
+    -fx-scale-x: 1.00;
+    -fx-scale-y: 1.00;
+    -fx-cursor: hand;
+}
 
 /*--------------- LIGHT TOGGLE BUTTON ---------------*/
 

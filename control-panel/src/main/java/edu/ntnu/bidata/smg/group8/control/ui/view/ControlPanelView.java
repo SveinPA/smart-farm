@@ -1,6 +1,7 @@
 package edu.ntnu.bidata.smg.group8.control.ui.view;
 
 import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
+import edu.ntnu.bidata.smg.group8.control.ui.factory.ButtonFactory;
 import edu.ntnu.bidata.smg.group8.control.ui.view.cards.FanCardBuilder;
 import edu.ntnu.bidata.smg.group8.control.ui.view.cards.FertilizerCardBuilder;
 import edu.ntnu.bidata.smg.group8.control.ui.view.cards.HeaterCardBuilder;
@@ -15,6 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.control.Button;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.ColumnConstraints;
@@ -41,6 +43,7 @@ public class ControlPanelView {
   private static final Logger log = AppLogger.get(ControlPanelView.class);
 
   private final BorderPane rootNode;
+  private Button returnButton;
 
   private TemperatureCardBuilder temperatureBuilder;
   private HumidityCardBuilder humidityBuilder;
@@ -85,18 +88,22 @@ public class ControlPanelView {
 
     //----------------------------- Upper Border Section ----------------------------//
 
-    // The header bar with application title
-    HBox upperBorder = new HBox();
+    returnButton = ButtonFactory.createReturnButton("Return");
+    returnButton.setId("return-button");
 
-    Text upperBorderTitle = new Text("Control Panel");
-    upperBorderTitle.setId("upper-border-title");
-    upperBorder.getChildren().add(upperBorderTitle);
-    upperBorder.setAlignment(Pos.CENTER);
-    upperBorder.setPadding(new Insets(70, 0, 0, 0));
-    upperBorder.setId("upper-border");
-    rootNode.setTop(upperBorder);
+    Text title = new Text("Control Panel");
+    title.setId("upper-border-title");
 
-    log.debug("Header section created");
+    StackPane header = new StackPane();
+    header.setPadding(new Insets(35, 50, 35, 40));
+
+    StackPane.setAlignment(title, Pos.CENTER);
+
+    StackPane.setAlignment(returnButton, Pos.CENTER_RIGHT);
+
+    header.getChildren().addAll(title, returnButton);
+
+    rootNode.setTop(header);
 
     //----------------------------- Grid Layout ----------------------------//
 
@@ -337,6 +344,15 @@ public class ControlPanelView {
    */
   public ControlCard getFanCard() {
     return fanCard;
+  }
+
+  /**
+   * Gets the return button from the header.
+   *
+   * @return the return Button instance
+   */
+  public Button getReturnButton() {
+    return returnButton;
   }
 }
 
