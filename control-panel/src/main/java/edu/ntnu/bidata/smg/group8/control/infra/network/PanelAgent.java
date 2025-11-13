@@ -6,15 +6,17 @@ import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
 import edu.ntnu.bidata.smg.group8.common.util.JsonBuilder;
 import edu.ntnu.bidata.smg.group8.control.logic.state.StateStore;
 import edu.ntnu.bidata.smg.group8.control.util.FlatJson;
-import java.nio.charset.StandardCharsets;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import org.slf4j.Logger;
@@ -44,7 +46,9 @@ public class PanelAgent implements AutoCloseable {
   private final StateStore state;
   private Thread heartbeatThread;
 
-  private Consumer<List<String>> nodeListListener;
+  private final List<String> availableNodes = new CopyOnWriteArrayList<>();
+
+  private final List<Consumer<List<String>>> nodeListListeners = new CopyOnWriteArrayList<>();
 
   private static final int HEARTBEAT_INTERVAL_MS = 20_000;
 
@@ -226,15 +230,23 @@ public class PanelAgent implements AutoCloseable {
         state.replaceAllNodesFromCsv(csv);
         log.info("NODE_LIST received: {}", csv);
 
-        if (nodeListListener != null && csv != null && !csv.trim().isEmpty()) {
+        if (csv != null && !csv.trim().isEmpty()) {
           List<String> nodeList = java.util.Arrays.asList(csv.split(","));
-
-          nodeList = nodeList.stream()
-                  .map(String::trim)
+          nodeList = nodeList.stream().map(String::trim)
                   .filter(s -> !s.isEmpty())
                   .toList();
-          nodeListListener.accept(nodeList);
-          log.debug("NODE_LIST forwarded to listener: {} nodes", nodeList.size());
+
+          availableNodes.clear();
+          availableNodes.addAll(nodeList);
+
+          notifyNodeListListeners();
+
+          log.debug("NODE_LIST updated: {} nodes available", nodeList.size());
+
+        } else {
+          availableNodes.clear();
+          notifyNodeListListeners();
+          log.info("NODE_LIST received: empty list");
         }
       }
 
@@ -251,6 +263,11 @@ public class PanelAgent implements AutoCloseable {
         if (nid != null) {
           state.setNodeOnline(nid, false);
           log.warn("Node disconnected: {}", nid);
+
+          if (availableNodes.remove(nid)) {
+            log.debug("Removed disconnected node from available list: {}", nid);
+            notifyNodeListListeners();
+          }
         }
       }
 
@@ -401,14 +418,59 @@ public class PanelAgent implements AutoCloseable {
   }
 
   /**
-  * Sets a listener for NODE_LIST updates.
-  *
-  * @param listener callback to receive node list updates
+  * Register a listener that will be notified when the list of
+  * available nodes changes. The listener will be notified immediately
+  * with the current node list, if it's not empty.
+   *
+  * @param listener Consumer that receives the updated node list
   */
-  public void setNodeListListener(Consumer<List<String>> listener) {
-    this.nodeListListener = listener;
+  public void addNodeListListener(Consumer<List<String>> listener) {
+    if (listener == null) {
+      return;
+    }
+
+    nodeListListeners.add(listener);
+
+    if (!availableNodes.isEmpty()) {
+      listener.accept(new ArrayList<>(availableNodes));
+    }
+
+    log.debug("Node list listener registered. Current nodes: {}", availableNodes);
   }
 
+  /**
+  * Returns the current list of available sensor nodes.
+  *
+  * @return copy of the available nodes list
+  */
+  public List<String> getAvailableNodes() {
+    return new ArrayList<>(availableNodes);
+  }
+
+  /**
+   * Notify all registered listeners about node list changes.
+   */
+  public void notifyNodeListListeners() {
+    if (nodeListListeners.isEmpty()) {
+      return;
+    }
+
+    List<String> nodesCopy = new ArrayList<>(availableNodes);
+    for (Consumer<List<String>> listener : nodeListListeners) {
+      try {
+        listener.accept(nodesCopy);
+      } catch (Exception e) {
+        log.error("Error notifying node list listener", e);
+      }
+    }
+  }
+
+  /**
+  * Continuously sens heartbeat messages to the broker to maintain
+  * the connection. This method runs in a separate daemon thread and
+  * send heartbeat messages at regular intervals defined by
+  * HEARTBEAT_INTERVAL_MS.
+  */
   private void heartbeatLoop() {
     log.info("Heartbeat thread started");
 
