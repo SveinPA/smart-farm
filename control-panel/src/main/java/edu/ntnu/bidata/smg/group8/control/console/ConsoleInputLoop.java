@@ -3,6 +3,7 @@ package edu.ntnu.bidata.smg.group8.control.console;
 import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
 import edu.ntnu.bidata.smg.group8.control.logic.command.CommandInputHandler;
 import edu.ntnu.bidata.smg.group8.control.logic.state.StateStore;
+import edu.ntnu.bidata.smg.group8.control.ui.controller.ControlPanelController;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -31,7 +32,7 @@ public class ConsoleInputLoop implements Runnable {
   private final CommandInputHandler cmdHandler;
   private final DisplayManager display;
   private final StateStore stateStore;
-  private final String nodeId;
+  private final ControlPanelController controller;
 
 
   private volatile boolean running = true;
@@ -40,13 +41,15 @@ public class ConsoleInputLoop implements Runnable {
   /**
   * Creates a new console input loop instance.
   *
-  * @param cmdHandler the handler responsible for executing parsed commands.
-  * @param nodeId the identifier of the node to which commands should be sent
+  * @param cmdHandler the handler responsible for executing parsed commands
+  * @param controller the controller for accessing selected node
+  * @param display the display manager
+  * @param stateStore the state store
   */
-  public ConsoleInputLoop(CommandInputHandler cmdHandler, String nodeId,
+  public ConsoleInputLoop(CommandInputHandler cmdHandler, ControlPanelController controller,
                           DisplayManager display, StateStore stateStore) {
     this.cmdHandler = cmdHandler;
-    this.nodeId = nodeId;
+    this.controller = controller;
     this.display = display;
     this.stateStore = stateStore;
   }
@@ -122,13 +125,22 @@ public class ConsoleInputLoop implements Runnable {
 
           try {
             int value = Integer.parseInt(valueStr);
-            cmdHandler.setValue(nodeId, actuator, value);
-            log.info("Command sent: {} {} (nodeId={})", actuator, value, nodeId);
+
+            String targetNodeId = controller != null ? controller.getSelectedNodeId() : null;
+            if (targetNodeId == null) {
+              System.out.println("ERROR: No node selected. Please select a node in the GUI first.");
+              log.warn("Cannot send console command: no node selected");
+              continue;
+            }
+
+            cmdHandler.setValue(targetNodeId, actuator, value);
+            log.info("Command sent: {} {} (nodeId={})", actuator, value, targetNodeId);
 
             boolean optimistic = Boolean.parseBoolean(System.getProperty("panel.optimistic",
                     "true"));
             if (stateStore != null && optimistic) {
-              stateStore.applyActuator(nodeId, actuator, Integer.toString(value), Instant.now());
+              stateStore.applyActuator(targetNodeId, actuator,
+                      Integer.toString(value), Instant.now());
             }
           } catch (NumberFormatException nfe) {
             System.out.println("Value must be integer: " + valueStr);
