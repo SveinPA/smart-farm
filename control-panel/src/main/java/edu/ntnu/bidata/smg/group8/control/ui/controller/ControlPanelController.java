@@ -16,8 +16,11 @@ import edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers.ValveCar
 import edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers.WindSpeedCardController;
 import edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers.WindowsCardController;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlPanelView;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
+import javafx.application.Platform;
 import org.slf4j.Logger;
 
 /**
@@ -42,7 +45,8 @@ public class ControlPanelController {
   private final ControlPanelView view;
   private final CommandInputHandler cmdHandler;
   private final StateStore stateStore;
-  private final String nodeId;
+  private String selectedNodeId;
+  private final List<String> availableNodes = new ArrayList<>();
 
   private FanCardController fanController;
   private FertilizerCardController fertilizerController;
@@ -72,17 +76,16 @@ public class ControlPanelController {
   * @param view the ControlPanelView instance to control
   * @param cmdHandler handler for sending actuator commands
   * @param stateStore state store for subscribing to backend updates
-  * @param nodeId the node ID this panel controls
   */
   public ControlPanelController(ControlPanelView view, CommandInputHandler cmdHandler,
-                                StateStore stateStore, String nodeId) {
+                                StateStore stateStore) {
     this.view = view;
     this.cmdHandler = Objects.requireNonNull(cmdHandler, "cmdHandler");
     this.stateStore = Objects.requireNonNull(stateStore, "stateStore");
-    this.nodeId = Objects.requireNonNull(nodeId, "nodeId");
 
-    log.debug("ControlPanelController created for view class: {} nodeId: {}",
-            view.getClass().getSimpleName(), nodeId);
+
+    log.debug("ControlPanelController created for view class: {}",
+            view.getClass().getSimpleName());
     initializeControllers();
   }
 
@@ -316,7 +319,7 @@ public class ControlPanelController {
         try {
           double lux = Double.parseDouble(sr.value());
           lightController.updateAmbientLight(lux);
-          log.debug("Ambient light sensor updated: {} lux (nodeId={})", lux, nodeId);
+          log.debug("Ambient light sensor updated: {} lux", lux);
         } catch (NumberFormatException e) {
           log.warn("Invalid ambient light value '{}' for nodeId={}", sr.value(), sr.nodeId());
         }
@@ -374,6 +377,63 @@ public class ControlPanelController {
   }
 
   /**
+  * Updates the list of available sensor nodes.
+  * This is called when the broker sends an updated node list.
+  *
+  * @param nodes List of node IDs currently connected to the broker
+  */
+  public void updateAvailableNodes(List<String> nodes) {
+    Platform.runLater(() -> {
+      log.info("Updating available nodes: {}", nodes);
+
+      availableNodes.clear();
+      availableNodes.addAll(nodes);
+
+      if (selectedNodeId == null && !nodes.isEmpty()) {
+        setSelectedNode(nodes.get(0));
+        log.info("Auto-selected first available node: {}", nodes.get(0));
+      }
+
+      if (selectedNodeId != null && !nodes.contains(selectedNodeId)) {
+        log.warn("Previously selected node {} is no longer available", selectedNodeId);
+        selectedNodeId = null;
+      }
+
+    });
+  }
+
+  /**
+  * Sets the currently selected sensor node.
+  * Commands will be sent to this node.
+  *
+  * @param nodeId the node ID to select
+  */
+  public void setSelectedNode(String nodeId) {
+    if (nodeId == null) {
+      log.warn("Attempted to select null node");
+      return;
+    }
+
+    if (!availableNodes.contains(nodeId)) {
+      log.warn("Attempted to select unavailable node: {}", nodeId);
+      return;
+    }
+
+    this.selectedNodeId = nodeId;
+    log.info("Selected node changed to: {}", nodeId);
+
+  }
+
+  /**
+  * Returns the currently selected node ID.
+  *
+  * @return The selected node ID, or null if none selected
+  */
+  public String getSelectedNodeId() {
+    return selectedNodeId;
+  }
+
+  /**
   * Safely invokes the start() method on a controller, if it exists.
   *
   * @param controller the controller instance to start
@@ -392,11 +452,11 @@ public class ControlPanelController {
   }
 
   /**
-   * Injects dependencies (cmdHandler, nodeId) into all card controllers
-   * that support setDependencies().
-   */
+  * Injects dependencies (cmdHandler, controller) into all card controllers
+  * that support setDependencies().
+  */
   private void injectDependencies() {
-    log.debug("Injecting dependencies into card controllers (nodeId={})", nodeId);
+    log.debug("Injecting dependencies into card controllers");
 
     safeInject(fanController, "FanCardController");
     safeInject(fertilizerController, "FertilizerCardController");
@@ -413,7 +473,7 @@ public class ControlPanelController {
   }
 
   /**
-   * Safely invokes setDependencies(cmdHandler, nodeId) on a controller if it exists.
+   * Safely invokes setDependencies(cmdHandler, controller) on a controller if it exists.
    *
    * @param controller the controller instance
    * @param name the descriptive name for logging
@@ -422,8 +482,9 @@ public class ControlPanelController {
     if (controller != null) {
       try {
         controller.getClass()
-                .getMethod("setDependencies", CommandInputHandler.class, String.class)
-                .invoke(controller, cmdHandler, nodeId);
+                .getMethod("setDependencies", CommandInputHandler.class,
+                        ControlPanelController.class)
+                .invoke(controller, cmdHandler, this);
         log.debug("{} dependencies injected", name);
       } catch (NoSuchMethodException e) {
 
