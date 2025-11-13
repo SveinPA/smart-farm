@@ -42,8 +42,8 @@ public final class ControlPanelMain extends Application {
   */
   @Override
   public void start(Stage stage) {
-    log.info("Starting application (host={} port={} panelId={} nodeId={})",
-            BROKER_HOST(), BROKER_PORT(), PANEL_ID(), NODE_ID());
+    log.info("Starting application (host={} port={} panelId={})",
+            BROKER_HOST(), BROKER_PORT(), PANEL_ID());
 
     try {
       StateStore stateStore = new StateStore();
@@ -59,13 +59,18 @@ public final class ControlPanelMain extends Application {
       }
 
       // TEMPORARY: Always inject test data for GUI development
-      injectTestData(stateStore);
-      dynamicDataThread = startDynamicTestData(stateStore);
+//      injectTestData(stateStore);
+//      dynamicDataThread = startDynamicTestData(stateStore);
 
       CommandInputHandler cmdHandler = new CommandInputHandler(agent);
 
       ControlPanelView view = new ControlPanelView();
-      controller = new ControlPanelController(view, cmdHandler, stateStore, NODE_ID());
+      controller = new ControlPanelController(view, cmdHandler, stateStore);
+
+      if (agent != null) {
+        agent.addNodeListListener(controller::updateAvailableNodes);
+      }
+
       controller.start();
 
       boolean enableConsoleDisplay = Boolean.parseBoolean(
@@ -82,7 +87,7 @@ public final class ControlPanelMain extends Application {
       }
 
       if (enableConsoleInput) {
-        consoleInput = new ConsoleInputLoop(cmdHandler, NODE_ID(), consoleDisplay, stateStore);
+        consoleInput = new ConsoleInputLoop(cmdHandler, controller, consoleDisplay, stateStore);
         consoleInputThread = new Thread(consoleInput, "console-input");
         consoleInputThread.setDaemon(true);
         consoleInputThread.start();
@@ -98,8 +103,7 @@ public final class ControlPanelMain extends Application {
                       "stylesheet not found: " + cssPath).toExternalForm());
       log.debug("CSS stylesheet loaded successfully");
 
-      stage.setTitle("Control Panel - Node " + NODE_ID()
-              + " @ " + BROKER_HOST() + ":" + BROKER_PORT());
+      stage.setTitle("Control Panel @ " + BROKER_HOST() + ":" + BROKER_PORT());
       stage.setScene(scene);
 
       stage.setOnCloseRequest(e -> shutdown());
@@ -408,12 +412,4 @@ public final class ControlPanelMain extends Application {
     return System.getProperty("panel.id", "panel-1");
   }
 
-  /**
-  * Gets the node identifier that this control panel manages.
-  *
-  * @return the node ID
-  */
-  private static String NODE_ID() {
-    return System.getProperty("node.id", "node-1");
-  }
 }
