@@ -2,18 +2,18 @@ package edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers;
 
 import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlCard;
-import javafx.application.Platform;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.ProgressBar;
-import org.slf4j.Logger;
-import java.util.ArrayList;
-import java.util.List;
 import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
-import javafx.scene.control.Dialog;
+import java.util.ArrayList;
+import java.util.List;
+import javafx.application.Platform;
+import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.Dialog;
+import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
+import javafx.scene.control.ProgressBar;
+import org.slf4j.Logger;
 
 /**
 * Controller for the Humidity control card.
@@ -77,7 +77,6 @@ public class HumidityCardController {
   */
   public void start() {
     log.info("Starting HumidityCardController");
-    // TODO: Add initialization logic here
     historyButton.setOnAction(e -> {
       showHistoryDialog();
       log.info("Humidity history button clicked - showing humidity history dialog");
@@ -90,7 +89,6 @@ public class HumidityCardController {
   */
   public void stop() {
     log.info("Stopping HumidityCardController");
-    // TODO: Add cleanup logic here
     historyButton.setOnAction(null);
     log.debug("HumidityCardController stopped successfully");
   }
@@ -107,9 +105,8 @@ public class HumidityCardController {
       double clamped = Math.max(0, Math.min(100, humidity));
       card.setValueText(String.format("%.1f %% RH", clamped));
 
-      // Update progress bar (humidity is already 0-100, convert to 0-1)
       double progress = humidity / 100.0;
-      progress = Math.max(0, Math.min(1, progress)); // Clamp to 0-1
+      progress = Math.max(0, Math.min(1, progress));
       humidityBar.setProgress(progress);
 
       log.trace("Humidity progress bar updated: {} ({}%)",
@@ -181,15 +178,19 @@ public class HumidityCardController {
    */
   private void checkCriticalLevels(double humidity) {
     if (humidity < HUMIDITY_CRITICAL_LOW) {
-      log.warn("CRITICAL: Humidity too low ({}%) - Risk of plant stress and wilting. Consider misting or irrigation.",
+      log.warn("CRITICAL: Humidity too low ({}%) - Risk of plant stress and wilting."
+                      + " Consider misting or irrigation.",
               String.format("%.1f", humidity));
     } else if (humidity > HUMIDITY_CRITICAL_HIGH) {
-      log.warn("CRITICAL: Humidity too high ({}%) - Risk of fungal diseases and mold. Increase ventilation.",
+      log.warn("CRITICAL: Humidity too high ({}%) - Risk of fungal diseases and mold. "
+                      + "Increase ventilation.",
               String.format("%.1f", humidity));
     } else if (humidity < HUMIDITY_DRY) {
-      log.info("NOTICE: Humidity low ({}%) - Monitor plant conditions", String.format("%.1f", humidity));
+      log.info("NOTICE: Humidity low ({}%) - Monitor plant conditions",
+              String.format("%.1f", humidity));
     } else if (humidity > HUMIDITY_SLIGHTLY_HUMID) {
-      log.info("NOTICE: Humidity high ({}%) - Consider increasing ventilation", String.format("%.1f", humidity));
+      log.info("NOTICE: Humidity high ({}%) - Consider increasing ventilation",
+              String.format("%.1f", humidity));
     }
   }
 
@@ -229,7 +230,7 @@ public class HumidityCardController {
                 String.format("%.1f", max));
       }
     });
-    }
+  }
 
   /**
    * Ensures the given runnable executes on the JavaFX Application Thread.
@@ -277,7 +278,7 @@ public class HumidityCardController {
     listView.getItems().setAll(historyEntries);
 
     listView.setPrefSize(450, 300);
-    dialog.getDialogPane().setPrefSize(470,340);
+    dialog.getDialogPane().setPrefSize(470, 340);
     dialog.setResizable(true);
 
     dialog.getDialogPane().setContent(listView);
