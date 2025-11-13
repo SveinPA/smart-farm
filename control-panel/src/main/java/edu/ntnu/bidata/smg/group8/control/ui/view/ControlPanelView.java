@@ -64,6 +64,7 @@ public class ControlPanelView {
   private ControlCard valveCard;
   private ControlCard fertilizerCard;
 
+
   /**
    * Constructs a new Control Panel View with all sensor and actuator cards.
    *
