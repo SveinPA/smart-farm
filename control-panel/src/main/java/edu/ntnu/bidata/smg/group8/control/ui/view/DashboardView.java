@@ -32,6 +32,7 @@ public class DashboardView {
   private static final Logger log = AppLogger.get(DashboardView.class);
 
   private final BorderPane rootNode;
+  private Button controlPanelButton;
 
   // Labels for dynamic sensor values
   private Label humidityValueLabel;
@@ -169,7 +170,7 @@ public class DashboardView {
     log.debug("Window toggle button created and configured");
 
     // Control Panel Button
-    Button controlPanelButton = new Button("CONTROL PANEL");
+    controlPanelButton = new Button("CONTROL PANEL");
     controlPanelButton.setPrefWidth(230);
     controlPanelButton.setPrefHeight(75);
     controlPanelButton.setId("control-panel-button");
@@ -252,7 +253,6 @@ public class DashboardView {
     return card;
   }
 
-
   //TODO: Call this method when receiving humidity data from SensorNode
   /**
   * Updates the humidity display with a new value from the SensorNode.
@@ -298,9 +298,24 @@ public class DashboardView {
     }
   }
 
+  /**
+   * Gets the root node of the DashboardView.
+   *
+   * @return the BorderPane root node
+   */
   public BorderPane getRootNode() {
     return rootNode;
   }
-}
+
 
 // TODO: Add getter methods for buttons if Controller needs access
+
+  /**
+   * Gets the Control Panel button.
+   *
+   * @return the Control Panel Button
+   */
+  public Button getControlPanelButton() {
+    return controlPanelButton;
+  }
+}
