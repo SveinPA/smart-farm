@@ -15,6 +15,7 @@ import edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers.Temperat
 import edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers.ValveCardController;
 import edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers.WindSpeedCardController;
 import edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers.WindowsCardController;
+import edu.ntnu.bidata.smg.group8.control.ui.view.ControlCard;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlPanelView;
 import java.util.ArrayList;
 import java.util.List;
@@ -161,6 +162,7 @@ public class ControlPanelController {
     log.info("Starting ControlPanelController and all card controllers");
 
     injectDependencies();
+    hideAllUnusedCards();
 
     fanSink = ar -> {
       if (!"fan".equalsIgnoreCase(ar.type())) {
@@ -253,6 +255,7 @@ public class ControlPanelController {
       if (!"temp".equalsIgnoreCase(sr.type())) {
         return;
       }
+      showCardIfHidden(view.getTemperatureCard());
       try {
         double temp = Double.parseDouble(sr.value());
         if (temperatureController != null) {
@@ -275,6 +278,7 @@ public class ControlPanelController {
       if (!"hum".equalsIgnoreCase(sr.type())) {
         return;
       }
+      showCardIfHidden(view.getHumidityCard());
       if (humidityController != null) {
         try {
           double humidity = Double.parseDouble(sr.value());
@@ -295,6 +299,7 @@ public class ControlPanelController {
       if (!"wind".equalsIgnoreCase(sr.type())) {
         return;
       }
+      showCardIfHidden(view.getWindSpeedCard());
       try {
         double windSpeed = Double.parseDouble(sr.value());
         if (windSpeedController != null) {
@@ -315,6 +320,7 @@ public class ControlPanelController {
               && !"ambient_light".equalsIgnoreCase(sr.type())) {
         return;
       }
+      showCardIfHidden(view.getLightCard());
       if (lightController != null) {
         try {
           double lux = Double.parseDouble(sr.value());
@@ -332,6 +338,7 @@ public class ControlPanelController {
       if (!"ph".equalsIgnoreCase(sr.type())) {
         return;
       }
+      showCardIfHidden(view.getPHCard());
       if (pHController != null) {
         try {
           double ph = Double.parseDouble(sr.value());
@@ -348,6 +355,7 @@ public class ControlPanelController {
       if (!"fert".equalsIgnoreCase(sr.type())) {
         return;
       }
+      showCardIfHidden(view.getFertilizerCard());
       if (fertilizerController != null) {
         try {
           double nitrogenPpm = Double.parseDouble(sr.value());
@@ -666,5 +674,41 @@ public class ControlPanelController {
     return fanController;
   }
 
+  /**
+   * Hides all cards that are not currently in use.
+   */
+  private void hideAllUnusedCards() {
+    hideCard(view.getTemperatureCard());
+    hideCard(view.getHumidityCard());
+    hideCard(view.getPHCard());
+    hideCard(view.getWindSpeedCard());
+    hideCard(view.getLightCard());
+    hideCard(view.getFertilizerCard());
+ }
+
+  /**
+   * Hides the given card from the UI.
+   *
+   * @param card the ControlCard to hide
+   */
+  private void hideCard(ControlCard card) {
+    card.setVisible(false);
+    card.setManaged(false); // removes it from layout
+  }
+
+
+  /**
+   * Shows the given card if it is currently hidden.
+   *
+   * @param card the ControlCard to show
+   */
+  private void showCardIfHidden(ControlCard card) {
+    Platform.runLater(() -> {
+        if (!card.isVisible()) {
+            card.setVisible(true);
+            card.setManaged(true);
+        }
+    });
+  }
 }
 
