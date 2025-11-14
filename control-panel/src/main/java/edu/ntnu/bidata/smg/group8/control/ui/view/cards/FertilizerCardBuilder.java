@@ -10,8 +10,6 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.Separator;
-import javafx.scene.control.Spinner;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import org.slf4j.Logger;
 
@@ -27,19 +25,14 @@ import org.slf4j.Logger;
 public class FertilizerCardBuilder implements CardBuilder {
   private static final Logger log = AppLogger.get(FertilizerCardBuilder.class);
 
-  private static final int DOSE_MIN = 0;
-  private static final int DOSE_MAX = 500;
-  private static final int DOSE_DEFAULT = 50;
-
   private final ControlCard card;
-
 
   /**
   * Constructs a new fertilizer card builder.
   */
   public FertilizerCardBuilder() {
     this.card = new ControlCard("Fertilizer");
-    card.setValueText("IDLE");
+    card.setValueText("-- ppm");
     log.debug("FertilizerCardBuilder initialized");
     card.getStyleClass().add("sensor-card");
   }
@@ -53,8 +46,10 @@ public class FertilizerCardBuilder implements CardBuilder {
   public ControlCard build() {
     log.info("Building Fertilizer control card");
 
-    Label statusLabel = new Label("Status: Ready");
+    Label statusLabel = new Label("Status: --");
     statusLabel.getStyleClass().addAll("card-subtle", "fertilizer-status");
+    statusLabel.setMaxWidth(Double.MAX_VALUE);
+    statusLabel.setAlignment(Pos.CENTER_LEFT);
 
     Label lastDoseLabel = new Label("Last dose: --");
     lastDoseLabel.getStyleClass().addAll("card-subtle", "fertilizer-last-dose");
@@ -63,65 +58,51 @@ public class FertilizerCardBuilder implements CardBuilder {
     nitrogenBar.setMaxWidth(Double.MAX_VALUE);
     nitrogenBar.setPrefHeight(8);
     nitrogenBar.getStyleClass().addAll("fertilizer-bar", "fertilizer-very-low");
-    VBox nitrogenBox = new VBox(4, statusLabel, nitrogenBar);
-    VBox.setMargin(nitrogenBox, new Insets(10, 0, 10, 0));
-    nitrogenBox.setAlignment(Pos.CENTER_LEFT);
 
-    Spinner<Integer> doseSpinner = new Spinner<>(DOSE_MIN, DOSE_MAX, DOSE_DEFAULT, 10);
-    doseSpinner.setEditable(true);
-    doseSpinner.setPrefWidth(100);
-    doseSpinner.getStyleClass().add("fertilizer-spinner");
+    // Minimum nitrogen level in the last 24h
+    Label minLabel = new Label("Min: -- ppm");
+    minLabel.getStyleClass().addAll("card-subtle", "fertilizer-stat");
+    minLabel.setMaxWidth(Double.MAX_VALUE);
+    minLabel.setAlignment(Pos.CENTER);
 
-    Button applyButton = ButtonFactory.createPrimaryButton("Apply Dose");
+    // Maximum nitrogen level in the last 24h
+    Label maxLabel = new Label("Max: -- ppm");
+    maxLabel.getStyleClass().addAll("card-subtle", "fertilizer-stat");
+    maxLabel.setMaxWidth(Double.MAX_VALUE);
+    maxLabel.setAlignment(Pos.CENTER);
 
-    Label setLabel = new Label("Dose amount:");
-    Label unitLabel = new Label("ml");
+    // Average nitrogen level in the last 24h
+    Label avgLabel = new Label("Avg: -- ppm");
+    avgLabel.getStyleClass().addAll("card-subtle", "fertilizer-stat");
+    avgLabel.setMaxWidth(Double.MAX_VALUE);
+    avgLabel.setAlignment(Pos.CENTER);
 
-    HBox doseRow = new HBox(8, doseSpinner, unitLabel);
-    doseRow.setAlignment(Pos.CENTER);
+    // Label for nitrogen statistics in the last 24h
+    Label statsTitle = new Label("24h Statistics:");
+    statsTitle.getStyleClass().add("fertilizer-stats-title");
+    statsTitle.setMaxWidth(Double.MAX_VALUE);
+    statsTitle.setAlignment(Pos.CENTER);
 
-    VBox doseBox = new VBox(4, setLabel, doseRow);
-    doseBox.setAlignment(Pos.CENTER);
-    VBox.setMargin(doseBox, new Insets(10, 0, 0, 0));
-
-    setLabel.setWrapText(false);
-    unitLabel.setWrapText(false);
-
-    VBox applyBox = new VBox(8, doseBox, applyButton);
-    VBox.setMargin(applyButton, new Insets(0, 0, 10, 0));
-    applyBox.setAlignment(Pos.CENTER);
-
-    Button quickDose50Button = ButtonFactory.createFullWidthButton("Quick Dose (50 ml)");
-    Button quickDose100Button = ButtonFactory.createFullWidthButton("Quick Dose (100 ml)");
-    Button quickDose200Button = ButtonFactory.createFullWidthButton("Quick Dose (200 ml)");
-
-    Label presetsLabel = new Label("Quick doses:");
-    presetsLabel.getStyleClass().add("fertilizer-presets-title");
-
-    VBox presetsBox = new VBox(6, presetsLabel, quickDose50Button, quickDose100Button, quickDose200Button);
-    presetsBox.setAlignment(Pos.CENTER_LEFT);
+    VBox statsBox = new VBox(6, statsTitle, new Separator(), minLabel, avgLabel, maxLabel);
+    statsBox.setAlignment(Pos.CENTER);
+    statsBox.getStyleClass().add("fertilizer-stats-box");
 
     Button historyButton = ButtonFactory.createHistoryButton("History");
     card.getFooter().getChildren().add(historyButton);
 
     card.addContent(
-            lastDoseLabel,
-            nitrogenBox,
+            statusLabel,
             new Separator(),
-            applyBox,
-            new Separator(),
-            presetsBox
+            nitrogenBar,
+            statsBox
     );
 
     var controller = new FertilizerCardController(
             card,
             statusLabel,
-            lastDoseLabel,
-            doseSpinner,
-            applyButton,
-            quickDose50Button,
-            quickDose100Button,
-            quickDose200Button,
+            minLabel,
+            maxLabel,
+            avgLabel,
             historyButton,
             nitrogenBar
     );
