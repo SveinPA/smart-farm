@@ -41,6 +41,7 @@ public class WindowsCardBuilder implements CardBuilder {
     this.card = new ControlCard("Windows");
     card.setValueText("CLOSED");
     log.debug("WindowsCardBuilder initialized with default state: CLOSED, Mode: Manual");
+    card.getStyleClass().add("actuator-card");
   }
 
   /**

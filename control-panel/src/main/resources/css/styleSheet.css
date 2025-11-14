@@ -221,19 +221,26 @@
     -fx-padding: 24;
     -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.12), 16, 0.25, 0, 4);
 }
-
+/*-------- ACTUATOR & SENSORS --------*/
 .control-card {
-    -fx-background-color: #AFC7B2;
-    -fx-border-color: #AAC7B2;
     -fx-border-width: 2;
     -fx-background-radius: 20;
     -fx-border-radius: 20;
     -fx-padding: 15;
-    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.20), 6, 0.2, 0, 2);
     -fx-cursor: hand;
     -fx-scale-x: 1.0;
     -fx-scale-y: 1.0;
     -fx-transition: all 160ms ease-in-out;
+}
+
+.control-card.actuator-card {
+    -fx-background-color: #d3cedf;
+    -fx-border-color: #b7afbf;
+}
+
+.control-card.sensor-card {
+    -fx-background-color: #AFC7B2;
+    -fx-border-color: #7fa386;
 }
 
 .control-card:hover {

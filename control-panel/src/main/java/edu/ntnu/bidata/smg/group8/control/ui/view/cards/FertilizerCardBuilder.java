@@ -41,6 +41,7 @@ public class FertilizerCardBuilder implements CardBuilder {
     this.card = new ControlCard("Fertilizer");
     card.setValueText("IDLE");
     log.debug("FertilizerCardBuilder initialized");
+    card.getStyleClass().add("sensor-card");
   }
 
   /**
