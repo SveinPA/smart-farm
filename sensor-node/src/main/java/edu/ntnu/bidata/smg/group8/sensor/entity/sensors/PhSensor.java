@@ -31,7 +31,7 @@ public class PhSensor extends AbstractSensor {
     private static final String SENSOR_UNIT = "pH";
     private static final double MIN_PH = 4.5;  // Minimum realistic pH (acidic)
     private static final double MAX_PH = 8.5;  // Maximum realistic pH (alkaline)
-    private static final double DRIFT_FACTOR = 0.003;  // 0.3% drift factor (very gradual changes)
+    private static final double DRIFT_FACTOR = 0.025;  // 2.5% drift factor (minimal drift for pH)
 
     /**
      * Constructor for PHSensor. Initializes the pH sensor
@@ -45,6 +45,7 @@ public class PhSensor extends AbstractSensor {
      */
     public PhSensor() {
         super(SENSOR_KEY, SENSOR_UNIT, MIN_PH, MAX_PH);
+        varyReading(1.0); // Randomize starting value
     }
 
     /**

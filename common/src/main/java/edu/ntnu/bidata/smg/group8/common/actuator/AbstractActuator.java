@@ -136,6 +136,7 @@ public abstract class AbstractActuator implements Actuator {
       value = maxValue;
     }
     this.targetValue = value;
+    this.currentValue = value;
 
     // Log the actuation event, debug = Useful debug info during development
     if (originalValue != value) {

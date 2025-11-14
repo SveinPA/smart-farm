@@ -32,7 +32,7 @@ public class FertilizerSensorTest {
     @Test
     void testKeyAndUnit() {
         FertilizerSensor sensor = new FertilizerSensor();
-        assertEquals("fertilizer", sensor.getKey());
+        assertEquals("fert", sensor.getKey());
         assertEquals("ppm", sensor.getUnit());
     }
 
