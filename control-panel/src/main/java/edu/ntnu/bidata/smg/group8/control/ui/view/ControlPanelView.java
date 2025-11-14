@@ -157,6 +157,11 @@ public class ControlPanelView {
     cards.add(lightCard);
     log.trace("Lights card created");
 
+    fertilizerBuilder = new FertilizerCardBuilder();
+    fertilizerCard = fertilizerBuilder.build();
+    cards.add(fertilizerCard);
+    log.trace("Fertilizer card created");
+
     windowsBuilder = new WindowsCardBuilder();
     windowsCard = windowsBuilder.build();
     cards.add(windowsCard);
@@ -176,11 +181,6 @@ public class ControlPanelView {
     valveCard = valveBuilder.build();
     cards.add(valveCard);
     log.trace("Valve card created");
-
-    fertilizerBuilder = new FertilizerCardBuilder();
-    fertilizerCard = fertilizerBuilder.build();
-    cards.add(fertilizerCard);
-    log.trace("Fertilizer card created");
 
     log.debug("All {} control cards created successfully", cards.size());
 
