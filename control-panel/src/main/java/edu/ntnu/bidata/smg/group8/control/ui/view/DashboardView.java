@@ -259,7 +259,7 @@ public class DashboardView {
 
   * @param humidity The humidity value to display
   */
-  public void updateHumidity(String humidity) {
+  public void updateHumidityDisplay(String humidity) {
     log.debug("Updating humidity display to: {}", humidity);
     if (humidityValueLabel != null) {
       humidityValueLabel.setText(humidity);
@@ -274,7 +274,7 @@ public class DashboardView {
 
    * @param temperature The temperature value to display
    */
-  public void updateTemperature(String temperature) {
+  public void updateTemperatureDisplay(String temperature) {
     if (temperatureValueLabel != null) {
       log.debug("Updating temperature display to: {}", temperature);
       temperatureValueLabel.setText(temperature);
