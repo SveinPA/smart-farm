@@ -87,7 +87,6 @@ public class ControlPanelController {
 
     log.debug("ControlPanelController created for view class: {}",
             view.getClass().getSimpleName());
-    initializeControllers();
   }
 
   /**
@@ -164,7 +163,10 @@ public class ControlPanelController {
     createDefaultActuatorCards();
     createDefaultSensorCards();
 
+    initializeControllers();
+
     injectDependencies();
+
     hideAllUnusedCards();
 
     fanSink = ar -> {
