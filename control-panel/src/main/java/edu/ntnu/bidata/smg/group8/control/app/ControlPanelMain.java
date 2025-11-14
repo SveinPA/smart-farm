@@ -20,11 +20,11 @@ import javafx.stage.Stage;
 import org.slf4j.Logger;
 
 /**
-* Entry point for the Smart Greenhouse application.
-*
-* @author Andrea Sandnes
-* @version 16.10.2025
-*/
+ * Entry point for the Smart Greenhouse application.
+ *
+ * @author Andrea Sandnes
+ * @version 16.10.2025
+ */
 public final class ControlPanelMain extends Application {
   private static final Logger log = AppLogger.get(ControlPanelMain.class);
 
@@ -41,10 +41,10 @@ public final class ControlPanelMain extends Application {
   private Thread dynamicDataThread;
 
   /**
-  * Initializes and launches the Control Panel user interface.
-  *
-  * @param stage the primary stage provided by the JavaFX runtime
-  */
+   * Initializes and launches the Control Panel user interface.
+   *
+   * @param stage the primary stage provided by the JavaFX runtime
+   */
   @Override
   public void start(Stage stage) {
     log.info("Starting application (host={} port={} panelId={})",
@@ -63,10 +63,10 @@ public final class ControlPanelMain extends Application {
         // Continue without broker - will use test data
       }
 
-
       CommandInputHandler cmdHandler = new CommandInputHandler(agent);
 
       ControlPanelView controlPanelView = new ControlPanelView();
+
       DashboardView dashboardView = new DashboardView();
 
       controller = new ControlPanelController(controlPanelView, cmdHandler, stateStore);
@@ -138,17 +138,17 @@ public final class ControlPanelMain extends Application {
   }
 
   /**
-  * Stops the JavaFx application gracefully.
-  */
+   * Stops the JavaFx application gracefully.
+   */
   @Override
   public void stop() {
     shutdown();
   }
 
   /**
-  * Gracefully shuts down the control panel, and all
+   * Gracefully shuts down the control panel, and all
    * its components.
-  */
+   */
   private void shutdown() {
     log.info("Shutting down Control Panel");
 
@@ -246,11 +246,11 @@ public final class ControlPanelMain extends Application {
 
 
   /**
-  * Displays error dialog with a title and message.
-  *
-  * @param title the title text of the dialog window
-  * @param message the message to display inside the dialogue
-  */
+   * Displays error dialog with a title and message.
+   *
+   * @param title the title text of the dialog window
+   * @param message the message to display inside the dialogue
+   */
   private void showErrorDialog(String title, String message) {
     javafx.scene.control.Alert alert = new javafx.scene.control.Alert(
             javafx.scene.control.Alert.AlertType.ERROR);
@@ -262,10 +262,10 @@ public final class ControlPanelMain extends Application {
 
 
   /**
-  * Main entry point for the application.
+   * Main entry point for the application.
 
-  * @param args command line arguments
-  */
+   * @param args command line arguments
+   */
   public static void main(String[] args) {
     log.info("Launching Control Panel application");
     try {
@@ -277,19 +277,19 @@ public final class ControlPanelMain extends Application {
   }
 
   /**
-  * Gets the hostname or IP address of the broker.
-  *
-  * @return the broker hostname
-  */
+   * Gets the hostname or IP address of the broker.
+   *
+   * @return the broker hostname
+   */
   private static String BROKER_HOST() {
     return System.getProperty("broker.host", "localhost");
   }
 
   /**
-  * Gets the TCP port number used to connect to the broker.
-  *
-  * @return the broker port number
-  */
+   * Gets the TCP port number used to connect to the broker.
+   *
+   * @return the broker port number
+   */
   private static int BROKER_PORT() {
     String portStr = System.getProperty("broker.port", "23048");
     try {
@@ -302,10 +302,10 @@ public final class ControlPanelMain extends Application {
   }
 
   /**
-  * Gets the unique identifier for this control panel instance.
-  *
-  * @return the panel ID
-  */
+   * Gets the unique identifier for this control panel instance.
+   *
+   * @return the panel ID
+   */
   private static String PANEL_ID() {
     return System.getProperty("panel.id", "panel-1");
   }
