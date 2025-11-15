@@ -55,7 +55,6 @@ public class ButtonFactory {
     button.setGraphic(createSwitchGraphic(button));
 
     log.trace("ON/OFF switch attached successfully");
-
   }
 
   /**
@@ -65,7 +64,7 @@ public class ButtonFactory {
 
   * @param button The ToggleButton to enhance with a switch graphic
   */
-  public static void attachWindowSwitch(ToggleButton button) {
+  public static void attacSwitch(ToggleButton button) {
     log.debug("Attaching OPEN/CLOSE switch to ToggleButton");
 
     button.setContentDisplay((ContentDisplay.RIGHT));

@@ -80,7 +80,8 @@ public final class ControlPanelMain extends Application {
       sceneManager.registerView("control-panel", controlPanelView.getRootNode());
       log.info("Views registered with SceneManager");
 
-      dashboardController = new DashboardController(dashboardView, sceneManager, stateStore);
+      dashboardController = new DashboardController(dashboardView,
+              sceneManager, stateStore,cmdHandler);
 
       controller.start();
       dashboardController.start();

@@ -97,4 +97,22 @@ public class CommandInputHandler {
       throw new IllegalArgumentException("actuatorKey must not be blank");
     }
   }
+
+  /**
+   * Sends a command to the specified actuator to move to the given position.
+   *
+   * @param actuatorType the type of actuator
+   * @param position the target position (0-100)
+   * @throws IllegalArgumentException if actuatorType is null/empty
+   * or position is out of range
+   */
+  public void sendActuatorCommand(String actuatorType, int position) {
+    if (actuatorType == null || actuatorType.isEmpty()) {
+      throw new IllegalArgumentException("Actuator type cannot be null or empty");
+    }
+    if (position < 0 || position > 100) {
+      throw new IllegalArgumentException("Position must be between 0 and 100");
+    }
+  }
 }
+

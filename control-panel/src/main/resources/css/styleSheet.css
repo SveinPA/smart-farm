@@ -44,19 +44,6 @@
 
 /*--------------- LIGHT TOGGLE BUTTON ---------------*/
 
-#light-toggle-button {
-    -fx-border-radius: 25px;
-    -fx-background-radius: 25px;
-    -fx-background-color: #FEE7EA;
-    -fx-border-color: black;
-    -fx-border-width: 2;
-    -fx-text-fill: black;
-    -fx-font-weight: bold;
-    -fx-font-size: 16px;
-    -fx-padding: 10px 20px;
-    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.30), 2, 0, 0, 2);
-}
-
 .light-ambient-stats-box {
     -fx-spacing: 6px;
 }
@@ -429,6 +416,38 @@
 }
 
 /*--------------- Valve card ---------------*/
+#valve-toggle-button {
+    -fx-border-radius: 25px;
+    -fx-background-radius: 25px;
+    -fx-background-color: #efd1d1;
+    -fx-border-color: black;
+    -fx-border-width: 2;
+    -fx-text-fill: black;
+    -fx-font-weight: bold;
+    -fx-font-size: 16px;
+    -fx-padding: 10px 20px;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.30), 2, 0, 0, 2);
+}
+
+#valve-toggle-button .switch-track {
+    -fx-background-color: #F5B7B1;
+    -fx-background-radius: 14;
+    -fx-text-fill: black;
+}
+
+#valve-toggle-button:selected .switch-track {
+    -fx-background-color: #F1948A;
+}
+
+#valve-toggle-button .switch-thumb {
+    -fx-background-color: white;
+    -fx-background-radius: 999;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.25), 6, 0.2, 0, 1);
+}
+
+#valve-toggle-button:selected {
+    -fx-text-fill: black;
+}
 
 .valve-state {
     -fx-font-weight: bold;

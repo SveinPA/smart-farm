@@ -1,6 +1,8 @@
 package edu.ntnu.bidata.smg.group8.control.ui.controller;
 
 import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
+import edu.ntnu.bidata.smg.group8.control.logic.command.CommandInputHandler;
+import edu.ntnu.bidata.smg.group8.control.logic.state.ActuatorReading;
 import edu.ntnu.bidata.smg.group8.control.logic.state.SensorReading;
 import edu.ntnu.bidata.smg.group8.control.logic.state.StateStore;
 import edu.ntnu.bidata.smg.group8.control.ui.view.DashboardView;
@@ -34,6 +36,9 @@ public class DashboardController {
   private Consumer<SensorReading> temperatureSink;
   private Consumer<SensorReading> humiditySink;
   private Consumer<SensorReading> lightSink;
+  private final CommandInputHandler cmdHandler;
+  private Consumer<ActuatorReading> windowActuatorSink;
+  private Integer lastWindowPosition;
 
   /**
    * Constructor for DashboardController.
@@ -41,10 +46,12 @@ public class DashboardController {
    * @param view the DashboardView instance
    * @param sceneManager the SceneManager which handles view navigation
    */
-  public DashboardController(DashboardView view, SceneManager sceneManager, StateStore stateStore) {
+  public DashboardController(DashboardView view, SceneManager sceneManager,
+                             StateStore stateStore, CommandInputHandler cmdHandler) {
     this.view = view;
     this.sceneManager = sceneManager;
     this.stateStore = stateStore;
+    this.cmdHandler = cmdHandler;
     logger.info("DashboardController initialized.");
   }
 
@@ -102,6 +109,32 @@ public class DashboardController {
     };
     stateStore.addSensorSink(lightSink);
 
+    view.getWindowsToggleButton().setOnAction(event -> {
+      boolean currentlyOpen = lastWindowPosition != null && lastWindowPosition > 0;
+      int newPosition = currentlyOpen ? 0 : 50;
+
+      logger.info("Dashboard: user requested window position {}%", newPosition);
+
+      try {
+        cmdHandler.sendActuatorCommand("window", newPosition);
+      } catch (Exception e) {
+        logger.warn("Failed to send window command from dashboard", e);
+      }
+    });
+
+    view.getValveTogglebutton().setOnAction(event -> {
+      boolean currentlyOpen = lastWindowPosition != null && lastWindowPosition > 0;
+      int newPosition = currentlyOpen ? 0 : 50;
+
+      logger.info("Dashboard: user requested valve position {}%", newPosition);
+
+      try {
+        cmdHandler.sendActuatorCommand("valve", newPosition);
+      } catch (Exception e) {
+        logger.warn("Failed to send valve command from dashboard", e);
+      }
+    });
+
     logger.debug("Dashboard Controller started successfully.");
   }
 
@@ -113,5 +146,4 @@ public class DashboardController {
     view.getControlPanelButton().setOnAction(null);
     logger.debug("DashboardController stopped.");
   }
-
 }
