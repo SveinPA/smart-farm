@@ -125,8 +125,9 @@ public final class MessageParser {
     String targetNode = getField(json, FIELD_TARGET_NODE);
     String actuator = getField(json, FIELD_ACTUATOR);
     String action = getField(json, FIELD_ACTION);
+    String value = getField(json, FIELD_VALUE);
 
-    return new ActuatorCommandMessage(type, targetNode, actuator, action);
+    return new ActuatorCommandMessage(type, targetNode, actuator, action, value);
   }
 
   /**

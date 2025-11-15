@@ -291,9 +291,9 @@ public class NodeAgent {
         }
 
         String actuatorKey = msg.getActuator(); // e.g., "fan", "window"
-        String action = msg.getAction(); // e.g., "ON", "OFF", "open", "close", "75.0"
+        String valueStr = msg.getValue(); // e.g., "75.0", "50.0"
 
-        if (actuatorKey == null || action == null) { // Validate fields
+        if (actuatorKey == null || valueStr == null) { // Validate fields
             log.warn("Invalid ACTUATOR_COMMAND (missing actuator or action): {}", msg);
             return;
         }
@@ -305,11 +305,11 @@ public class NodeAgent {
         }
 
         try { // Try to parse action as a numeric value
-            double value = Double.parseDouble(action); // e.g., "75.0" → 75.0
+            double value = Double.parseDouble(valueStr); // e.g., 75.0 for "75.0"
             actuator.act(value); // Execute actuator command
             log.info("Actuator '{}' set to {}", actuatorKey, value);
         } catch (NumberFormatException e) { // Non-numeric action
-            log.error("Invalid numeric value '{}' for actuator '{}'", action, actuatorKey);
+            log.error("Invalid numeric value '{}' for actuator '{}'", valueStr, actuatorKey);
         } catch (Exception e) { // Actuator execution error
             log.error("Failed to execute actuator command for '{}': {}", actuatorKey, e.getMessage());
         }

@@ -28,7 +28,7 @@ import edu.ntnu.bidata.smg.group8.common.sensor.AbstractSensor;
 public class FertilizerSensor extends AbstractSensor {
 
     // Fertilizer (Nitrogen) Sensor Constants
-    private static final String SENSOR_KEY = "fertilizer";
+    private static final String SENSOR_KEY = "fert";
     private static final String SENSOR_UNIT = "ppm";
     private static final double MIN_FERTILIZER = 0.0;     // Depleted/no fertilizer
     private static final double MAX_FERTILIZER = 300.0;   // Very high fertilization
