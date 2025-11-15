@@ -24,7 +24,7 @@ import org.slf4j.Logger;
 * Builder for the Windows Control Card.
  *
 * <p>This builder constructs and configures a comprehensive ControlCard component
-* dedicated to displaying real-time and statis</p>
+* dedicated to displaying real-time and status</p>
 
 * @author Andrea Sandnes
 * @version 27.10.2025

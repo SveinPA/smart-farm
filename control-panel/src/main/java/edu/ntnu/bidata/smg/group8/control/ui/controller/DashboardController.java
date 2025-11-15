@@ -6,10 +6,11 @@ import edu.ntnu.bidata.smg.group8.control.logic.state.ActuatorReading;
 import edu.ntnu.bidata.smg.group8.control.logic.state.SensorReading;
 import edu.ntnu.bidata.smg.group8.control.logic.state.StateStore;
 import edu.ntnu.bidata.smg.group8.control.ui.view.DashboardView;
+
+import java.util.List;
 import java.util.function.Consumer;
 import javafx.application.Platform;
 import org.slf4j.Logger;
-
 
 /**
  * Controller for the dashboard view.
@@ -38,7 +39,9 @@ public class DashboardController {
   private Consumer<SensorReading> lightSink;
   private final CommandInputHandler cmdHandler;
   private Consumer<ActuatorReading> windowActuatorSink;
+  private Consumer<ActuatorReading> valveActuatorSink;
   private Integer lastWindowPosition;
+  private Integer lastValvePosition;
 
   /**
    * Constructor for DashboardController.
@@ -56,17 +59,50 @@ public class DashboardController {
   }
 
   /**
-   * Starts the controller, setting up event handlers.
+   * Starts the controller, setting up event handlers and listeners.
+   *
+   * <p>This method initializes the dashboard by configuring
+   * button actions and registering listeners for sensor
+   * and actuator updates from the StateStore.</p>
    */
   public void start() {
     logger.info("Starting DashboardController");
-    
-    // Navigate to control panel when button clicked
+
     view.getControlPanelButton().setOnAction(event -> {
       logger.info("Control Panel button clicked. Navigating to Control Panel.");
       sceneManager.showView("control-panel");
     });
 
+    setUpSensorListeners();
+    setUpActuatorListeners();
+    setUpToggleButtonHandlers();
+
+    logger.debug("DashboardController started successfully.");
+  }
+
+  /**
+   * Sets up action handlers for the toggle buttons.
+   *
+   * <p>These handlers are called when the user clicks
+   * the toggle buttons in the dashboard view.</p>
+   */
+  private void setUpToggleButtonHandlers() {
+    view.getWindowsToggleButton().setOnAction(event -> {
+      handleWindowToggle();
+    });
+
+    view.getValveTogglebutton().setOnAction(event -> {
+      handleValveToggle();
+    });
+  }
+
+  /**
+   * Sets up listeners for sensors updates from the StateStore.
+   *
+   * <p>These listeners update the dashboard view
+   * when sensor readings change in the system.</p>
+   */
+  private void setUpSensorListeners() {
     temperatureSink = sr -> {
       if (!"temp".equalsIgnoreCase(sr.type())) {
         return;
@@ -104,38 +140,167 @@ public class DashboardController {
         Platform.runLater(() ->
                 view.updateLightStatus(String.format("%.1f m/s", light)));
       } catch (NumberFormatException e) {
-        logger.warn("Invalid wind value '{}' for nodeId={}", sr.value(), sr.nodeId());
+        logger.warn("Invalid light value '{}' for nodeId={}", sr.value(), sr.nodeId());
       }
     };
     stateStore.addSensorSink(lightSink);
+  }
 
-    view.getWindowsToggleButton().setOnAction(event -> {
-      boolean currentlyOpen = lastWindowPosition != null && lastWindowPosition > 0;
-      int newPosition = currentlyOpen ? 0 : 50;
-
-      logger.info("Dashboard: user requested window position {}%", newPosition);
-
-      try {
-        cmdHandler.sendActuatorCommand("window", newPosition);
-      } catch (Exception e) {
-        logger.warn("Failed to send window command from dashboard", e);
+  /**
+   * Sets up listeners for actuator state updates from
+   * the StateStore.
+   *
+   * <p>These listeners update the dashboard view
+   * when actuator states change in the system.</p>
+   */
+  private void setUpActuatorListeners() {
+    windowActuatorSink = ar -> {
+      if (!"window".equalsIgnoreCase(ar.type())) {
+        return;
       }
-    });
+      updateWindowSate(ar);
+    };
+    stateStore.addActuatorSink(windowActuatorSink);
 
-    view.getValveTogglebutton().setOnAction(event -> {
-      boolean currentlyOpen = lastWindowPosition != null && lastWindowPosition > 0;
-      int newPosition = currentlyOpen ? 0 : 50;
-
-      logger.info("Dashboard: user requested valve position {}%", newPosition);
-
-      try {
-        cmdHandler.sendActuatorCommand("valve", newPosition);
-      } catch (Exception e) {
-        logger.warn("Failed to send valve command from dashboard", e);
+    valveActuatorSink = ar -> {
+      if (!"valve".equalsIgnoreCase(ar.type())) {
+        return;
       }
-    });
+      updateValveState(ar);
+    };
+    stateStore.addActuatorSink(valveActuatorSink);
+  }
 
-    logger.debug("Dashboard Controller started successfully.");
+  /**
+   * Updates the window state in the dashboard view.
+   *
+   * <p>The updated state should reflect the latest position of the window actuator
+   * in the system.</p>
+   *
+   * <p>This method updates the window toggle button state
+   * based on the latest actuator reading.</p>
+   *
+   * @param ar the ActuatorReading containing the new state
+   */
+  private void updateWindowSate(ActuatorReading ar) {
+    try {
+      int position = Integer.parseInt(ar.state().trim());
+      lastWindowPosition = position;
+
+      Platform.runLater(() -> {
+        boolean shouldBeSelected = position > 0;
+        if (view.getWindowsToggleButton().isSelected() != shouldBeSelected) {
+          view.getWindowsToggleButton().setSelected(shouldBeSelected);
+        }
+      });
+      logger.debug("Window position updated to {}%", position);
+    } catch (NumberFormatException e) {
+      logger.warn("Invalid window actuator state '{}' for nodeId={}", ar.state(), ar.nodeId());
+    }
+  }
+
+  /**
+   * Updates the valve state in the dashboard view.
+   *
+   * <p>The updated state should reflect the latest position of the valve actuator
+   * in the system.</p>
+   *
+   * <p>This method updates the valve toggle button state
+   * based on the latest actuator reading.</p>
+   *
+   * @param ar the ActuatorReading containing the new state
+   */
+  private void updateValveState(ActuatorReading ar) {
+    try {
+      int position = Integer.parseInt(ar.state().trim());
+      lastValvePosition = position;
+
+      Platform.runLater(() -> {
+        boolean shouldBeSelected = position > 0;
+        if (view.getValveTogglebutton().isSelected() != shouldBeSelected) {
+          view.getValveTogglebutton().setSelected(shouldBeSelected);
+        }
+      });
+      logger.debug("Valve position updated to {}%", position);
+    } catch (NumberFormatException e) {
+      logger.warn("Invalid valve actuator state '{}' for nodeId={}", ar.state(), ar.nodeId());
+    }
+  }
+
+  /**
+   * Handles the window toggle button action in the dashboard view.
+   *
+   * <p>This window should be in sync with the value displayed on the
+   * valve control card in the control panel view.</p>
+   *
+   * <p>This method determines the current state of the window
+   * and sends a command to toggle its position between open and closed.
+   * The state should match the last known position of the window in the system.</p>
+   */
+  private void handleWindowToggle() {
+    boolean currentlyOpen = lastWindowPosition != null && lastWindowPosition > 0;
+    int newPosition = currentlyOpen ? 0 : 50;
+
+    logger.info("Dashboard: user requested window position {}%", newPosition);
+
+    String nodeId = resolveTargetNodeId();
+    // If no node is available, revert the toggle button state
+    if (nodeId == null) {
+      Platform.runLater(() ->
+              view.getWindowsToggleButton().setSelected(currentlyOpen));
+      return;
+    }
+    try {
+        cmdHandler.sendActuatorCommand(nodeId, "window", newPosition);
+    } catch (Exception e) {
+      logger.warn("Failed to send window command from dashboard", e);
+      Platform.runLater(() ->
+              view.getWindowsToggleButton().setSelected(currentlyOpen));
+    }
+  }
+
+  /**
+   * Handles the valve toggle button action in the dashboard view.
+   *
+   * <p>This value should be in sync with the value displayed on the
+   * valve control card in the control panel view.</p>
+   *
+   * <p>This method determines the current state of the valve
+   * and sends a command to toggle its position between open and closed.
+   * The state should match the last known position of the valve in the system.</p>
+   */
+  private void handleValveToggle() {
+    boolean currentlyOpen = lastValvePosition != null && lastValvePosition > 0;
+    int newPosition = currentlyOpen ? 0 : 50;
+
+    logger.info("Dashboard: user requested valve position {}%", newPosition);
+
+    String nodeId = resolveTargetNodeId();
+    // If no node is available, revert the toggle button state
+    if (nodeId == null) {
+      Platform.runLater(() ->
+              view.getValveTogglebutton().setSelected(currentlyOpen));
+      return;
+    }
+
+    try {
+      cmdHandler.sendActuatorCommand( nodeId, "valve", newPosition);
+    } catch (Exception e) {
+      logger.warn("Failed to send valve command from dashboard", e);
+      Platform.runLater(() ->
+              view.getValveTogglebutton().setSelected(currentlyOpen));
+    }
+  }
+
+
+  private String resolveTargetNodeId() {
+    List<String> nodes = stateStore.nodeIds();
+    if (nodes == null || nodes.isEmpty()) {
+      logger.warn("Dashboard: no nodes available for actuator commands");
+      return null;
+    }
+
+    return nodes.get(0);
   }
 
   /**
@@ -143,7 +308,34 @@ public class DashboardController {
    */
   public void stop() {
     logger.info("Stopping DashboardController");
+
     view.getControlPanelButton().setOnAction(null);
+    view.getWindowsToggleButton().setOnAction(null);
+    view.getValveTogglebutton().setOnAction(null);
+
+    // Remove sensor sinks
+    if (temperatureSink != null) {
+      stateStore.removeSensorSink(temperatureSink);
+      temperatureSink = null;
+    }
+    if (humiditySink != null) {
+      stateStore.removeSensorSink(humiditySink);
+      humiditySink = null;
+    }
+    if (lightSink != null) {
+      stateStore.removeSensorSink(lightSink);
+      lightSink = null;
+    }
+
+    // Remove actuator sinks
+    if (windowActuatorSink != null) {
+      stateStore.removeActuatorSink(windowActuatorSink);
+      windowActuatorSink = null;
+    }
+    if (valveActuatorSink != null) {
+      stateStore.removeActuatorSink(valveActuatorSink);
+      valveActuatorSink = null;
+    }
     logger.debug("DashboardController stopped.");
   }
 }

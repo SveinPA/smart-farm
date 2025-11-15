@@ -101,18 +101,30 @@ public class CommandInputHandler {
   /**
    * Sends a command to the specified actuator to move to the given position.
    *
+   * @param nodeId the unique identifier of the node containing the actuator
    * @param actuatorType the type of actuator
    * @param position the target position (0-100)
    * @throws IllegalArgumentException if actuatorType is null/empty
    * or position is out of range
+   * @throws IOException if communication with the node fails
    */
-  public void sendActuatorCommand(String actuatorType, int position) {
-    if (actuatorType == null || actuatorType.isEmpty()) {
+  public void sendActuatorCommand(String nodeId, String actuatorType, int position) throws IOException {
+    if (nodeId == null || nodeId.isBlank()) {
+      throw new IllegalArgumentException("Node ID cannot be null or empty");
+    }
+    if (actuatorType == null || actuatorType.isBlank()) {
       throw new IllegalArgumentException("Actuator type cannot be null or empty");
     }
     if (position < 0 || position > 100) {
       throw new IllegalArgumentException("Position must be between 0 and 100");
     }
+
+    log.info("Sending command: actuator={} position={} to node={}",
+            actuatorType, position, nodeId);
+    log.debug("Sending ACTUATOR_COMMAND nodeId={} actuator={} action=SET value={}",
+            nodeId, actuatorType, position);
+
+    agent.sendActuatorCommand(nodeId, actuatorType, "SET", position);
   }
 }
 
