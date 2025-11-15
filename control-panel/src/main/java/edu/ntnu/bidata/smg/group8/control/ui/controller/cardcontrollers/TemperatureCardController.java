@@ -2,6 +2,9 @@ package edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers;
 
 import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlCard;
+import edu.ntnu.bidata.smg.group8.control.logic.history.HistoricalDataStore;
+import edu.ntnu.bidata.smg.group8.control.logic.history.Statistics;
+import edu.ntnu.bidata.smg.group8.control.util.UiExecutors;
 import javafx.application.Platform;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -13,6 +16,8 @@ import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ScheduledFuture;
 import org.slf4j.Logger;
 
 /**
@@ -46,6 +51,9 @@ public class TemperatureCardController {
   private Label statusLabel = new Label();
 
   private String activeZoneClass;
+
+  private HistoricalDataStore historicalDataStore;
+  private ScheduledFuture<?> statsUpdateTask;
 
 
   /**
@@ -88,10 +96,51 @@ public class TemperatureCardController {
   */
   public void stop() {
     log.info("Stopping TemperatureCardController");
+
+    // Cancel statistics update task
+    if (statsUpdateTask != null && !statsUpdateTask.isCancelled()) {
+      statsUpdateTask.cancel(false);
+      log.debug("Statistics update task cancelled");
+    }
+
     // TODO: Add cleanup logic here
     historyButton.setOnAction(null);
     log.debug("Temperature history button action cleared");
     log.debug("TemperatureCardController stopped successfully");
+  }
+
+  /**
+   * Injects the historical data store and starts periodic statistics updates.
+   * 
+   * @param historicalDataStore the data store for querying 24h statistics
+   */
+  public void setHistoricalDataStore(HistoricalDataStore historicalDataStore) {
+    this.historicalDataStore = historicalDataStore;
+
+    // Start periodic statistics updates (every 30 seconds)
+    statsUpdateTask = UiExecutors.scheduleAtFixedRate(
+      this::updateStatsFromHistory,
+      0, // Initial delay
+      30, // Period
+      TimeUnit.SECONDS
+    );
+
+    log.debug("TemperatureCardController statistics updates started (every 30s)");
+  }
+
+  /**
+   * Queries historical data store and updates statistics display
+   */
+  private void updateStatsFromHistory() {
+    if (historicalDataStore != null) {
+      Statistics stats = historicalDataStore.getStatistics("temp");
+
+      if (stats.isValid()) {
+        updateStatistics(stats.min(), stats.max(), stats.average());
+      } else {
+        log.trace("No valid temperature statistics available yet");
+      }
+    }
   }
 
   /**

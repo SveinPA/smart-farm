@@ -2,6 +2,9 @@ package edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers;
 
 import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlCard;
+import edu.ntnu.bidata.smg.group8.control.logic.history.HistoricalDataStore;
+import edu.ntnu.bidata.smg.group8.control.logic.history.Statistics;
+import edu.ntnu.bidata.smg.group8.control.util.UiExecutors;
 import javafx.application.Platform;
 import javafx.scene.control.*;
 import org.slf4j.Logger;
@@ -9,6 +12,8 @@ import org.slf4j.Logger;
 import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 /**
 * Controller for the pH control card.
@@ -42,6 +47,9 @@ public class PHCardController {
 
   private String previousStatus = null;
   private String activeZoneClass = null;
+
+  private HistoricalDataStore historicalDataStore;
+  private ScheduledFuture<?> statsUpdateTask;
 
 
   /**
@@ -87,9 +95,50 @@ public class PHCardController {
    */
   public void stop() {
     log.info("Stopping PHCardController");
+
+    // Cancel statistics update task
+    if (statsUpdateTask != null && !statsUpdateTask.isCancelled()) {
+      statsUpdateTask.cancel(false);
+      log.debug("Statistics update task cancelled");
+    }
+
     historyButton.setOnAction(null);
     log.debug("pH history button action cleared");
     log.debug("PHCardController stopped successfully");
+  }
+
+  /**
+   * Injects the historical data store and starts periodic statistics updates.
+   * 
+   * @param historicalDataStore the data store for querying 24h statistics
+   */
+  public void setHistoricalDataStore(HistoricalDataStore historicalDataStore) {
+    this.historicalDataStore = historicalDataStore;
+
+    // Start periodic statistics updates (every 30 seconds)
+    statsUpdateTask = UiExecutors.scheduleAtFixedRate(
+      this::updateStatsFromHistory,
+      0, // Initial delay
+      30, // Period
+      TimeUnit.SECONDS
+    );
+
+    log.debug("PHCardController statistics updates started (every 30s)");
+  }
+
+  /**
+   * Queries historical data store and updates statistics display
+   */
+  private void updateStatsFromHistory() {
+    if (historicalDataStore != null) {
+      Statistics stats = historicalDataStore.getStatistics("ph");
+
+      if (stats.isValid()) {
+        updateStatistics(stats.min(), stats.max(), stats.average());
+      } else {
+        log.trace("No valid temperature statistics available yet");
+      }
+    }
   }
 
   /**

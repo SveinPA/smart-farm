@@ -12,6 +12,7 @@ import edu.ntnu.bidata.smg.group8.control.ui.controller.SceneManager;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlPanelView;
 import edu.ntnu.bidata.smg.group8.control.ui.view.DashboardView;
 import edu.ntnu.bidata.smg.group8.control.util.UiExecutors;
+import edu.ntnu.bidata.smg.group8.control.logic.history.HistoricalDataStore;
 import java.io.IOException;
 import java.util.Objects;
 import javafx.application.Application;
@@ -32,6 +33,7 @@ public final class ControlPanelMain extends Application {
   private ControlPanelController controller;
   private DashboardController dashboardController;
   private SceneManager sceneManager;
+  private HistoricalDataStore historicalDataStore;
 
   private DisplayManager consoleDisplay;
 
@@ -53,6 +55,19 @@ public final class ControlPanelMain extends Application {
     try {
       StateStore stateStore = new StateStore();
 
+      // Create historical data store for 24-hour statistics
+      this.historicalDataStore = new HistoricalDataStore();
+
+      // Register historical data store to receive all sensor readings
+      stateStore.addSensorSink(reading -> {
+        try {
+          double value = Double.parseDouble(reading.value());
+          historicalDataStore.addReading(reading.type(), value, reading.ts());
+        } catch (NumberFormatException e) {
+          log.debug("Skipping non-numeric sensor value: {} = {}", reading.type(), reading.value());
+        }
+      });
+
       try {
         agent = new PanelAgent(BROKER_HOST(), BROKER_PORT(), PANEL_ID(), stateStore);
         agent.start();
@@ -69,7 +84,7 @@ public final class ControlPanelMain extends Application {
       ControlPanelView controlPanelView = new ControlPanelView();
       DashboardView dashboardView = new DashboardView();
 
-      controller = new ControlPanelController(controlPanelView, cmdHandler, stateStore);
+      controller = new ControlPanelController(controlPanelView, cmdHandler, stateStore, this.historicalDataStore);
 
       if (agent != null) {
         agent.addNodeListListener(controller::updateAvailableNodes);
