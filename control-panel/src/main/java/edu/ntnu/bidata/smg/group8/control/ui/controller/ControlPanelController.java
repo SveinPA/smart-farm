@@ -17,12 +17,17 @@ import edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers.WindSpee
 import edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers.WindowsCardController;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlCard;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlPanelView;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
+
 import javafx.application.Platform;
+
 import org.slf4j.Logger;
+
+import edu.ntnu.bidata.smg.group8.control.logic.history.HistoricalDataStore;
 
 /**
 * Main controller responsible for managing all control card controllers
@@ -46,6 +51,7 @@ public class ControlPanelController {
   private final ControlPanelView view;
   private final CommandInputHandler cmdHandler;
   private final StateStore stateStore;
+  private final HistoricalDataStore historicalDataStore;
   private String selectedNodeId;
   private final List<String> availableNodes = new ArrayList<>();
 
@@ -79,10 +85,11 @@ public class ControlPanelController {
   * @param stateStore state store for subscribing to backend updates
   */
   public ControlPanelController(ControlPanelView view, CommandInputHandler cmdHandler,
-                                StateStore stateStore) {
+                                StateStore stateStore, HistoricalDataStore historicalDataStore) {
     this.view = view;
     this.cmdHandler = Objects.requireNonNull(cmdHandler, "cmdHandler");
     this.stateStore = Objects.requireNonNull(stateStore, "stateStore");
+    this.historicalDataStore = Objects.requireNonNull(historicalDataStore, "historicalDataStore");
 
 
     log.debug("ControlPanelController created for view class: {}",
@@ -476,6 +483,12 @@ public class ControlPanelController {
     safeInject(valveController, "ValveCardController");
     safeInject(windowsController, "WindowsCardController");
     safeInject(windSpeedController, "WindSpeedCardController");
+    // Inject historical data store into sensor controllers
+    safeInjectHistoricalData(temperatureController, "TemperatureCardController");
+    safeInjectHistoricalData(humidityController, "HumidityCardController");
+    safeInjectHistoricalData(lightController, "LightCardController");
+    safeInjectHistoricalData(pHController, "PHCardController");
+    safeInjectHistoricalData(windSpeedController, "WindSpeedCardController");
 
     log.debug("Dependency injection completed");
   }
@@ -502,6 +515,29 @@ public class ControlPanelController {
       }
     } else {
       log.warn("{} is null, skipping dependency injection", name);
+    }
+  }
+
+  /**
+   * Safely invokes setHistoricalDataStore(historicalDataStore) on sensor controllers.
+   * 
+   * @param controller the sensor controller to inject into
+   * @param name the controller name for logging
+   */
+  private void safeInjectHistoricalData(Object controller, String name) {
+    if (controller != null) {
+      try{
+        controller.getClass()
+          .getMethod("setHistoricalDataStore", HistoricalDataStore.class)
+          .invoke(controller, historicalDataStore);
+      log.debug("{} historical data store injected", name);
+      } catch (NoSuchMethodException e) {
+        log.trace("{} does not have setHistoricalDataStore method (not a sensor card)", name);
+      } catch (Exception e) {
+        log.error("Failed to inject historical data store into {}", name, e);
+      }
+    } else {
+      log.warn("{} is null, skipping historical data injection", name);
     }
   }
 

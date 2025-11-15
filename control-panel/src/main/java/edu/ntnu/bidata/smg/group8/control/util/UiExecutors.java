@@ -91,5 +91,19 @@ public class UiExecutors {
     SCHEDULED_INSTANCE.schedule(task, delay, unit);
   }
 
+  /**
+   * Schedule a task to be executed repeatedly with a fixed rate.
+   * 
+   * @param task the runnable task to schedule
+   * @param initialDelay the initial delay before first execution
+   * @param period the period between successive executions
+   * @param unit the time unit for delay and period values
+   * @return a ScheduledFuture representing pending completion of the task
+   */
+  public static ScheduledFuture<?> scheduleAtFixedRate(Runnable task, long initialDelay,
+    long period, TimeUnit unit) {
+      return SCHEDULED_INSTANCE.scheduleAtFixedRate(task, initialDelay, period, unit);
+    }
+
 
 }
