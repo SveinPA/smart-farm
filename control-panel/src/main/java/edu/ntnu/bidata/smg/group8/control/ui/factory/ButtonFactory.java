@@ -55,25 +55,6 @@ public class ButtonFactory {
     button.setGraphic(createSwitchGraphic(button));
 
     log.trace("ON/OFF switch attached successfully");
-
-  }
-
-  /**
-  * Attaches a custom animated switch graphic to a ToggleButton for window controls.
-  * The switch displays "OPEN" and "CLOSE" Labels with a sliding thumb
-  * animation that transitions smoothly when the button state changes.
-
-  * @param button The ToggleButton to enhance with a switch graphic
-  */
-  public static void attachWindowSwitch(ToggleButton button) {
-    log.debug("Attaching OPEN/CLOSE switch to ToggleButton");
-
-    button.setContentDisplay((ContentDisplay.RIGHT));
-    button.setGraphicTextGap(14);
-    button.setAlignment(Pos.CENTER);
-    button.setGraphic(createWindowSwitchGraphic(button));
-
-    log.trace("OPEN/CLOSE switch attached successfully");
   }
 
   /**

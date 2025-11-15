@@ -94,7 +94,6 @@ public class ControlPanelController {
 
     log.debug("ControlPanelController created for view class: {}",
             view.getClass().getSimpleName());
-    initializeControllers();
   }
 
   /**
@@ -168,7 +167,13 @@ public class ControlPanelController {
   public void start() {
     log.info("Starting ControlPanelController and all card controllers");
 
+    createDefaultActuatorCards();
+    createDefaultSensorCards();
+
+    initializeControllers();
+
     injectDependencies();
+
     hideAllUnusedCards();
 
     fanSink = ar -> {
@@ -357,7 +362,6 @@ public class ControlPanelController {
     };
     stateStore.addSensorSink(phSink);
 
-
     fertilizerSink = sr -> {
       if (!"fert".equalsIgnoreCase(sr.type())) {
         return;
@@ -375,7 +379,6 @@ public class ControlPanelController {
     stateStore.addSensorSink(fertilizerSink);
 
     log.info("All sensor sinks registered successfully");
-
 
     safeStart(fanController, "FanCardController");
     safeStart(fertilizerController, "FertilizerCardController");
@@ -728,10 +731,12 @@ public class ControlPanelController {
    * @param card the ControlCard to hide
    */
   private void hideCard(ControlCard card) {
-    card.setVisible(false);
-    card.setManaged(false); // removes it from layout
+    if (card != null) {
+      card.setVisible(false);
+      card.setManaged(false); // removes it from layout
+      view.reLayoutVisibleCards();
+    }
   }
-
 
   /**
    * Shows the given card if it is currently hidden.
@@ -739,12 +744,43 @@ public class ControlPanelController {
    * @param card the ControlCard to show
    */
   private void showCardIfHidden(ControlCard card) {
-    Platform.runLater(() -> {
+    if (card != null) {
+      Platform.runLater(() -> {
         if (!card.isVisible()) {
-            card.setVisible(true);
-            card.setManaged(true);
+          card.setVisible(true);
+          card.setManaged(true);
+          view.reLayoutVisibleCards();
         }
-    });
+      });
+    }
+  }
+
+  /**
+   * Adds the actuators cards to the control panel view.
+   *
+   * <p>This method adds standard actuator cards such as fan, heater,
+   * windows, and valve to the control panel view.</p>
+   */
+  private void createDefaultActuatorCards() {
+    view.addActuatorCard("fan");
+    view.addActuatorCard("heater");
+    view.addActuatorCard("windows");
+    view.addActuatorCard("valve");
+  }
+
+  /**
+   * Adds the activated sensor cards to the control panel view.
+   *
+   * <p>This method adds standard sensor cards such as temperature, humidity,
+   * pH, wind speed, light, and fertilizer to the control panel view.</p>
+   */
+  private void createDefaultSensorCards() {
+    view.addSensorCard("temp");
+    view.addSensorCard("hum");
+    view.addSensorCard("ph");
+    view.addSensorCard("wind");
+    view.addSensorCard("light");
+    view.addSensorCard("fert");
   }
 }
 

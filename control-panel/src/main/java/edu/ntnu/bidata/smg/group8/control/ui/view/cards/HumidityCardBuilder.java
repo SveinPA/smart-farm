@@ -35,6 +35,7 @@ public class HumidityCardBuilder implements CardBuilder {
     this.card = new ControlCard("Humidity");
     card.setValueText("--%");
     log.debug("HumidityCardBuilder initialized with range [0% - 100%]");
+    card.getStyleClass().add("sensor-card");
   }
 
   /**

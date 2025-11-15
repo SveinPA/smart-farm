@@ -35,6 +35,7 @@ public class PHCardBuilder implements CardBuilder {
     this.card = new ControlCard("pH Level");
     card.setValueText("--");
     log.debug("PHCardBuilder initialized");
+    card.getStyleClass().add("sensor-card");
   }
 
   /**

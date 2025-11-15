@@ -40,6 +40,7 @@ public class HeaterCardBuilder implements CardBuilder {
     card.setValueText("OFF");
     log.debug("HeaterCardBuilder initialized - State: OFF, Range: [{}°C - {}°C]",
             TEMP_MIN, TEMP_MAX);
+    card.getStyleClass().add("actuator-card");
   }
 
   /**

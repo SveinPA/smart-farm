@@ -40,6 +40,7 @@ public class WindSpeedCardBuilder implements CardBuilder {
   public WindSpeedCardBuilder() {
     this.card = new ControlCard("Wind Speed");
     card.setValueText("-- m/s");
+    card.getStyleClass().add("sensor-card");
   }
 
   /**

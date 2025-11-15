@@ -38,6 +38,7 @@ public class ValveCardBuilder implements CardBuilder {
     this.card = new ControlCard("Valve");
     card.setValueText("CLOSED");
     log.debug("ValveCardBuilder initialized with default state: CLOSED");
+    card.getStyleClass().add("actuator-card");
   }
 
   /**

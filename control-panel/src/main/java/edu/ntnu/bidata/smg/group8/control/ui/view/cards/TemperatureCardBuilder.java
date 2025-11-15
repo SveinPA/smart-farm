@@ -35,6 +35,7 @@ public class TemperatureCardBuilder implements CardBuilder {
     card.setValueText("--°C");
 
     log.debug("TemperatureCardBuilder initialized");
+    card.getStyleClass().add("sensor-card");
   }
 
   /**

@@ -39,6 +39,7 @@ public class FanCardBuilder implements CardBuilder {
     this.card = new ControlCard("Fan");
     card.setValueText("OFF");
     log.debug("FanCardBuilder initialized");
+    card.getStyleClass().add("actuator-card");
   }
 
   /**

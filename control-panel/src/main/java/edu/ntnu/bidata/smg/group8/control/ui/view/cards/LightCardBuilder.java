@@ -35,6 +35,7 @@ public class LightCardBuilder implements CardBuilder {
   public LightCardBuilder() {
     this.card = new ControlCard("Lights");
     card.setValueText("-- lx");
+    card.getStyleClass().add("sensor-card");
   }
 
   /**
