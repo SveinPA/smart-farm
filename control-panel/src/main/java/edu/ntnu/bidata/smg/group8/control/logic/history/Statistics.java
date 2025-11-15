@@ -4,6 +4,9 @@ package edu.ntnu.bidata.smg.group8.control.logic.history;
  * Statistical summary of sensor readings over a time period.
  * Contains minimum, maximum, and average values.
  * 
+ * @author Svein Antonsen
+ * @since 15.11.2025
+ * 
  * @param min Minimum value in the time period
  * @param max Maximum value in the time period
  * @param average Average (mean) value in the time period
