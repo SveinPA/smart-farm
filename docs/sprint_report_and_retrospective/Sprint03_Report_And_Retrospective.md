@@ -4,8 +4,8 @@
 
 ## Sprint Overview
 
-- **Sprint period:** 13.10.25 - 27.10.25
-- **Sprint goal:** Complete the fundamental for the project: different nodes, server and GUI
+- **Sprint period:** 27.10.25 - 10.11.25
+- **Sprint goal:** Complete the fundamental for the project: different nodes, integrate logger, server and start connecting this to the GUI
 
 
 - **Group members:** 👥
@@ -19,16 +19,15 @@
 
 ## Completed Work
 ### Finished tasks
-- [] **Task 1:** Create logger, TCP server  and client handler
-- [] **Task 2:** Implement fundamental nodes for sensors
-- [] **Task 3:** Implement fundamental nodes for actuators
-- [] **Task 4:** Control panel view (create GUI windows)
+- [] **Task 1:** Create and integrate logger, TCP server and client handler
+- [] **Task 2:** Work (try finishing) the GUI
+- [] **Task 3:** Clean and start connecting the communication through the console
 
 ## Partially completed tasks:
-- [◐] **Update protocol.md Draft:** Update to match the new implemented features and structures ##
+- [◐] **Update protocol.md Draft:** Update to match the new implemented features and structures
 
 ## Sprint Goals - status
-- Create Logger, TCP server and ClientHandler - ✅ Completed
+- Create and integrate Logger, TCP server and ClientHandler - ✅ Completed
 - Implement fundamental nodes for sensors - ✅ Completed
 - Implement fundamental nodes for actuators - ✅ Completed
 - Control panel view (create GUI windows) - ✅ Completed
@@ -42,7 +41,7 @@
 
 ### What can be improved?
 - Better communication, status updates
-- More pushes to the remote repository
+- More pushes to the remote repository, so others can more easily follow where we are in the process
 
 ### Action items for next sprint:
 1. **Action 1:**
@@ -51,11 +50,10 @@
 - Push more, so others can more easily follow where we are in the process [everyone]
 
 ## Blockers and Challenges during the sprint
-
-- **Blocker/Challenge 1:** [Description and solutions/status]
+- **Blocker/Challenge 1:**
     - Exam project in Statistics can cause time-restrictions
     - Tasks are heavier than expected, can potentially slow down progress
-    - Tasks start depending on each-other´s tasks completion, can cause delays
+    - Tasks start depending on each-other´s tasks completion, can cause delays or merge-conflicts 
 
 ## Next Sprint Focus
 - **Priority tasks:** [List]
@@ -74,14 +72,16 @@
 #### Area 4: GUI
 - Implement PanelAgent class
 - Implement CommandInputHandler class
+- Improve overall GUI and amke sure its relevant
 
 **Expected challenges:** [List]
 - Time constraints due to other academic commitments
 - Lack of experience with certain technologies, potential learning curve and time investment
-- If dependencies between tasks causing delays
+- If dependencies between tasks causing delays or merge-conflicts, it can slow down progress.
 
 **Focus areas:** [List]
 - Everyone keeps to their respective task-areas to ensure steady progress, and avoid merge conflicts
 - Get things done (according to schedule, avoid procrastination)
+- Communicate frequently
 
 --- **Reported by:** Mona Amundsen **Date:** 28.10.25
