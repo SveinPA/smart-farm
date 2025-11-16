@@ -4,8 +4,8 @@
 
 ## Sprint Overview
 
-- **Sprint period:** 13.10.25 - 27.10.25
-- **Sprint goal:** Complete the fundamental for the project: different nodes, server and GUI
+- **Sprint period:** 27.10.25 - 10.11.25
+- **Sprint goal:** Complete the fundamental for the project: different nodes, integrate logger, server and start connecting this to the GUI
 
 
 - **Group members:** 👥
@@ -19,19 +19,12 @@
 
 ## Completed Work
 ### Finished tasks
-- [] **Task 1:** Create logger, TCP server  and client handler
-- [] **Task 2:** Implement fundamental nodes for sensors
-- [] **Task 3:** Implement fundamental nodes for actuators
-- [] **Task 4:** Control panel view (create GUI windows)
-
-## Partially completed tasks:
-- [◐] **Update protocol.md Draft:** Update to match the new implemented features and structures ##
-
-## Sprint Goals - status
-- Create Logger, TCP server and ClientHandler - ✅ Completed
+- Create and integrate Logger, TCP server and ClientHandler - ✅ Completed
 - Implement fundamental nodes for sensors - ✅ Completed
 - Implement fundamental nodes for actuators - ✅ Completed
 - Control panel view (create GUI windows) - ✅ Completed
+
+## Partially completed tasks:
 - Update protocol.md Draft - ⏳ In Progress
 
 ## Retrospective
@@ -39,23 +32,26 @@
 ### What went well?
 - Seems every important task is completed
 - Clear division of initial tasks among team members
+- Team had extra status meeting halfway through the sprint, which resolved issues and prevented unnecessary smelly-code
 
 ### What can be improved?
 - Better communication, status updates
-- More pushes to the remote repository
+- Even more detailed planning, to avoid dependencies between tasks and unnecessary work
 
 ### Action items for next sprint:
 1. **Action 1:**
 - Better communication, and status updates of how our tasks are doing [everyone]
 2. **Action 2:**
 - Push more, so others can more easily follow where we are in the process [everyone]
+3. **Action 3:**
+- Plan and document issues better so everyone knows what issues implies, and reduce unnecessary issues  [everyone]
 
 ## Blockers and Challenges during the sprint
-
-- **Blocker/Challenge 1:** [Description and solutions/status]
-    - Exam project in Statistics can cause time-restrictions
-    - Tasks are heavier than expected, can potentially slow down progress
-    - Tasks start depending on each-other´s tasks completion, can cause delays
+- **Blocker/Challenge 1:**
+    - Exam project in Statistics made it harder to manage time for this project
+    - Tasks are heavier than expected, which caused some member(s) to have way heavy workload
+    - Tasks start depending on each-other´s tasks completion, caused merge-conflict 
+    - Task(s) not fully planned/analyzed before starting implementation, causing unnecessary work
 
 ## Next Sprint Focus
 - **Priority tasks:** [List]
@@ -74,14 +70,21 @@
 #### Area 4: GUI
 - Implement PanelAgent class
 - Implement CommandInputHandler class
+- Improve overall GUI and amke sure its relevant
+#### OVERALL
+- Plan and document issues better so everyone knows what issues implies, and reduce unnecessary issues
+- "Analyze" the tasks and break them down better before, so we can avoid uneven distribution of work, and overworking certain members
+- Ask for help when needed
 
-**Expected challenges:** [List]
+**Expected challenges:** 
 - Time constraints due to other academic commitments
 - Lack of experience with certain technologies, potential learning curve and time investment
-- If dependencies between tasks causing delays
+- If dependencies between tasks causing delays or merge-conflicts, it can slow down progress.
+- Connecting backend to GUI, and making sure the data that is shown is relevant and correct.
 
-**Focus areas:** [List]
+**Focus areas:**
 - Everyone keeps to their respective task-areas to ensure steady progress, and avoid merge conflicts
 - Get things done (according to schedule, avoid procrastination)
+- Communicate frequently
 
 --- **Reported by:** Mona Amundsen **Date:** 28.10.25
