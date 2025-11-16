@@ -182,19 +182,9 @@ public class ControlPanelController {
       }
       try {
         String state = ar.state().toLowerCase().trim();
-        if ("on".equals(state)) {
-          if (fanController != null) {
-            fanController.updateFanSpeed(100);
-          }
-        } else if ("off".equals(state)) {
-          if (fanController != null) {
-            fanController.updateFanSpeed(0);
-          }
-        } else {
-          int speed = Integer.parseInt(ar.state());
-          if (fanController != null) {
-            fanController.updateFanSpeed(speed);
-          }
+        int speed = Integer.parseInt(ar.state());
+        if (fanController != null) {
+          fanController.updateFanSpeed(speed);
         }
       } catch (NumberFormatException e) {
         log.warn("Invalid fan state '{}' for nodeId={}", ar.state(), ar.nodeId());
@@ -208,19 +198,9 @@ public class ControlPanelController {
       }
       try {
         String state = ar.state().toLowerCase().trim();
-        if ("on".equals(state)) {
-          if (heaterController != null) {
-            heaterController.updateHeaterTemperature(25);
-          }
-        } else if ("off".equals(state)) {
-          if (heaterController != null) {
-            heaterController.updateHeaterTemperature(0);
-          }
-        } else {
-          int temp = Integer.parseInt(ar.state());
-          if (heaterController != null) {
-            heaterController.updateHeaterTemperature(temp);
-          }
+        int temp = Integer.parseInt(ar.state());
+        if (heaterController != null) {
+          heaterController.updateHeaterTemperature(temp);
         }
       } catch (NumberFormatException e) {
         log.warn("Invalid heater state '{}' for nodeId={}", ar.state(), ar.nodeId());
