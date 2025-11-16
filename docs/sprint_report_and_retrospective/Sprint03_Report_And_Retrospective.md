@@ -38,22 +38,26 @@
 ### What went well?
 - Seems every important task is completed
 - Clear division of initial tasks among team members
+- Team had extra status meeting halfway through the sprint, which resolved issues and prevented unnecessary smelly-code
 
 ### What can be improved?
 - Better communication, status updates
-- More pushes to the remote repository, so others can more easily follow where we are in the process
+- Even more detailed planning, to avoid dependencies between tasks and unnecessary work
 
 ### Action items for next sprint:
 1. **Action 1:**
 - Better communication, and status updates of how our tasks are doing [everyone]
 2. **Action 2:**
 - Push more, so others can more easily follow where we are in the process [everyone]
+3. **Action 3:**
+- Plan and document issues better so everyone knows what issues implies, and reduce unnecessary issues  [everyone]
 
 ## Blockers and Challenges during the sprint
 - **Blocker/Challenge 1:**
-    - Exam project in Statistics can cause time-restrictions
-    - Tasks are heavier than expected, can potentially slow down progress
-    - Tasks start depending on each-other´s tasks completion, can cause delays or merge-conflicts 
+    - Exam project in Statistics made it harder to manage time for this project
+    - Tasks are heavier than expected, which caused some member(s) to have way heavy workload
+    - Tasks start depending on each-other´s tasks completion, caused merge-conflict 
+    - Task(s) not fully planned/analyzed before starting implementation, causing unnecessary work
 
 ## Next Sprint Focus
 - **Priority tasks:** [List]
@@ -73,11 +77,16 @@
 - Implement PanelAgent class
 - Implement CommandInputHandler class
 - Improve overall GUI and amke sure its relevant
+#### OVERALL
+- Plan and document issues better so everyone knows what issues implies, and reduce unnecessary issues
+- "Analyze" the tasks and break them down better before, so we can avoid uneven distribution of work, and overworking certain members
+- Ask for help when needed
 
 **Expected challenges:** [List]
 - Time constraints due to other academic commitments
 - Lack of experience with certain technologies, potential learning curve and time investment
 - If dependencies between tasks causing delays or merge-conflicts, it can slow down progress.
+- Connecting backend to GUI, and making sure the data that is shown is relevant and correct.
 
 **Focus areas:** [List]
 - Everyone keeps to their respective task-areas to ensure steady progress, and avoid merge conflicts
