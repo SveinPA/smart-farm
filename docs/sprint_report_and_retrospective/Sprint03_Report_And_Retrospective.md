@@ -19,18 +19,12 @@
 
 ## Completed Work
 ### Finished tasks
-- [] **Task 1:** Create and integrate logger, TCP server and client handler
-- [] **Task 2:** Work (try finishing) the GUI
-- [] **Task 3:** Clean and start connecting the communication through the console
-
-## Partially completed tasks:
-- [◐] **Update protocol.md Draft:** Update to match the new implemented features and structures
-
-## Sprint Goals - status
 - Create and integrate Logger, TCP server and ClientHandler - ✅ Completed
 - Implement fundamental nodes for sensors - ✅ Completed
 - Implement fundamental nodes for actuators - ✅ Completed
 - Control panel view (create GUI windows) - ✅ Completed
+
+## Partially completed tasks:
 - Update protocol.md Draft - ⏳ In Progress
 
 ## Retrospective
@@ -82,13 +76,13 @@
 - "Analyze" the tasks and break them down better before, so we can avoid uneven distribution of work, and overworking certain members
 - Ask for help when needed
 
-**Expected challenges:** [List]
+**Expected challenges:** 
 - Time constraints due to other academic commitments
 - Lack of experience with certain technologies, potential learning curve and time investment
 - If dependencies between tasks causing delays or merge-conflicts, it can slow down progress.
 - Connecting backend to GUI, and making sure the data that is shown is relevant and correct.
 
-**Focus areas:** [List]
+**Focus areas:**
 - Everyone keeps to their respective task-areas to ensure steady progress, and avoid merge conflicts
 - Get things done (according to schedule, avoid procrastination)
 - Communicate frequently
