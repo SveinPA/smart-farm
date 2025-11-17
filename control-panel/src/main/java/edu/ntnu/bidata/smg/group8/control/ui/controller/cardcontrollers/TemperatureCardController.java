@@ -1,33 +1,38 @@
 package edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers;
 
 import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
-import edu.ntnu.bidata.smg.group8.control.ui.view.ControlCard;
 import edu.ntnu.bidata.smg.group8.control.logic.history.HistoricalDataStore;
 import edu.ntnu.bidata.smg.group8.control.logic.history.Statistics;
+import edu.ntnu.bidata.smg.group8.control.ui.view.ControlCard;
 import edu.ntnu.bidata.smg.group8.control.util.UiExecutors;
-import javafx.application.Platform;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.ProgressBar;
-import javafx.scene.control.Dialog;
-import javafx.scene.control.ButtonType;
-import javafx.scene.control.ListView;
 import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import javafx.application.Platform;
+import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.Dialog;
+import javafx.scene.control.Label;
+import javafx.scene.control.ListView;
+import javafx.scene.control.ProgressBar;
 import org.slf4j.Logger;
 
 /**
-* Controller for the Temperature control card.
-* This controller coordinates the interaction between the TemperatureCardBuilder UI
-* and the underlying logic it is responsible for.
+ * Controller for the Temperature control card.
+ * This controller coordinates the interaction between the TemperatureCardBuilder UI
+ * and the underlying logic it is responsible for - making this controller responsible
+ * for connecting the UI with backend operations.
+ *
+ * <p>This class handles temperature updates, user interactions, and synchronization
+ * of status updates with the backend system. It also provides real-time
+ * temperature monitoring and color-coded visualization based on defined temperature zones.</p>
 
-* @author Andrea Sandnes & Mona Amundsen
-* @version 28.10.2025
-*/
+ * @author Andrea Sandnes & Mona Amundsen
+ * @version 28.10.2025
+ */
 public class TemperatureCardController {
   private static final Logger log = AppLogger.get(TemperatureCardController.class);
 
@@ -57,15 +62,15 @@ public class TemperatureCardController {
 
 
   /**
-  * Creates a new TemperatureCardController with the specified UI components.
-  *
-  * @param card the main card container
-  * @param temperatureBar progress bar visualizing temperature
-  * @param minLabel label displaying the minimum temperature (24h)
-  * @param maxLabel label displaying the maximum temperature (24h)
-  * @param avgLabel label displaying the average temperature (24h)
-  * @param historyButton button to access historical data
-  */
+   * Creates a new TemperatureCardController with the specified UI components.
+   *
+   * @param card the main card container
+   * @param temperatureBar progress bar visualizing temperature
+   * @param minLabel label displaying the minimum temperature (24h)
+   * @param maxLabel label displaying the maximum temperature (24h)
+   * @param avgLabel label displaying the average temperature (24h)
+   * @param historyButton button to access historical data
+   */
   public TemperatureCardController(ControlCard card, ProgressBar temperatureBar, Label minLabel,
                                    Label maxLabel, Label avgLabel, Button historyButton) {
     this.card = card;
@@ -79,11 +84,10 @@ public class TemperatureCardController {
   }
 
   /**
-  * Initializes event handlers and starts any listeners required by this controller.
-  */
+   * Initializes event handlers and starts any listeners required by this controller.
+   */
   public void start() {
     log.info("Starting TemperatureCardController");
-    // TODO: Add initialization logic here
     historyButton.setOnAction(e -> {
       showHistoryDialog();
       log.info("Temperature history button clicked - showing temperature history dialog");
@@ -92,8 +96,8 @@ public class TemperatureCardController {
   }
 
   /**
-  * Stops this controller and cleans up resources/listeners.
-  */
+   * Stops this controller and cleans up resources/listeners.
+   */
   public void stop() {
     log.info("Stopping TemperatureCardController");
 
@@ -103,7 +107,6 @@ public class TemperatureCardController {
       log.debug("Statistics update task cancelled");
     }
 
-    // TODO: Add cleanup logic here
     historyButton.setOnAction(null);
     log.debug("Temperature history button action cleared");
     log.debug("TemperatureCardController stopped successfully");
@@ -111,7 +114,10 @@ public class TemperatureCardController {
 
   /**
    * Injects the historical data store and starts periodic statistics updates.
-   * 
+   *
+   * <p>The controller will query the historical data store every 30 seconds
+   * to update the 24-hour temperature statistics display.</p>
+
    * @param historicalDataStore the data store for querying 24h statistics
    */
   public void setHistoricalDataStore(HistoricalDataStore historicalDataStore) {
@@ -130,6 +136,10 @@ public class TemperatureCardController {
 
   /**
    * Queries historical data store and updates statistics display
+   * if valid statistics are available.
+   *
+   * <p>This method is called periodically to refresh the 24-hour
+   * temperature statistics.</p>
    */
   private void updateStatsFromHistory() {
     if (historicalDataStore != null) {
@@ -144,10 +154,13 @@ public class TemperatureCardController {
   }
 
   /**
-  * Updates the temperature display.
-  *
-  * @param temperature the current temperature in Celsius
-  */
+   * Updates the temperature display.
+   *
+   * <p>This method is called when new temperature data arrives
+   * from the backend system.</p>
+   *
+   * @param temperature the current temperature in Celsius
+   */
   public void updateTemperature(double temperature) {
     log.info("Temperature updated: {}°C", String.format("%.1f", temperature));
 
@@ -174,10 +187,13 @@ public class TemperatureCardController {
   }
 
   /**
-  * Applies CSS style classes based on temperature zones.
-  *
-  * @param temperature the current temperature
-  */
+   * Applies CSS style classes based on temperature zones.
+   *
+   * <p>The method updates the progress bar's style class
+   * to reflect the current temperature zone (COLD, COOL, OPTIMAL, WARM, HOT).</p>
+   *
+   * @param temperature the current temperature
+   */
   private void applyTemperatureStyle(double temperature) {
     String newClass;
     String zone;
@@ -213,12 +229,15 @@ public class TemperatureCardController {
   }
 
   /**
-  * Updates the statistics display.
-  *
-  * @param min minimum temperature in last 24h
-  * @param max maximum temperature in last 24h
-  * @param avg average temperature in last 24h
-  */
+   * Updates the statistics display.
+   *
+   * <p>This method updates the minimum, maximum, and average temperature
+   * labels based on the provided statistics.</p>
+   *
+   * @param min minimum temperature in last 24h
+   * @param max maximum temperature in last 24h
+   * @param avg average temperature in last 24h
+   */
   public void updateStatistics(double min, double max, double avg) {
     log.debug("Updating 24h statistics - Min: {}°C, Max: {}°C, Avg: {}°C",
             String.format("%.1f", min),
@@ -236,10 +255,14 @@ public class TemperatureCardController {
 
 
   /**
-  * Ensures the given runnable executes on the JavaFX Application Thread.
-  *
-  * @param r the runnable to execute on the FX thread
-  */
+   * Ensures the given runnable executes on the JavaFX Application Thread.
+   *
+   * <p>If already on the FX thread, runs immediately;
+   * otherwise, schedules for later execution.</p>
+   *
+   *
+   * @param r the runnable to execute on the FX thread
+   */
   private static void fx(Runnable r) {
     if (Platform.isFxApplicationThread()) {
       r.run();
@@ -251,7 +274,7 @@ public class TemperatureCardController {
   /**
    * Adds a new entry to the temperature history.
    *
-   * <p>The entry includes the timestamp and temperature value.</p>
+   * <p>The entry includes a timestamp and the temperature value.</p>
    *
    * @param temperature the temperature value to record
    * @param zoneText the status zone associated with the humidity value
@@ -267,7 +290,7 @@ public class TemperatureCardController {
   /**
    * Displays a dialog with the temperature history.
    *
-   * <p>The dialog shows a list of recorded temperature entries.</p>
+   * <p>The dialog shows a list of timestamped temperature readings.</p>
    */
   private void showHistoryDialog() {
     Dialog<Void> dialog = new Dialog<>();

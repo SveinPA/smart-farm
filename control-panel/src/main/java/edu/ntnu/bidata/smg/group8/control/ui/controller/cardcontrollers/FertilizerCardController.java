@@ -19,16 +19,18 @@ import org.slf4j.Logger;
 
 
 /**
-* Controller for the Fertilizer control card.
-*
-* <p>This class handles fertilizer dosing operations, user interactions
-* and synchronization of status updates with the backend system.
-* It also provides real-time nitrogen level monitoring and warnings
-* for potentially harmful dose levels</p>
-*
-* @author Andrea Sandnes & Mona Amundsen
-* @version 28.10.2025
-*/
+ * Controller for the Fertilizer control card UI component. This controller
+ * coordinates the interactions and data updates for the fertilizer system - which
+ * makes this controller responsible for connecting the UI with backend operations.
+ *
+ * <p>This class handles fertilizer dosing operations, user interactions
+ * and synchronization of status updates with the backend system.
+ * It also provides real-time nitrogen level monitoring and warnings
+ * for potentially harmful dose levels</p>
+ *
+ * @author Andrea Sandnes & Mona Amundsen
+ * @version 28.10.2025
+ */
 public class FertilizerCardController {
   private static final Logger log = AppLogger.get(FertilizerCardController.class);
 
@@ -55,16 +57,16 @@ public class FertilizerCardController {
   private double currentNitrogenLevel = 0.0;
 
   /**
-  * Creates a new FertilizerCardController with the specified UI components.
-  *
-  * @param card the main card container
-  * @param statusLabel label displaying fertilizer system status
-  * @param minLabel label showing minimum nitrogen level in the last 24 hours
-  * @param maxLabel label showing maximum nitrogen level in the last 24 hours
-  * @param avgLabel label showing average nitrogen level in the last 24 hours
-  * @param historyButton button to access scheduling configuration
-  * @param nitrogenBar progress bar showing current nitrogen level
-  */
+   * Creates a new FertilizerCardController with the specified UI components.
+   *
+   * @param card the main card container
+   * @param statusLabel label displaying fertilizer system status
+   * @param minLabel label showing minimum nitrogen level in the last 24 hours
+   * @param maxLabel label showing maximum nitrogen level in the last 24 hours
+   * @param avgLabel label showing average nitrogen level in the last 24 hours
+   * @param historyButton button to access scheduling configuration
+   * @param nitrogenBar progress bar showing current nitrogen level
+   */
   public FertilizerCardController(ControlCard card, Label statusLabel,
                                   Label minLabel, Label maxLabel, Label avgLabel,
                                   Button historyButton, ProgressBar nitrogenBar) {
@@ -80,8 +82,8 @@ public class FertilizerCardController {
   }
 
   /**
-  * Initializes event handlers and starts any listeners required by this controller.
-  */
+   * Initializes event handlers and starts any listeners required by this controller.
+   */
   public void start() {
     log.info("Starting FertilizerCardController");
     historyButton.setOnAction(e -> {
@@ -92,8 +94,8 @@ public class FertilizerCardController {
   }
 
   /**
-  * Stops this controller and cleans up resources/listeners.
-  */
+   * Stops this controller and cleans up resources/listeners.
+   */
   public void stop() {
     log.info("Stopping FertilizerCardController");
     historyButton.setOnAction(null);
@@ -101,11 +103,15 @@ public class FertilizerCardController {
   }
 
   /**
-  * Updates the current nitrogen level from sensor reading.
-  * This is called when sensor data arrives from the backend.
-  *
-  * @param nitrogenPpm nitrogen level in parts per million
-  */
+   * Updates the current nitrogen level from sensor reading.
+   * This is called when sensor data arrives from the backend.
+   *
+   * <p>The method updates the UI components to reflect the new nitrogen level,
+   * including the progress bar and status label. It also logs the update
+   * and adds an entry to the fertilizer change history.</p>
+   *
+   * @param nitrogenPpm nitrogen level in parts per million
+   */
   public void updateNitrogenLevel(double nitrogenPpm) {
     log.info("Nitrogen level updated: {} ppm", String.format("%.1f", nitrogenPpm));
     currentNitrogenLevel = nitrogenPpm;
@@ -148,19 +154,13 @@ public class FertilizerCardController {
   }
 
   /**
-  * Gets the current nitrogen level from sensor.
-  *
-  * @return current nitrogen level from sensor
-  */
-  public double getCurrentNitrogenLevel() {
-    return currentNitrogenLevel;
-  }
-
-  /**
-  * Ensures the given runnable executes on the JavaFX Application Thread.
-  *
-  * @param r the runnable to execute on the FX thread
-  */
+   * Ensures the given runnable executes on the JavaFX Application Thread.
+   *
+   * <p>If already on the FX thread, the runnable is executed immediately.
+   * Otherwise, it is scheduled to run later on the FX thread.</p>
+   *
+   * @param r the runnable to execute on the FX thread
+   */
   private static void fx(Runnable r) {
     if (Platform.isFxApplicationThread()) {
       r.run();
@@ -187,6 +187,9 @@ public class FertilizerCardController {
   /**
    * Displays a dialog showing the fertilizer change history.
    * This dialog lists all recorded changes made during the current session.
+   *
+   * <p>The dialog is modal and blocks interaction with the main UI
+   * until closed.</p>
    */
   private void showHistoryDialog() {
     Dialog<Void> dialog = new Dialog<>();

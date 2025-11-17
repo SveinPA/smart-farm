@@ -2,6 +2,7 @@ package edu.ntnu.bidata.smg.group8.control.ui.controller;
 
 import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
 import edu.ntnu.bidata.smg.group8.control.logic.command.CommandInputHandler;
+import edu.ntnu.bidata.smg.group8.control.logic.history.HistoricalDataStore;
 import edu.ntnu.bidata.smg.group8.control.logic.state.ActuatorReading;
 import edu.ntnu.bidata.smg.group8.control.logic.state.SensorReading;
 import edu.ntnu.bidata.smg.group8.control.logic.state.StateStore;
@@ -17,34 +18,28 @@ import edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers.WindSpee
 import edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers.WindowsCardController;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlCard;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlPanelView;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
-
 import javafx.application.Platform;
-
 import org.slf4j.Logger;
 
-import edu.ntnu.bidata.smg.group8.control.logic.history.HistoricalDataStore;
-
 /**
-* Main controller responsible for managing all control card controllers
-* within the greenhouse control panel interface.
-*
-* <p>The ControlPanelController serves as the central hub for coordinating
-*     all individual subsystem controllers such as temperature, humidity,
-*     light, and wind speed. It initializes, starts, and stops each subsystem
-*     controller in a consistent and safe manner.
-*
-*     This design ensures that all UI cards are synchronized and can be
-*     controlled from a single entry point.
-* </p>
+ * Main controller responsible for managing all control card controllers
+ * within the greenhouse control panel interface.
+ *
+ * <p>The ControlPanelController serves as the central hub for coordinating
+ *     all individual subsystem controllers such as temperature, humidity,
+ *     light, and wind speed. It initializes, starts, and stops each subsystem
+ *     controller in a consistent and safe manner.
+ *     This design ensures that all UI cards are synchronized and can be
+ *     controlled from a single entry point.
+ * </p>
 
-* @author Andrea Sandnes
-* @version 28.10.2025
-*/
+ * @author Andrea Sandnes
+ * @version 28.10.2025
+ */
 public class ControlPanelController {
   private static final Logger log = AppLogger.get(ControlPanelController.class);
 
@@ -78,12 +73,13 @@ public class ControlPanelController {
   private Consumer<SensorReading> phSink;
 
   /**
-  * Creates a new ControlPanelController for the given view.
+   * Creates a new ControlPanelController for the given view.
    *
-  * @param view the ControlPanelView instance to control
-  * @param cmdHandler handler for sending actuator commands
-  * @param stateStore state store for subscribing to backend updates
-  */
+   * @param view the ControlPanelView instance to control
+   * @param cmdHandler handler for sending actuator commands
+   * @param stateStore state store for subscribing to backend updates
+   * @param historicalDataStore store for historical sensor data
+   */
   public ControlPanelController(ControlPanelView view, CommandInputHandler cmdHandler,
                                 StateStore stateStore, HistoricalDataStore historicalDataStore) {
     this.view = view;
@@ -97,10 +93,10 @@ public class ControlPanelController {
   }
 
   /**
-  * Initializes all subsystem card controllers using the builders
-  * provided by the view. This method ensures that each UI card has
-  * an active controller linked to its visual component.
-  */
+   * Initializes all subsystem card controllers using the builders
+   * provided by the view. This method ensures that each UI card has
+   * an active controller linked to its visual component.
+   */
   private void initializeControllers() {
     fanController = getControllerFromCard(
             view.getFanCard(), FanCardController.class);
@@ -127,13 +123,13 @@ public class ControlPanelController {
   }
 
   /**
-  * Safely extracts the controller associated with a given card, if available.
-  *
-  * @param card the ControlCard instance
-  * @param expectedType the expected controller class type
-  * @param <T> the controller type
-  * @return the controller instance, or null if not found/wrong type
-  */
+   * Safely extracts the controller associated with a given card, if available.
+   *
+   * @param card the ControlCard instance
+   * @param expectedType the expected controller class type
+   * @param <T> the controller type
+   * @return the controller instance, or null if not found/wrong type
+   */
   private <T> T getControllerFromCard(Object card, Class<T> expectedType) {
     if (card == null) {
       log.warn("Card is null, cannot extract controller for type: "
@@ -162,8 +158,11 @@ public class ControlPanelController {
   }
 
   /**
-  * Starts all card subsystem controllers managed by this control panel.
-  */
+   * Starts all card subsystem controllers managed by this control panel.
+   *
+   * <p>This method initializes default cards, injects dependencies,
+   * registers sensor and actuator sinks, and starts each individual card controller.</p>
+   */
   public void start() {
     log.info("Starting ControlPanelController and all card controllers");
 
@@ -181,7 +180,6 @@ public class ControlPanelController {
         return;
       }
       try {
-        String state = ar.state().toLowerCase().trim();
         int speed = Integer.parseInt(ar.state());
         if (fanController != null) {
           fanController.updateFanSpeed(speed);
@@ -197,7 +195,6 @@ public class ControlPanelController {
         return;
       }
       try {
-        String state = ar.state().toLowerCase().trim();
         int temp = Integer.parseInt(ar.state());
         if (heaterController != null) {
           heaterController.updateHeaterTemperature(temp);
@@ -375,11 +372,11 @@ public class ControlPanelController {
   }
 
   /**
-  * Updates the list of available sensor nodes.
-  * This is called when the broker sends an updated node list.
-  *
-  * @param nodes List of node IDs currently connected to the broker
-  */
+   * Updates the list of available sensor nodes.
+   * This is called when the broker sends an updated node list.
+   *
+   * @param nodes List of node IDs currently connected to the broker
+   */
   public void updateAvailableNodes(List<String> nodes) {
     Platform.runLater(() -> {
       log.info("Updating available nodes: {}", nodes);
@@ -401,11 +398,11 @@ public class ControlPanelController {
   }
 
   /**
-  * Sets the currently selected sensor node.
-  * Commands will be sent to this node.
-  *
-  * @param nodeId the node ID to select
-  */
+   * Sets the currently selected sensor node.
+   * Commands will be sent to this node.
+   *
+   * @param nodeId the node ID to select
+   */
   public void setSelectedNode(String nodeId) {
     if (nodeId == null) {
       log.warn("Attempted to select null node");
@@ -423,20 +420,20 @@ public class ControlPanelController {
   }
 
   /**
-  * Returns the currently selected node ID.
-  *
-  * @return The selected node ID, or null if none selected
-  */
+   * Returns the currently selected node ID.
+   *
+   * @return The selected node ID, or null if none selected
+   */
   public String getSelectedNodeId() {
     return selectedNodeId;
   }
 
   /**
-  * Safely invokes the start() method on a controller, if it exists.
-  *
-  * @param controller the controller instance to start
-  * @param name the descriptive name of the controller for logging
-  */
+   * Safely invokes the start() method on a controller, if it exists.
+   *
+   * @param controller the controller instance to start
+   * @param name the descriptive name of the controller for logging
+   */
   private void safeStart(Object controller, String name) {
     if (controller != null) {
       try {
@@ -450,9 +447,9 @@ public class ControlPanelController {
   }
 
   /**
-  * Injects dependencies (cmdHandler, controller) into all card controllers
-  * that support setDependencies().
-  */
+   * Injects dependencies (cmdHandler, controller) into all card controllers
+   * that support setDependencies().
+   */
   private void injectDependencies() {
     log.debug("Injecting dependencies into card controllers");
 
@@ -503,17 +500,21 @@ public class ControlPanelController {
 
   /**
    * Safely invokes setHistoricalDataStore(historicalDataStore) on sensor controllers.
-   * 
+   *
+   * <p>This method checks if the controller has the appropriate method
+   * and injects the historical data store if available (only sensor
+   * cards has the history option).</p>
+
    * @param controller the sensor controller to inject into
    * @param name the controller name for logging
    */
   private void safeInjectHistoricalData(Object controller, String name) {
     if (controller != null) {
-      try{
+      try {
         controller.getClass()
           .getMethod("setHistoricalDataStore", HistoricalDataStore.class)
-          .invoke(controller, historicalDataStore);
-      log.debug("{} historical data store injected", name);
+            .invoke(controller, historicalDataStore);
+        log.debug("{} historical data store injected", name);
       } catch (NoSuchMethodException e) {
         log.trace("{} does not have setHistoricalDataStore method (not a sensor card)", name);
       } catch (Exception e) {
@@ -525,9 +526,9 @@ public class ControlPanelController {
   }
 
   /**
-  * Stops all subsystem controllers and release associated resources.
-  * Should be called when the control panel is being closed or refreshed.
-  */
+   * Stops all subsystem controllers and release associated resources.
+   * Should be called when the control panel is being closed or refreshed.
+   */
   public void stop() {
     log.info("Stopping ControlPanelController and all card controllers");
 
@@ -589,8 +590,8 @@ public class ControlPanelController {
   }
 
   /**
-  * Safely invokes the method on a controller, if it exists.
-  */
+   * Safely invokes the method on a controller, if it exists.
+   */
   private void safeStop(Object controller, String name) {
     if (controller != null) {
       try {
@@ -604,97 +605,11 @@ public class ControlPanelController {
   }
 
   /**
-  * Returns the instance managed by this controller.
-
-  * @return the wind speed controller
-  */
-  public WindSpeedCardController getWindSpeedController() {
-    return windSpeedController;
-  }
-
-  /**
-   * Returns the instance managed by this controller.
-
-   * @return the windows controller
-   */
-  public WindowsCardController getWindowsController() {
-    return windowsController;
-  }
-
-  /**
-   * Returns the instance managed by this controller.
-
-   * @return the valve controller
-   */
-  public ValveCardController getValveController() {
-    return valveController;
-  }
-
-  /**
-   * Returns the instance managed by this controller.
-
-   * @return the temperature controller
-   */
-  public TemperatureCardController getTemperatureController() {
-    return temperatureController;
-  }
-
-  /**
-   * Returns the instance managed by this controller.
-
-   * @return the pH controller
-   */
-  public PHCardController getPHController() {
-    return pHController;
-  }
-
-  /**
-   * Returns the instance managed by this controller.
-
-   * @return the light controller
-   */
-  public LightCardController getLightController() {
-    return lightController;
-  }
-
-  /**
-   * Returns the instance managed by this controller.
-
-   * @return the humidity controller
-   */
-  public HumidityCardController getHumidityController() {
-    return humidityController;
-  }
-
-  /**
-   * Returns the instance managed by this controller.
-
-   * @return the heater controller
-   */
-  public HeaterCardController getHeaterController() {
-    return heaterController;
-  }
-
-  /**
-   * Returns the instance managed by this controller.
-
-   * @return the fertilizer controller
-   */
-  public FertilizerCardController getFertilizerController() {
-    return fertilizerController;
-  }
-
-  /**
-   * Returns the instance managed by this controller.
-
-   * @return the fan controller
-   */
-  public FanCardController getFanController() {
-    return fanController;
-  }
-
-  /**
-   * Hides all cards that are not currently in use.
+   * Hides all cards that are not currently in use. By using
+   * the hideCard() method.
+   *
+   * <p>This method checks each sensor card and hides it
+   * if no data has been received for it yet.</p>
    */
   private void hideAllUnusedCards() {
     hideCard(view.getTemperatureCard());
@@ -703,10 +618,13 @@ public class ControlPanelController {
     hideCard(view.getWindSpeedCard());
     hideCard(view.getLightCard());
     hideCard(view.getFertilizerCard());
- }
+  }
 
   /**
    * Hides the given card from the UI.
+   *
+   * <p>This method sets the card's visibility to false
+   * and removes it from the layout.</p>
    *
    * @param card the ControlCard to hide
    */

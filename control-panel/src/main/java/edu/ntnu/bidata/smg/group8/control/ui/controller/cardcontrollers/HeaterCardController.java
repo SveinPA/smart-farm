@@ -6,7 +6,6 @@ import edu.ntnu.bidata.smg.group8.control.ui.controller.ControlPanelController;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlCard;
 import edu.ntnu.bidata.smg.group8.control.util.UiExecutors;
 import java.io.IOException;
-import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
@@ -16,17 +15,20 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Spinner;
 import org.slf4j.Logger;
 
-
 /**
-* Controller for the Heater control card.
-*  Handles heater state (ON/OFF) and target temperature settings.
-
-* @author Andrea Sandnes & Mona Amundsen
-* @version 28.10.2025
-*/
+ * Controller for the Heater control card. This controller coordinates
+ * the interactions and data updates for the heater system- and is responsible
+ * for logic related to heater temperature settings in the GUI.
+ *
+ * <p>This class handles heater temperature settings, user interactions,
+ * and synchronization of status updates with the backend system.
+ * It also provides warnings for potentially harmful temperature settings.</p>
+ *
+ * @author Andrea Sandnes & Mona Amundsen
+ * @version 28.10.2025
+ */
 public class HeaterCardController {
   private static final Logger log = AppLogger.get(HeaterCardController.class);
-
 
   private static final int TEMP_COOL = 18;
   private static final int TEMP_MODERATE = 22;
@@ -62,18 +64,17 @@ public class HeaterCardController {
   private volatile boolean suppressSend = false;
   private volatile Integer lastSentTemp = null;
 
-
   /**
-  * Creates a new HeaterCardController with the specified UI components.
-  *
-  * @param card the main card container
-  * @param tempSpinner spinner for setting custom temperature
-  * @param applyButton button to apply custom temperature
-  * @param coolButton button for cool preset (18°C)
-  * @param moderateButton button for moderate preset (22°C)
-  * @param warmButton button for warm preset (26°C)
-  * @param offButton button to turn heater off
-  */
+   * Creates a new HeaterCardController with the specified UI components.
+   *
+   * @param card the main card container
+   * @param tempSpinner spinner for setting custom temperature
+   * @param applyButton button to apply custom temperature
+   * @param coolButton button for cool preset (18°C)
+   * @param moderateButton button for moderate preset (22°C)
+   * @param warmButton button for warm preset (26°C)
+   * @param offButton button to turn heater off
+   */
   public HeaterCardController(ControlCard card,
                               Spinner<Integer> tempSpinner, Button applyButton,
                               Button coolButton, Button moderateButton,
@@ -90,8 +91,11 @@ public class HeaterCardController {
   }
 
   /**
-  * Initializes event handlers and starts any listeners required by this controller.
-  */
+   * Initializes event handlers and starts any listeners required by this controller.
+   *
+   * <p>This method sets up the necessary event handlers for user interactions
+   * with the heater control card, including temperature adjustments and preset buttons.</p>
+   */
   public void start() {
     log.info("Starting HeaterCardController");
 
@@ -126,8 +130,12 @@ public class HeaterCardController {
   }
 
   /**
-  * Stops this controller and cleans up resources/listeners.
-  */
+   * Stops this controller and cleans up resources/listeners.
+   *
+   * <p>This method removes all event handlers and listeners
+   * to prevent memory leaks and unintended behavior when the controller
+   * is no longer needed.</p>
+   */
   public void stop() {
     log.info("Stopping HeaterCardController");
 
@@ -165,10 +173,13 @@ public class HeaterCardController {
   }
 
   /**
-  * Sets the target temperature and updates UI.
-  *
-  * @param temperature the target temperature in Celsius
-  */
+   * Sets the target temperature and updates UI.
+   *
+   * <p>This method updates the UI to reflect the new target temperature,
+   * and sends the command to the backend system if applicable.</p>
+   *
+   * @param temperature the target temperature in Celsius
+   */
   private void setTargetTemperature(int temperature, String source) {
     if (!suppressSend) {
       log.info("Heater target temperature set to {}°C (Source: {})", temperature, source);
@@ -202,8 +213,11 @@ public class HeaterCardController {
   }
 
   /**
-  * Turns off the heater and updates UI.
-  */
+   * Turns off the heater and updates UI.
+   *
+   * <p>This method updates the UI to reflect that the heater is turned off,
+   * and sends the OFF command to the backend system if applicable.</p>
+   */
   private void turnOff() {
     if (!suppressSend) {
       log.info("Heater turned OFF");
@@ -231,10 +245,14 @@ public class HeaterCardController {
   }
 
   /**
-  * Sends heater command asynchronously to avoid blocking UI thread.
-  *
-  * @param temperature target temperature (0 = OFF)
-  */
+   * Sends heater command asynchronously to avoid blocking UI thread.
+   *
+   * <p>This method retrieves the selected node ID from the controller
+   * and sends the heater command with the specified temperature
+   * to the backend system using the command handler.</p>
+   *
+   * @param temperature target temperature (0 = OFF)
+   */
   private void sendHeaterCommandAsync(int temperature) {
     UiExecutors.execute(() -> {
       try {
@@ -255,10 +273,10 @@ public class HeaterCardController {
   }
 
   /**
-  * Checks for temperature warnings and logs them.
-  *
-  * @param temperature the target temperature
-  */
+   * Checks for temperature warnings and logs them.
+   *
+   * @param temperature the target temperature
+   */
   private void checkTemperatureWarnings(int temperature) {
     if (temperature <= TEMP_VERY_LOW) {
       log.warn("CAUTION: Very low target temperature ({}°C)"
@@ -280,10 +298,14 @@ public class HeaterCardController {
   }
 
   /**
-  * Updates the heater temperature externally.
-  *
-  * @param temperature target temperature in Celsius (0 = OFF)
-  */
+   * Updates the heater temperature externally.
+   *
+   * <p>This method is called when an external update for the heater
+   * temperature is received from the backend system. It updates the UI
+   * accordingly without sending a command back to the backend.</p>
+   *
+   * @param temperature target temperature in Celsius (0 = OFF)
+   */
   public void updateHeaterTemperature(int temperature) {
     log.info("External heater temperature update: {}°C", temperature);
     Platform.runLater(() -> {
@@ -300,58 +322,13 @@ public class HeaterCardController {
   }
 
   /**
-  * Determines the source of the temperature setting.
-  *
-  * @param temperature the temperature value
-  * @return description of the source (Preset name or Manual)
-  */
-  private String getTemperatureSource(int temperature) {
-    if (temperature == TEMP_COOL) {
-      return "Preset Cool";
-    } else if (temperature == TEMP_MODERATE) {
-      return "Preset Moderate";
-    } else if (temperature == TEMP_WARM) {
-      return "Preset Warm";
-    } else {
-      return "Manual";
-    }
-  }
-
-  /**
-  * Gets the current heater state.
-  *
-  * @return true if heater is ON, false if OFF
-  */
-  public boolean isHeaterOn() {
-    return isOn;
-  }
-
-  /**
-  * Gets the current target temperature.
-  *
-  * @return target temperature in Celsius, or null if heater is OFF
-  */
-  public Integer getCurrentTargetTemp() {
-    return currentTargetTemp;
-  }
-
-  /**
-  * Injects required dependencies for this heater card controller.
-  *
-  * @param cmdHandler the command input handler
-  * @param controller the main control panel controller
-  */
-  public void setDependencies(CommandInputHandler cmdHandler, ControlPanelController controller) {
-    this.cmdHandler = Objects.requireNonNull(cmdHandler, "cmdHandler");
-    this.controller = Objects.requireNonNull(controller, "controller");
-    log.debug("HeaterCardController dependencies injected");
-  }
-
-  /**
-  * Ensures the given runnable executes on the JavaFX Application Thread.
-  *
-  * @param r the runnable to execute on the FX thread
-  */
+   * Ensures the given runnable executes on the JavaFX Application Thread.
+   *
+   * <p>If already on the FX thread, the runnable is executed immediately.
+   * Otherwise, it is scheduled to run later on the FX thread.</p>
+   *
+   * @param r the runnable to execute on the FX thread
+   */
   private static void fx(Runnable r) {
     if (Platform.isFxApplicationThread()) {
       r.run();
