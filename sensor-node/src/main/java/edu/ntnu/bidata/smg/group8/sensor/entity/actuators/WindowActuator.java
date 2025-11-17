@@ -14,7 +14,8 @@ import org.slf4j.Logger;
  * <ul>
  *     <li>Opening range from 0% (closed) to 100% (fully open).</li>
  *     <li>Methods to check if the window is open, fully open, or closed.</li>
- *     <li>Methods to open, close, and set specific opening percentages.</li>
+ *     <li>Methods to open, close, and set specific opening percentages:
+ *     openSlightly (25%), openHalfway (50%), openMostly (75%).</li>
  * </ul>
  *
  * <p>The logger is used to log important events and state changes
@@ -71,6 +72,9 @@ public class WindowActuator extends AbstractActuator {
 
   /**
    * Fully open the window (100%).
+   *
+   * <p>This method use the {@link #act(double)} method
+   * to set the window to its maximum opening value.</p>
    */
   public void open() {
     act(MAX_VALUE);
@@ -78,6 +82,9 @@ public class WindowActuator extends AbstractActuator {
 
   /**
    * Close the window (0%).
+   *
+   * <p>This method use the {@link #act(double)} method
+   * to set the window to its minimum opening value.</p>
    */
   public void close() {
     act(MIN_VALUE);

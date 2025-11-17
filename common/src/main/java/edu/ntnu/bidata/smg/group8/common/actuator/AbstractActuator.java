@@ -35,6 +35,11 @@ public abstract class AbstractActuator implements Actuator {
 
   /**
    * Constructor for the abstract Actuator.
+   *
+   * @param key       the unique key identifying the actuator type
+   * @param unit      the unit of measurement for the actuator
+   * @param minValue  the minimum value the actuator can take
+   * @param maxValue  the maximum value the actuator can take
    */
   public AbstractActuator(String key, String unit,
                           double minValue, double maxValue) {
@@ -51,8 +56,6 @@ public abstract class AbstractActuator implements Actuator {
 
   /**
    * Returns the unique key of the actuator.
-   *
-   * <p>This key identifies what actuator we have.</p>
    *
    * @return the type of actuator
    */
