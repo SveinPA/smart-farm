@@ -26,6 +26,9 @@ import org.slf4j.Logger;
  * This class represents the dashboard display of the application.
  * It provides a graphical user interface for monitoring greenhouse sensors
  * and controlling various actuators such as valve and window.
+ *
+ * @author Andrea Sandnes & Mona Amundsen
+ * @version 17.11.2025 (last updated)
  */
 public class DashboardView {
   private static final Logger log = AppLogger.get(DashboardView.class);

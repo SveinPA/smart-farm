@@ -16,23 +16,30 @@ import javafx.scene.layout.StackPane;
 import javafx.util.Duration;
 import org.slf4j.Logger;
 
-
 /**
-* Factory class for creating custom styled UI components.
-* This factory provides utility methods for creating and enhancing JavaFX
-* controls with custom graphics, animations, and predefined styles. It centralizes
-* UI component creation to ensure consistency across the application.
-*/
+ * Factory class for creating custom styled UI components.
+ * This factory provides utility methods for creating and enhancing JavaFX
+ * controls with custom graphics, animations, and predefined styles. It centralizes
+ * UI component creation to ensure consistency across the application.
+ *
+ * <h2>The Button Factory provides the following features:</h2>
+ * <ul>
+ *     <li>Attaching animated ON/OFF switch graphics to ToggleButtons.</li>
+ *     <li>Creating buttons with specific styles such as danger and primary action buttons.</li>
+ *     <li>Graphic enhancements for buttons, such as the toggle witch.</li>
+ *     <li>History buttons with specific styling for accessing historical data views.</li>
+ *     <li>Return buttons with navigation icons.</li>
+ * </ul>
+ *
+ * @author Andrea Sandnes
+ * @version 17.11.2025 (last updated)
+ */
 public class ButtonFactory {
   private static final Logger log = AppLogger.get(ButtonFactory.class);
   private static final String DANGER_STYLE =
           "-fx-background-color: #da6655; -fx-text-fill: white;";
   private static final String PRIMARY_STYLE =
           "-fx-background-color: #2196f3; -fx-text-fill: white;";
-  private static final String SUCCESS_STYLE =
-          "-fx-background-color: #4caf50; -fx-text-fill: white;";
-  private static final String WARNING_STYLE =
-          "-fx-background-color: #ff9800; -fx-text-fill: white;";
 
   /**
   * Attaches a custom animated switch graphic to a ToggleButton.
@@ -146,93 +153,6 @@ public class ButtonFactory {
     return container;
   }
 
-  /**
-  * Creates a custom window switch graphic node with animated sliding thumb.
-  * The switch consists of:
-  * - A background track
-  * - "OPEN" and "CLOSE" text Labels
-  * - A circular thumb that slides between positions
-  * Smooth transition animation
-
-  * @param owner The ToggleButton that will own this witch graphic
-  * @return A node containing the complete switch graphic with animations
-  */
-  private static Node createWindowSwitchGraphic(ToggleButton owner) {
-    log.trace("Creating OPEN/CLOSE switch graphic");
-
-    double trackW = 85;
-    double trackH = 28;
-    double pad = 2;
-    double thumbD = trackH - 2 * pad;
-    double shift = trackW - thumbD - 2 * pad;
-
-    // Background track
-    Region track = new Region();
-    track.getStyleClass().add("switch-track");
-    track.setMinSize(trackW, trackH);
-    track.setPrefSize(trackW, trackH);
-    track.setMaxSize(trackW, trackH);
-    track.relocate(0, 0);
-
-    // OPEN/CLOSE Labels
-    Label openLabel = new Label("OPEN");
-    Label closeLabel = new Label("CLOSE");
-    openLabel.getStyleClass().addAll("switch-label", "switch-open-label");
-    closeLabel.getStyleClass().addAll("switch-label", "switch-close-label");
-
-    // Sliding thumb
-    Region thumb = new Region();
-    thumb.getStyleClass().add("switch-thumb");
-    thumb.setMinSize(thumbD, thumbD);
-    thumb.setPrefSize(thumbD, thumbD);
-    thumb.setMaxSize(thumbD, thumbD);
-
-    // Assembling components in a container
-    StackPane container = new StackPane(track, openLabel, closeLabel, thumb);
-    container.getStyleClass().add("switch");
-    container.setPadding(new Insets(pad));
-    container.setMouseTransparent(true);
-
-    // Positioning the elements
-    StackPane.setAlignment(thumb, Pos.CENTER_LEFT);
-    StackPane.setAlignment(openLabel, Pos.CENTER_LEFT);
-    StackPane.setAlignment(closeLabel, Pos.CENTER_RIGHT);
-    StackPane.setMargin(openLabel, new Insets(0, pad + 6, 0, pad + 6));
-    StackPane.setMargin(closeLabel, new Insets(0, pad + 6, 0, pad + 6));
-
-    // Initial thumb position
-    thumb.setTranslateX(owner.isSelected() ? shift : 0);
-
-    // Label visibility based on initial position
-    updateOppositeTextVisibility(openLabel, closeLabel, thumb.getTranslateX(), shift);
-
-    // State change animation
-    owner.selectedProperty().addListener((o, was, isNow) -> {
-      log.debug("Window switch state changed to: {}", isNow ? "OPEN" : "CLOSE");
-      double end = isNow ? shift : 0;
-
-      TranslateTransition prev = (TranslateTransition) thumb.getProperties().get("tt");
-      if (prev != null) {
-        prev.stop();
-      }
-      TranslateTransition tt = new TranslateTransition(Duration.millis(140), thumb);
-      tt.setFromX(thumb.getTranslateX());
-      tt.setToX(end);
-      thumb.getProperties().put("tt", tt);
-      tt.playFromStart();
-    });
-
-    // Update Label visibility during animation
-    thumb.translateXProperty().addListener((obs, oldX, newX) -> {
-      updateOppositeTextVisibility(openLabel, closeLabel, thumb.getTranslateX(), shift);
-    });
-
-    owner.sceneProperty().addListener((o, oldS, newS) -> {
-      thumb.setTranslateX(owner.isSelected() ? shift : 0);
-      updateOppositeTextVisibility(openLabel, closeLabel, thumb.getTranslateX(), shift);
-    });
-    return container;
-  }
 
   /**
   * Updates the visibility of ON/OFF Labels based on thumb position.
@@ -253,25 +173,14 @@ public class ButtonFactory {
   }
 
   /**
-  * Creates a schedule button with special styling.
+   * Creates a styled history button with the given label text.
+   *
+   * <p>This button is specifically styled for accessing history views
+   * within the application.</p>
 
-  * @param text the button text
-  * @return a styled schedule button
-  */
-  public static Button createScheduleButton(String text) {
-    log.debug("Creating schedule button: {}", text);
-
-    Button button = new Button(text);
-    button.getStyleClass().add("schedule-button");
-    return button;
-  }
-
-  /**
-  * Creates a styled history button with the given label text.
-
-  * @param text the label to display on the button
-  * @return a new Button
-  */
+   * @param text the label to display on the button
+   * @return a new Button
+   */
   public static Button createHistoryButton(String text) {
     log.debug("Creating history button: {}", text);
 
@@ -282,11 +191,14 @@ public class ButtonFactory {
 
 
   /**
-  * Creates a standard button with default styling.
-  *
-  * @param text the button text
-  * @return a new Button configured as a history button
-  */
+   * Creates a standard button with default styling.
+   *
+   * <p>Use this method to create buttons with default appearance
+   * across the application.</p>
+   *
+   * @param text the button text
+   * @return a new Button configured as a history button
+   */
   public static Button createButton(String text) {
     log.trace("Creating button: {}", text);
 
@@ -295,12 +207,15 @@ public class ButtonFactory {
   }
 
   /**
-  * Creates a standard button with specified width.
-  *
-  * @param text the button text
-  * @param width the preferred width in pixels
-  * @return a new Button instance
-  */
+   * Creates a standard button with specified width.
+   *
+   * <p>Use this method to create buttons with custom widths
+   * while maintaining default styling.</p>
+   *
+   * @param text the button text
+   * @param width the preferred width in pixels
+   * @return a new Button instance
+   */
   public static Button createButton(String text, double width) {
     log.trace("Creating button with width {}: {}", width, text);
 
@@ -310,12 +225,15 @@ public class ButtonFactory {
   }
 
   /**
-  * Creates a preset button with custom width.
-  *
-  * @param text the button text
-  * @param width the preferred width in pixels
-  * @return a preset button with specified width
-  */
+   * Creates a preset button with custom width.
+   *
+   * <p>Use this method to create buttons with a consistent preset width
+   * across the application.</p>
+   *
+   * @param text the button text
+   * @param width the preferred width in pixels
+   * @return a preset button with specified width
+   */
   public static Button createPresetButton(String text, double width) {
     log.debug("Creating preset button with width {}: {}", width, text);
 
@@ -323,11 +241,14 @@ public class ButtonFactory {
   }
 
   /**
-  * Creates a full-width button.
-  *
-  * @param text the button text
-  * @return a button with max width set
-  */
+   * Creates a full-width button.
+   *
+   * <p>This button will expand to fill the maximum width
+   * of its container.</p>
+   *
+   * @param text the button text
+   * @return a button with max width set
+   */
   public static Button createFullWidthButton(String text) {
     log.trace("Creating full-width button: {}", text);
 
@@ -355,11 +276,14 @@ public class ButtonFactory {
   }
 
   /**
-  * Creates a full-width danger button.
-  *
-  * @param text the button text
-  * @return a full-width danger button
-  */
+   * Creates a full-width danger button.
+   *
+   * <p>Use this for destructive actions that need to span the full width
+   * of their container.</p>
+   *
+   * @param text the button text
+   * @return a full-width danger button
+   */
   public static Button createFullWidthDangerButton(String text) {
     log.debug("Creating full-width danger button: {}", text);
 
@@ -369,12 +293,13 @@ public class ButtonFactory {
   }
 
   /**
-  * Creates a primary action button (blue).
-  *
-  *
-  * @param text the button text
-  * @return a styled primary button
-  */
+   * Creates a primary action button (blue).
+   *
+   * <p>Use this for main actions like "Submit", "Save", or "Start".</p>
+   *
+   * @param text the button text
+   * @return a styled primary button
+   */
   public static Button createPrimaryButton(String text) {
     log.debug("Creating primary button: {}", text);
 
@@ -385,6 +310,9 @@ public class ButtonFactory {
 
   /**
    * Creates a return button styled as a primary button.
+   *
+   * <p>This button/method is used for navigation
+   * actions to return to a previous view.</p>
    *
    * @param text the button text
    * @return a styled return button

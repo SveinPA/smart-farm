@@ -23,6 +23,9 @@ import org.slf4j.Logger;
  *     <li>Content area for additional controls or information.</li>
  *     <li>Footer section for supplementary details or actions.</li>
  * </ul>
+ *
+ * @author Andrea Sandnes
+ * @version 17.11.2025 (last updated)
  */
 public class ControlCard extends StackPane {
   private static final Logger log = AppLogger.get(ControlCard.class);
