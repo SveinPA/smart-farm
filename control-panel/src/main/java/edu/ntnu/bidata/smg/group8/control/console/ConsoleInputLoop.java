@@ -19,7 +19,12 @@ import org.slf4j.Logger;
 * distributed system or smart grid.</p>
 *
 * @author Andrea Sandnes
-* @version 01.11.2025
+* @version 1.0
+* @since 01.11.2025
+* @see CommandInputHandler
+* @see DisplayManager
+* @see ControlPanelController
+* @see StateStore
 */
 public class ConsoleInputLoop implements Runnable {
   private static final Logger log = AppLogger.get(ConsoleInputLoop.class);
@@ -55,29 +60,35 @@ public class ConsoleInputLoop implements Runnable {
   }
 
   /**
-  * Starts the console input loop.
-  * The loop reads user input, processes commands, and forwards
-  * valid actuator-value pairs to the CommandInputHandler. The loop
-  * continues until the user types "quit" or "exit", or until
-  * stop() is called.
-  * Invalid or malformed input will trigger a console message with
-  * usage help, but will not stop the loop.
+  * Main loop that reads and processes console input.
+  *
+  * <p>Continuously reads lines, parses them as commands,
+  * and forwards valid commands to the target node. The
+  * loop runs until the user types "quit"/"exit" or
+  * {@link #stop()} is called</p>
   */
   @Override
   public void run() {
-    log.info("Console input loop started. Type 'help' for commands,"
-            + " 'view' to watch live, Enter to return.");
+
+    // pause live display so it doesn't interfere with user input
+    if (display != null) {
+      display.pause();
+    }
+
+    System.out.println();
+    System.out.println("--------------------------------------------------------------");
+    System.out.println("Smart Greenhouse Console Control Panel");
+    System.out.println("--------------------------------------------------------------");
+    System.out.println("Type 'help' for commands, 'view' to see current state");
+    String nodeId = controller != null ? controller.getSelectedNodeId() : "node-1";
+    System.out.println("Target node: " + nodeId);
+    System.out.println();
+
+    log.info("Console input loop started.");
+
     try (BufferedReader br = new BufferedReader(new InputStreamReader(System.in))) {
       while (running) {
         if (mode == Mode.INPUT) {
-          if (display != null) {
-            display.pause();
-            try {
-              Thread.sleep(120);
-            } catch (InterruptedException ie) {
-              Thread.currentThread().interrupt();
-            }
-          }
           System.out.print("> ");
           System.out.flush();
 
@@ -89,12 +100,22 @@ public class ConsoleInputLoop implements Runnable {
           if (line.isEmpty()) {
             continue;
           }
+
+          // Handle built-in commands
           if (line.equalsIgnoreCase("quit") || line.equalsIgnoreCase("exit")) {
             log.info("Exiting console input loop...");
             break;
           }
           if (line.equalsIgnoreCase("help")) {
             printHelp();
+            continue;
+          }
+          if (line.equalsIgnoreCase("Status")) {
+            if (display != null) {
+              display.showOnce();
+            } else {
+              System.out.println("Display not available");
+            }
             continue;
           }
           if (line.equalsIgnoreCase("view") || line.equalsIgnoreCase("display on")) {
@@ -115,6 +136,7 @@ public class ConsoleInputLoop implements Runnable {
             continue;
           }
 
+          // Parse actuator command (format: "actuator value")
           String[] parts = line.split("\\s+");
           if (parts.length != 2) {
             System.out.println("Use: <actuator> <int value>   e.g., heater 22");
@@ -126,6 +148,7 @@ public class ConsoleInputLoop implements Runnable {
           try {
             int value = Integer.parseInt(valueStr);
 
+            // Make sure we have a target node selected
             String targetNodeId = controller != null ? controller.getSelectedNodeId() : null;
             if (targetNodeId == null) {
               System.out.println("ERROR: No node selected. Please select a node in the GUI first.");
@@ -133,9 +156,11 @@ public class ConsoleInputLoop implements Runnable {
               continue;
             }
 
+            // Send command to the node
             cmdHandler.setValue(targetNodeId, actuator, value);
             log.info("Command sent: {} {} (nodeId={})", actuator, value, targetNodeId);
 
+            // Optimistically update local state so UI reflects change immediately
             boolean optimistic = Boolean.parseBoolean(System.getProperty("panel.optimistic",
                     "true"));
             if (stateStore != null && optimistic) {
@@ -148,6 +173,7 @@ public class ConsoleInputLoop implements Runnable {
             log.error("Failed to send command: {} {}", actuator, valueStr, ioe);
           }
         } else {
+          // View mode - show live data until user presses Enter
           if (display != null) {
             display.resume();
           }
@@ -169,6 +195,7 @@ public class ConsoleInputLoop implements Runnable {
     } catch (IOException e) {
       log.error("Console input error", e);
     } finally {
+      // Make sure display resumes when we exit
       if (display != null) {
         display.resume();
       }

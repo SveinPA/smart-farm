@@ -13,19 +13,30 @@ import java.util.function.Consumer;
 import org.slf4j.Logger;
 
 /**
-* Thread-safe storage for the current state of sensors and actuators
-* in the smart greenhouse system.
+* <h3>State Store - Central Repository for Greenhouse State</h3>
 *
-* <p>This class maintains an in-memory cache of the most recent reading
-* from all sensors and actuators across all nodes. Each reading is
-* identified by a composite key of nodeId and sensor/actuator type.</p>
+* <p>Thread-safe in-memory storage for the current state of all sensors and
+* actuators in the smart greenhouse system. Maintains the most recent reading
+* from each sensor and actuator across all nodes, identified by composite keys
+* of nodeId and type.</p>
 *
 * <p>Thread-safety is ensured through the use of ConcurrentHashMap for
 * internal storage, allowing concurrent reads and writes from multiple
 * threads without external synchronization.</p>
 *
+* <p><strong>AI Usage:</strong> Thread-safe collection strategy (ConcurrentHashMap for
+* lock-free reads, CopyOnWriteArrayList for observer pattern) and LRU cache implementation
+* (LinkedHashMap with removeEldestEntry override for bounded command results) discussed
+* with AI guidance. Composite key design (nodeId:type) and immutable snapshot pattern
+* (List.copyOf for safe data transfer) explored with AI assistance. All implementation
+* by Andrea Sandnes.
+*
 * @author Andrea Sandnes
-* @version 30.10.25
+* @version 1.0
+* @since 30.10.25
+* @see SensorReading
+* @see ActuatorReading
+* @see StateSnapshot
 */
 public class StateStore {
   private static final Logger log = AppLogger.get(StateStore.class);
@@ -39,25 +50,25 @@ public class StateStore {
   private final Map<String, String> commandResults = Collections.synchronizedMap(
           new LinkedHashMap<String, String>(MAX_COMMAND_RESULTS + 1, 0.75f, true) {
 
-            /**
-            * Evicts the least recently used entry when the cache
-            * exceeds MAX_COMMAND_RESULTS.
-            *
-            * @param eldest the current eldest (LRU entry)
-            * @return true to remove the eldest when size > MAX_COMMAND_RESULTS,
-            * false otherwise
-            */
-            @Override
-            protected  boolean removeEldestEntry(Map.Entry<String, String> eldest) {
-              boolean evict = size() > MAX_COMMAND_RESULTS;
+          /**
+          * Evicts the least recently used entry when the cache
+          * exceeds MAX_COMMAND_RESULTS.
+          *
+          * @param eldest the current eldest (LRU entry)
+          * @return true to remove the eldest when size > MAX_COMMAND_RESULTS,
+          * false otherwise
+          */
+          @Override
+          protected  boolean removeEldestEntry(Map.Entry<String, String> eldest) {
+            boolean evict = size() > MAX_COMMAND_RESULTS;
 
-              if (evict) {
-                log.debug("Evicting command results (eldest): {} -> {}",
-                        eldest.getKey(), eldest.getValue());
-              }
-              return evict;
+            if (evict) {
+              log.debug("Evicting command results (eldest): {} -> {}",
+                      eldest.getKey(), eldest.getValue());
             }
-          });
+            return evict;
+          }
+        });
 
 
   private final CopyOnWriteArrayList<Consumer<SensorReading>> sensorSinks =
@@ -66,11 +77,8 @@ public class StateStore {
           new CopyOnWriteArrayList<>();
 
   /**
-  * Updates or stores a new sensor reading in the state store.
-  *
-  * <p>If a reading for the same node and sensor type already exists,
-  * it will be replaced with the new reading. The composite key format
-  * is "nodeId:type"</p>
+  * Stores or updates a sensor reading.
+  * Notifies all registered sensor sinks after storing.
   *
   * @param nodeId the unique identifier of the sensor node
   * @param type the type or name of the sensor (e.g., "temperature", "humidity")
@@ -93,11 +101,8 @@ public class StateStore {
   }
 
   /**
-  * Updates or stores a new actuator reading in the state store.
-  *
-  * <p>If a reading for the same node and actuator type already exists,
-  * it will be replaced with the new reading. The composite key format
-  * is "nodeId:type"</p>
+  * Stores or updates an actuator reading.
+  * Notifies all registered actuator sinks after storing.
   *
   * @param nodeId the unique identifier of the actuator node
   * @param type the type or name of the actuator (e.g., "fan", "heater", "window")
@@ -134,7 +139,7 @@ public class StateStore {
 
   /**
   * Registers a new listener (sink) that will be notified whenever
-  * a new actuator reading is received
+  * a new actuator reading is received.
   *
   * @param sink a consumer that handles actuator updates, must not be null
   */
@@ -155,7 +160,7 @@ public class StateStore {
 
   /**
   * Registers a new listener (sink) that will be notified whenever
-  * a new sensor reading is received
+  * a new sensor reading is received.
   *
   * @param sink a consumer that handles sensor updates, must not be null
   */
@@ -333,7 +338,7 @@ public class StateStore {
   }
 
   /**
-  * Retrieves the result of previously executed command
+  * Retrieves the result of previously executed command.
   *
   *  @param commandId the unique ID of the command
   * @return "OK" if accepted, "ERR:reason" if rejected, or null if not found

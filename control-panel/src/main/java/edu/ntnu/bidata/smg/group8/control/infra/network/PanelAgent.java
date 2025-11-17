@@ -22,20 +22,38 @@ import java.util.function.Consumer;
 import org.slf4j.Logger;
 
 /**
-* Manages network communication between a control panel and a broker server.
-* This agent handles registration, sensor data reception, and actuator command
-* transmission for a specific control panel in the smart greenhouse system.
+* <h3>Panel Agent - Network Communication Handler</h3>
+*
+* <p>Manages the TCP connection between a control panel and the message broker.
+* This agent handles registration, receiving sensor data, sending actuator commands,
+* and maintaining connection health through heartbeats.</p>
 *
 * <p>The agent establishes a socket connection to the broker, registers
-* the control panel, and maintains a dedicated reader thread to process
-* incoming messages. It supports automatic resource cleanup through the
+* the control panel on startup, and maintains a dedicated background threads for
+* reading incoming messages and sending periodic heartbeats. It receives and routes
+* sensor data and actuator states to the StateStore, sends actuator commands
+* to specific nodes via broker, and tracks which sensor nodes are currently
+* available. The agent supports automatic resource cleanup through the
 * AutoCloseable interface</p>
 *
-* <p>Thread-safety: The sendActuatorsCommand method is synchronized to ensure
-* thread-safe writes to the output stream</p>
+* <p><b>Threading Model:</b> The agent uses two daemon threads - a reader thread
+* that continuously processes incoming messages from the broker, and a heartbeat
+* thread that sends keep-alive messages at regular intervals. The sendActuatorCommand
+* method is synchronized to ensure thread-safe writes to the output stream.</p>
+*
+* <p><strong>AI Usage:</strong> Developed with AI assistance for designing the
+* connection lifecycle management (AtomicBoolean for thread-safe state, daemon threads
+* for reader/heartbeat), heartbeat keep-alive mechanism (20-second interval with
+* synchronized writes), and observer pattern for node list updates (CopyOnWriteArrayList
+* with Consumer listeners). Message routing architecture (switch-based dispatch with
+* validation) discussed with AI guidance. All implementation by Andrea Sandnes.
 *
 * @author Andrea Sandnes
-* @version 30.10.25
+* @version 1.0
+* @since 30.10.25
+* @see StateStore
+* @see Protocol
+* @see FrameCodec
 */
 public class PanelAgent implements AutoCloseable {
   private static final Logger log = AppLogger.get(PanelAgent.class);
@@ -47,7 +65,6 @@ public class PanelAgent implements AutoCloseable {
   private Thread heartbeatThread;
 
   private final List<String> availableNodes = new CopyOnWriteArrayList<>();
-
   private final List<Consumer<List<String>>> nodeListListeners = new CopyOnWriteArrayList<>();
 
   private static final int HEARTBEAT_INTERVAL_MS = 20_000;
@@ -60,12 +77,12 @@ public class PanelAgent implements AutoCloseable {
   private Thread reader;
 
   /**
-  * Constructs a new PanelAgent for managing communication with a broker.
+  * Creates a new panel agent.
   *
-  * @param host the hostname or IP address of the broker server
-  * @param port the port number on which the broker is listening
+  * @param host the broker hostname or IP address
+  * @param port the broker port number
   * @param nodeId the unique identifier for this control panel
-  * @param state the state store for managing sensor data and system state
+  * @param state the state store for sensor/actuator data
   * @throws NullPointerException if host, nodeId, or state is null
   */
   public PanelAgent(String host, int port, String nodeId, StateStore state) {
@@ -76,12 +93,11 @@ public class PanelAgent implements AutoCloseable {
   }
 
   /**
-  * Starts the panel agent by establishing a connection to the broker and
-  * registering this control panel. Initiates a daemon reader thread to
-  * process incoming messages.
+  * Connects to the broker and registers this control panel.
+  * Starts background threads for reading messages and sending
+  * heartbeats.
   *
-  * @throws IOException if an I/O error occurs when creating the socket
-  * or sending the registration message
+  * @throws IOException if connection or registration fails
   */
   public void start() throws IOException {
     if (running.getAndSet(true)) {
@@ -92,6 +108,7 @@ public class PanelAgent implements AutoCloseable {
       in = socket.getInputStream();
       out = socket.getOutputStream();
 
+      // Send registration message to broker
       String reg = JsonBuilder.build(
               "type", Protocol.TYPE_REGISTER_CONTROL_PANEL,
               "protocolVersion", Protocol.PROTOCOL_VERSION,
@@ -101,6 +118,7 @@ public class PanelAgent implements AutoCloseable {
       FrameCodec.writeFrame(out, reg.getBytes(StandardCharsets.UTF_8));
       log.info("REGISTER_CONTROL_PANEL sent for {}", nodeId);
 
+      // Start background threads
       reader = new Thread(this::readLoop, "panel-agent-reader");
       reader.setDaemon(true);
       reader.start();
@@ -123,9 +141,8 @@ public class PanelAgent implements AutoCloseable {
   }
 
   /**
-  * Continuously reads frames from the input stream and processes
-  * incoming messages. This method runs in a separate daemon thread
-  * and continues until the agent is stopped or an I/O error occurs.
+  * Background thread that continuously reads incoming messages.
+  * Runs until the agent is stopped or connection is lost.
   */
   private void readLoop() {
     try {
@@ -335,7 +352,7 @@ public class PanelAgent implements AutoCloseable {
   * @param valueOrNull optional value parameter for the action, or
   *                    null if not needed.
   * @throws IOException if an I/O error occurs when writing to the
-  * output stream
+  *                    output stream
   */
   public synchronized void sendActuatorCommand(String targetNode, String actuator,
                                                String action, String valueOrNull)
@@ -411,7 +428,7 @@ public class PanelAgent implements AutoCloseable {
   }
 
   /**
-  * Checks if currently connected to broker.
+  * Checks if agent is currently connected to the broker.
   *
   * @return true if connected and socket is open
   */
@@ -443,6 +460,7 @@ public class PanelAgent implements AutoCloseable {
 
     nodeListListeners.add(listener);
 
+    // Notify immediately with current state
     if (!availableNodes.isEmpty()) {
       listener.accept(new ArrayList<>(availableNodes));
     }
@@ -478,10 +496,8 @@ public class PanelAgent implements AutoCloseable {
   }
 
   /**
-  * Continuously sens heartbeat messages to the broker to maintain
-  * the connection. This method runs in a separate daemon thread and
-  * send heartbeat messages at regular intervals defined by
-  * HEARTBEAT_INTERVAL_MS.
+  * Background thread that sends periodic heartbeats to keep the connection alive.
+  * Runs until the agent is stopped or an error occurs.
   */
   private void heartbeatLoop() {
     log.info("Heartbeat thread started");
@@ -526,6 +542,7 @@ public class PanelAgent implements AutoCloseable {
     log.info("Closing PanelAgent (nodeId={})", nodeId);
     running.set(false);
 
+    // Stop heartbeat thread
     if (heartbeatThread != null) {
       heartbeatThread.interrupt();
       try {
@@ -535,6 +552,7 @@ public class PanelAgent implements AutoCloseable {
       }
     }
 
+    // Close streams and socket
     try {
       if (in != null) {
         in.close();
@@ -557,6 +575,7 @@ public class PanelAgent implements AutoCloseable {
       log.debug("Error closing socket: {}", e.getMessage());
     }
 
+    // Wait for reader thread to finish
     if (reader != null && reader.isAlive()) {
       try {
         reader.join(2000);
