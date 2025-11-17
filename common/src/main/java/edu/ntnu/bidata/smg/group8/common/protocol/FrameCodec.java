@@ -10,14 +10,33 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import org.slf4j.Logger;
 
-
-
 /**
  * Codec for length-prefixed frames.
  *
- * <p>Frames are encoded as a big-endian 4-byte length prefix followed by the payload bytes.
- * The maximum allowed frame size is {@value #MAX_FRAME_BYTES} bytes.
+ * <p>Implements a framing protocol to solve TCP's stream boundary problem. Each message
+ * is transmitted as a 4-byte big-endian length prefix followed by the payload bytes.
+ * This allows the receiver to know exactly how many bytes to read for each complete message.
+ * 
+ * <p><strong>Frame Structure:</strong>
+ * <pre>
+ * [4 bytes: length (big-endian)][N bytes: payload]
+ * </pre>
+ * 
+ * <p>Big-endian byte order (network byte order) ensures cross-platform compatibility.
+ * Maximum frame size is {@value #MAX_FRAME_BYTES} bytes (1 MB) to prevent memory exhaustion.
+ * 
+ * <p>Frame validation rejects negative, zero, or oversized lengths with {@link EOFException}
+ * to detect protocol violation early.
+ * 
+ * <p><strong>AI Usage:</strong> Developed with AI assistance (Claude Code) for designing
+ * the length-prefixed framing protocol to solve TCP stream boundary problems and ensuring
+ * big-endian network byte order compliance. Stream wrapping optimization (instanceof checks 
+ * to avoid double-wrapping DataInputStream/DataOutputStream) and frame validation strategy
+ * (length bounds checking, early error detection) discussed with AI guidance. All implementation
+ * and testing by Svein Antonsen.
  *
+ * @author Svein Antonsen
+ * @since 1.0
  * @see FrameCodec#readFrame(InputStream)
  * @see FrameCodec#writeFrame(OutputStream, byte[])
  */

@@ -11,6 +11,9 @@ package edu.ntnu.bidata.smg.group8.common.protocol.dto;
  * <p>
  * Example message:
  * {@code {"type":"SENSOR_DATA","nodeId":"dev-1","sensorKey":"temp-1","value":"22.5","unit":"°C","timestamp":"2025-11-01T10:30:00Z"}}
+ * 
+ * @author Svein Antonsen
+ * @since 1.0
  */
 public final class SensorDataMessage {
   private final String type;

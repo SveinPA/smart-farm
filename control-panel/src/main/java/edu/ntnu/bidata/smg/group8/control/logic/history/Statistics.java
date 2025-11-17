@@ -5,7 +5,7 @@ package edu.ntnu.bidata.smg.group8.control.logic.history;
  * Contains minimum, maximum, and average values.
  * 
  * @author Svein Antonsen
- * @since 15.11.2025
+ * @since 1.0
  * 
  * @param min Minimum value in the time period
  * @param max Maximum value in the time period

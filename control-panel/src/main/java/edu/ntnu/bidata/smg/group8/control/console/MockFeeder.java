@@ -4,7 +4,6 @@ import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
 import edu.ntnu.bidata.smg.group8.control.logic.state.StateStore;
 import edu.ntnu.bidata.smg.group8.control.util.FlatJson;
 import java.io.BufferedReader;
-import java.io.FileReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;

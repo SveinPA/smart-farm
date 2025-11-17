@@ -4,7 +4,6 @@ import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
 import edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers.FertilizerCardController;
 import edu.ntnu.bidata.smg.group8.control.ui.factory.ButtonFactory;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlCard;
-import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;

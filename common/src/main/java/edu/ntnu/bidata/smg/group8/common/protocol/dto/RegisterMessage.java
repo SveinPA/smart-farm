@@ -17,6 +17,9 @@ package edu.ntnu.bidata.smg.group8.common.protocol.dto;
  * <p>
  * Example REGISTER_ACK message:
  * {@code {"type":"REGISTER_ACK","protocolVersion":"1.0","message":"Registration successful"}}
+ * 
+ * @author Svein Antonsen
+ * @since 1.0
  */
 public final class RegisterMessage {
   private final String type;

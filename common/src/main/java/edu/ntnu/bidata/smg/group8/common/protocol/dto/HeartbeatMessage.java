@@ -14,6 +14,9 @@ package edu.ntnu.bidata.smg.group8.common.protocol.dto;
  * <p>
  * Example client-to-server heartbeat:
  * {@code {"type":"HEARTBEAT","direction":"CLIENT_TO_SERVER","nodeId":"dev-1"}}
+ * 
+ * @author Svein Antonsen
+ * @since 1.0
  */
 public final class HeartbeatMessage {
   private final String type;

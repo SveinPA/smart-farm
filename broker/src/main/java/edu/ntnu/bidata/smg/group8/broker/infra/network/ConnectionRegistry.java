@@ -11,6 +11,23 @@ import org.slf4j.Logger;
 
 /**
  * Registry for active connections.
+ * 
+ * <p>Maintains two separate registries for different routing patterns:
+ * <ul>
+ *   <li><strong>Control panels:</strong> Tracked by OutputStream for broadcast operations</li>
+ *   <li><strong>Sensor nodes:</strong> Tracked by nodeId for targeted command routing</li>
+ * </ul>
+ * 
+ * <p>Thread-safe using {@link ConcurrentHashMap}. Automatically prunes dead streams
+ * during broadcast operations if write operations fail.
+ * 
+ * <p><strong>AI usage:</strong> Developed with AI assistance (Claude Code) for designing 
+ * the dual-registry architecture (broadcast vs targeted routing) and implementing 
+ * thread-safe concurrent access patterns. Broadcast resilience with automatic dead stream
+ * pruning discussed with AI guidance. All implementation and testing by Svein Antonsen.
+ * 
+ * @author Svein Antonsen
+ * @since 1.0
  */
 final class ConnectionRegistry {
   private static final Logger log = AppLogger.get(ConnectionRegistry.class);
@@ -110,7 +127,7 @@ final class ConnectionRegistry {
   }
 
   /**
-   * Get a comma-seperated list of all registered sensor node IDs-
+   * Get a comma-separated list of all registered sensor node IDs.
    * 
    * @return comma-separated nodeIDs, or empty string if no nodes registered
    */

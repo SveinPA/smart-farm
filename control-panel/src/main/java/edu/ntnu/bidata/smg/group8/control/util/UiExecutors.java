@@ -87,7 +87,7 @@ public class UiExecutors {
   * @param delay the delay before execution begins
   * @param unit the time unit for the delay value
   */
-  public static void schedule(Runnable task, long delay, TimeUnit  unit) {
+  public static void schedule(Runnable task, long delay, TimeUnit unit) {
     SCHEDULED_INSTANCE.schedule(task, delay, unit);
   }
 
@@ -104,6 +104,4 @@ public class UiExecutors {
     long period, TimeUnit unit) {
       return SCHEDULED_INSTANCE.scheduleAtFixedRate(task, initialDelay, period, unit);
     }
-
-
 }

@@ -11,6 +11,9 @@ import org.slf4j.LoggerFactory;
  * private static final Logger logger = AppLogger.get(MyClass.class);
  * logger.info("This is a log message.");
  * </pre>
+ * 
+ * @author Svein Antonsen
+ * @since 1.0
  */
 public class AppLogger {
  

@@ -64,7 +64,16 @@ import org.slf4j.Logger;
  *   <li>IOException: Logged as warning, connection closed</li>
  *   <li>Unknown message types: Logged as warning, connection continues</li>
  * </ul>
+ * 
+ * <p><strong>AI Usage:</strong> Developed with AI assistance (Claude Code) for designing
+ * the heartbeat timeout mechanism (30-second socket timeout with 2-miss disconnect logic)
+ * and message routing architecture (broadcast vs targeted routing patterns). Socket timeout
+ * coordination (distinguishing idle timeout from actual disconnect), role-based message
+ * validation strategy, and error handling approach (EOFException vs SocketTimeoutException 
+ * differentiation) discussed with AI guidance. All implementation and testing by Svein Antonsen.
  *
+ * @author Svein Antonsen
+ * @since 1.0
  * @see TcpServer
  * @see ConnectionRegistry
  */

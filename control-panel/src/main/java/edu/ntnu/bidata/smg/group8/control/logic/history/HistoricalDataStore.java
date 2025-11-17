@@ -14,8 +14,15 @@ import java.util.concurrent.ConcurrentLinkedDeque;
  * <p>Data older than 24 hours is lazily pruned when querying statistics.
  * Statistics (min/max/avg) are calculated on-demand using streams.
  * 
+ * <p><strong>AI Usage:</strong> Developed with AI assistance (Claude Code) for designing
+ * the concurrent data structure pattern (ConcurrentHashMap + ConcurrentLinkedDeque) to support
+ * thread-safe sliding window operations, and for the lazy pruning strategy decision (on-demand
+ * cleanup vs background thread trade-offs). Stream-based statistics calculation approach and
+ * thread-safety during concurrent read/write/prune operations discussed with AI guidance.
+ * All implementation and testing by Svein Antonsen.
+ * 
  * @author Svein Antonsen
- * @since 15.11.2025
+ * @since 1.0
  */
 public class HistoricalDataStore {
   private static final Duration RETENTION_PERIOD = Duration.ofHours(24);
