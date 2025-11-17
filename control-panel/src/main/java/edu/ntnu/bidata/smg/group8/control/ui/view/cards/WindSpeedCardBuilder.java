@@ -11,32 +11,31 @@ import javafx.scene.control.Separator;
 import javafx.scene.layout.VBox;
 
 /**
-* Builder class for creating a wind speed control card.
-* This builder constructs and configures a ControlCard component
-* dedicated to displaying real-time and statistical wind speed data.
-*
-* <p>The card includes:
-* <ul>
-*     <li>Current wind speed</li>
-*     <li>Wind status</li>
-*     <li>Gust speed</li>
-*     <li>A progress bar visualizing wind intensity</li>
-*     <li>24-hour minimum, maximum, and average statistics</li>
-*     <li>A button to view historical wind speed data</li>
-* </ul>
-* </p>
+ * Builder class for creating a wind speed control card.
+ * This builder constructs and configures a ControlCard component
+ * dedicated to displaying real-time and statistical wind speed data.
+ *
+ * <h2>The wind speed control card includes the following features:</h2>
+ * <ul>
+ *     <li>Real-time wind speed display with a progress bar.</li>
+ *     <li>Wind status label indicating conditions (e.g., breeze, moderate).</li>
+ *     <li>Gust speed display.</li>
+ *     <li>24-hour statistics including minimum, maximum,
+ *     average wind speeds.</li>
+ *     <li>Button to access wind speed history.</li>
+ * </ul>
 
-* @author Andrea Sandnes
-* @version 27.10.2025
-*/
+ * @author Andrea Sandnes
+ * @version 27.10.2025
+ */
 public class WindSpeedCardBuilder implements CardBuilder {
   private final ControlCard card;
 
   /**
-  * Constructs a new wind speed card builder.
-  * Initializes the base ControlCard instance with title
-  * and text.
-  */
+   * Constructs a new wind speed card builder.
+   * Initializes the base ControlCard instance with title
+   * and text.
+   */
   public WindSpeedCardBuilder() {
     this.card = new ControlCard("Wind Speed");
     card.setValueText("-- m/s");
@@ -44,13 +43,14 @@ public class WindSpeedCardBuilder implements CardBuilder {
   }
 
   /**
-  * Builds and returns the complete wind speed control card.
-  * this method sets up labels, progress  bar, statistics section,
-  * and the history button, and binds them to a WindSpeedCardController
-  * instance.
-
-  * @return the fully constructed ControlCard ready for display
-  */
+   * Builds and returns the complete wind speed control card.
+   *
+   * <p>This method sets up labels, progress  bar, statistics section,
+   * and the history button, and binds them to a WindSpeedCardController
+   * instance.</p>
+   *
+   * @return the fully constructed ControlCard ready for display
+   */
   @Override
   public ControlCard build() {
 
@@ -93,7 +93,7 @@ public class WindSpeedCardBuilder implements CardBuilder {
     VBox currentStatsBox = new VBox(6, statusLabel, gustLabel);
     currentStatsBox.setFillWidth(true);
 
-    VBox statsBox = new VBox(6, statsTitle, new Separator() , minLabel, avgLabel, maxLabel);
+    VBox statsBox = new VBox(6, statsTitle, new Separator(), minLabel, avgLabel, maxLabel);
     statsBox.setAlignment(Pos.CENTER);
 
     Button historyButton = ButtonFactory.createHistoryButton("History");
@@ -105,7 +105,7 @@ public class WindSpeedCardBuilder implements CardBuilder {
 
     // Connecting UI-components to the controller which updates them with live-data
     var controller = new WindSpeedCardController(card, statusLabel,
-            gustLabel, windBar, minLabel, maxLabel, avgLabel,historyButton);
+            gustLabel, windBar, minLabel, maxLabel, avgLabel, historyButton);
 
     // Saving controller in the card for later access
     card.setUserData(controller);
@@ -114,10 +114,10 @@ public class WindSpeedCardBuilder implements CardBuilder {
   }
 
   /**
-  * Gets the control card instance.
+   * Gets the control card instance.
 
-  * @return the ControlCard instance
-  */
+   * @return the ControlCard instance
+   */
   @Override
   public ControlCard getCard() {
     return card;

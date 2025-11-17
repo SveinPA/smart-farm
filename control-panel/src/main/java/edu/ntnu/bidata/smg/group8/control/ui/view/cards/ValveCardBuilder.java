@@ -14,18 +14,24 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import org.slf4j.Logger;
 
-
 /**
-* Builder for the valve control card.
-*
-* <p>This builder constructs and configures a ControlCard component
-* dedicated to displaying and controlling greenhouse valve state and
-* flow rate.</p>
-*
-
-* @author Andrea Sandnes
-* @version 27.10.2025
-*/
+ * Builder for the valve control card.
+ *
+ * <p>This builder constructs and configures a ControlCard component
+ * dedicated to displaying and controlling greenhouse valve state and
+ * flow rate.</p>
+ *
+ * <h2>The valve control card includes the following features:</h2>
+ * <ul>
+ *     <li>Real-time valve state display (OPEN/CLOSED).</li>
+ *     <li>Flow rate indicator with a progress bar.</li>
+ *     <li>Slider to customize valve opening percentage.</li>
+ *     <li>Buttons to open or close the valve.</li>
+ * </ul>
+ *
+ * @author Andrea Sandnes
+ * @version 27.10.2025
+ */
 public class ValveCardBuilder implements CardBuilder {
   private static final Logger log = AppLogger.get(ValveCardBuilder.class);
 
@@ -43,6 +49,10 @@ public class ValveCardBuilder implements CardBuilder {
 
   /**
    * Builds and returns the complete valve control card.
+   *
+   * <p>This method sets up all UI components including labels,
+   * progress bar that adjust the valve state and flow rate, and buttons
+   * to open/close the valve.</p>
    *
    * @return the fully constructed ControlCard ready for display
    */
