@@ -5,6 +5,7 @@ import edu.ntnu.bidata.smg.group8.control.console.ConsoleInputLoop;
 import edu.ntnu.bidata.smg.group8.control.console.DisplayManager;
 import edu.ntnu.bidata.smg.group8.control.infra.network.PanelAgent;
 import edu.ntnu.bidata.smg.group8.control.logic.command.CommandInputHandler;
+import edu.ntnu.bidata.smg.group8.control.logic.history.HistoricalDataStore;
 import edu.ntnu.bidata.smg.group8.control.logic.state.StateStore;
 import edu.ntnu.bidata.smg.group8.control.ui.controller.ControlPanelController;
 import edu.ntnu.bidata.smg.group8.control.ui.controller.DashboardController;
@@ -12,7 +13,6 @@ import edu.ntnu.bidata.smg.group8.control.ui.controller.SceneManager;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlPanelView;
 import edu.ntnu.bidata.smg.group8.control.ui.view.DashboardView;
 import edu.ntnu.bidata.smg.group8.control.util.UiExecutors;
-import edu.ntnu.bidata.smg.group8.control.logic.history.HistoricalDataStore;
 import java.io.IOException;
 import java.util.Objects;
 import javafx.application.Application;
@@ -21,11 +21,40 @@ import javafx.stage.Stage;
 import org.slf4j.Logger;
 
 /**
- * Entry point for the Smart Greenhouse application.
- *
- * @author Andrea Sandnes
- * @version 16.10.2025
- */
+* <h3>Control Panel Main - Entry Point for the Smart Greenhouse GUI.</h3>
+*
+* <p>This class binds the entire application by initializing the
+* JavaFX GUI establishing connection to the message broker,
+* setting up state management and coordinating all the major
+* components like sensors, actuators and historical data tracking.</p>
+*
+* <p><b>Core Components:</b></p>
+* <ul>
+*     <li><b>Network layer:</b> Connects to message broker via PanelAgent for live sensor data</li>
+*     <li><b>State management:</b> Centralized StateStore that all components observe</li>
+*     <li><b>Historical tracking:</b> Records 24-hour statistics for trend analysis</li>
+*     <li><b>Dual UI:</b> Dashboard overview + detailed control panel views</li>
+*     <li><b>Optional console:</b> Text-based display and input for debugging</li>
+* </ul>
+*
+* <p><b>Important Notes:</b></p>
+* <ul>
+*     <li>Application continues running even if broker connection fails</li>
+*     <li>All sensor readings are automatically stored for historical analysis</li>
+*     <li>Window close triggers proper shutdown of all threads and connections</li>
+*     <li>CSS styling is loaded from {@code /css/styleSheet.css} in resources</li>
+* </ul>
+*
+* @author Andrea Sandnes
+* @version 1.0
+* @since 16.10.2025
+* @see PanelAgent
+* @see StateStore
+* @see HistoricalDataStore
+* @see DashboardController
+* @see ControlPanelController
+* @see SceneManager
+*/
 public final class ControlPanelMain extends Application {
   private static final Logger log = AppLogger.get(ControlPanelMain.class);
 
@@ -43,10 +72,16 @@ public final class ControlPanelMain extends Application {
   private Thread dynamicDataThread;
 
   /**
-   * Initializes and launches the Control Panel user interface.
-   *
-   * @param stage the primary stage provided by the JavaFX runtime
-   */
+  * Sets up and launches the main application window.
+  *
+  * <p>This method handles all the heavy lifting: connecting to
+  * broker, initializing the state management, creating UI views,
+  * and wiring everything together. If the broker connection fails,
+  * the app will continue running but without live data.</p>
+  *
+  * @param stage the primary stage provided by the JavaFX runtime
+  * @throws Exception if critical initialization fails
+  */
   @Override
   public void start(Stage stage) {
     log.info("Starting application (host={} port={} panelId={})",
@@ -68,6 +103,7 @@ public final class ControlPanelMain extends Application {
         }
       });
 
+      // Connect to message broker (optional - app works without it)
       try {
         agent = new PanelAgent(BROKER_HOST(), BROKER_PORT(), PANEL_ID(), stateStore);
         agent.start();
@@ -75,32 +111,35 @@ public final class ControlPanelMain extends Application {
       } catch (IOException e) {
         log.warn("Failed to connect to broker at {}:{}. Using test data only.",
                 BROKER_HOST(), BROKER_PORT(), e);
-        // Continue without broker - will use test data
       }
 
       CommandInputHandler cmdHandler = new CommandInputHandler(agent);
 
+      // Create the main UI views
       ControlPanelView controlPanelView = new ControlPanelView();
-
       DashboardView dashboardView = new DashboardView();
 
-      controller = new ControlPanelController(controlPanelView, cmdHandler, stateStore, this.historicalDataStore);
+      // Wiring up controllers with their dependencies
+      controller = new ControlPanelController(controlPanelView,
+              cmdHandler, stateStore, this.historicalDataStore);
 
       if (agent != null) {
         agent.addNodeListListener(controller::updateAvailableNodes);
       }
 
+      // Register views with scene manager for navigation
       sceneManager = new SceneManager();
       sceneManager.registerView("dashboard", dashboardView.getRootNode());
       sceneManager.registerView("control-panel", controlPanelView.getRootNode());
       log.info("Views registered with SceneManager");
 
       dashboardController = new DashboardController(dashboardView,
-              sceneManager, stateStore,cmdHandler);
+              sceneManager, stateStore, cmdHandler);
 
       controller.start();
       dashboardController.start();
 
+      // Setting up navigation between views
       controlPanelView.getReturnButton().setOnAction(e -> {
         log.info("Return button clicked");
         sceneManager.showView("dashboard");
@@ -109,6 +148,7 @@ public final class ControlPanelMain extends Application {
       sceneManager.showView("dashboard");
       log.info("DashboardController and ControlPanelController initialized and started");
 
+      // Optional console interface (enabled via system properties)
       boolean enableConsoleDisplay = Boolean.parseBoolean(
               System.getProperty("console.display", "false"));
       boolean enableConsoleInput = Boolean.parseBoolean(
@@ -129,6 +169,7 @@ public final class ControlPanelMain extends Application {
         consoleInputThread.start();
       }
 
+      // Building and configuring the main window
       log.debug("Creating Scene with dimensions 1000x700");
       Scene scene = new Scene(sceneManager.getContainer(), 1000, 700);
 
@@ -154,20 +195,27 @@ public final class ControlPanelMain extends Application {
   }
 
   /**
-   * Stops the JavaFx application gracefully.
-   */
+  * Called by JavaFX when the application window is closed.
+  * Delegates to {@link #shutdown()} for cleanup.
+  */
   @Override
   public void stop() {
     shutdown();
   }
 
   /**
-   * Gracefully shuts down the control panel, and all
-   * its components.
-   */
+  * Performs a clean shutdown of all application components.
+  *
+  * <p>Stops controllers, closes  network connections, terminates
+  * background threads, and releases resources in the correct order
+  * to avoid issues. Each component is shut down in its own try-catch
+  * block so that one failure doesn't prevent the rest from being
+  * cleaned up.</p>
+  */
   private void shutdown() {
     log.info("Shutting down Control Panel");
 
+    // Stopping UI controllers first since they depend on other components
     if (dashboardController != null) {
       try {
         dashboardController.stop();
@@ -190,6 +238,7 @@ public final class ControlPanelMain extends Application {
       }
     }
 
+    // Shutting down the shared thread pool used by UI components
     try {
       log.info("Shutting down UiExecutors thread pool");
       UiExecutors.shutDown();
@@ -198,6 +247,7 @@ public final class ControlPanelMain extends Application {
       log.error("Error shutting down UiExecutors", e);
     }
 
+    // Stopping console I/O threads
     if (consoleInput != null) {
       try {
         consoleInput.stop();
@@ -219,6 +269,7 @@ public final class ControlPanelMain extends Application {
       }
     }
 
+    // Giving the dynamic data thread some time to finish gracefully
     if (dynamicDataThread != null) {
       try {
         dynamicDataThread.interrupt();
@@ -247,6 +298,7 @@ public final class ControlPanelMain extends Application {
       }
     }
 
+    // Closing network connection last since other components might still need it
     if (agent != null) {
       try {
         agent.close();
@@ -262,7 +314,7 @@ public final class ControlPanelMain extends Application {
 
 
   /**
-   * Displays error dialog with a title and message.
+   * Displays a simple error dialog to the user.
    *
    * @param title the title text of the dialog window
    * @param message the message to display inside the dialogue
@@ -278,7 +330,7 @@ public final class ControlPanelMain extends Application {
 
 
   /**
-   * Main entry point for the application.
+   * Application entry point. Launches the JavaFx application.
 
    * @param args command line arguments
    */
@@ -293,7 +345,8 @@ public final class ControlPanelMain extends Application {
   }
 
   /**
-   * Gets the hostname or IP address of the broker.
+   * Returns the broker hostname from system properties.
+   * Defaults to "localhost" if not specified.
    *
    * @return the broker hostname
    */
@@ -302,7 +355,8 @@ public final class ControlPanelMain extends Application {
   }
 
   /**
-   * Gets the TCP port number used to connect to the broker.
+   * Returns the broker port from system properties.
+   * Defaults to 23048 if not specified or if the value is invalid.
    *
    * @return the broker port number
    */
@@ -318,7 +372,8 @@ public final class ControlPanelMain extends Application {
   }
 
   /**
-   * Gets the unique identifier for this control panel instance.
+   * Returns the Panel ID from system properties.
+   * Defaults to "panel-1" if not specified.
    *
    * @return the panel ID
    */
