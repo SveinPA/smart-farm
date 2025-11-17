@@ -41,12 +41,12 @@ import org.slf4j.Logger;
 * thread that sends keep-alive messages at regular intervals. The sendActuatorCommand
 * method is synchronized to ensure thread-safe writes to the output stream.</p>
 *
- * <p><strong>AI Usage:</strong> Developed with AI assistance for designing the
- * connection lifecycle management (AtomicBoolean for thread-safe state, daemon threads
- * for reader/heartbeat), heartbeat keep-alive mechanism (20-second interval with
- * synchronized writes), and observer pattern for node list updates (CopyOnWriteArrayList
- * with Consumer listeners). Message routing architecture (switch-based dispatch with
- * validation) discussed with AI guidance. All implementation by Andrea Sandnes.
+* <p><strong>AI Usage:</strong> Developed with AI assistance for designing the
+* connection lifecycle management (AtomicBoolean for thread-safe state, daemon threads
+* for reader/heartbeat), heartbeat keep-alive mechanism (20-second interval with
+* synchronized writes), and observer pattern for node list updates (CopyOnWriteArrayList
+* with Consumer listeners). Message routing architecture (switch-based dispatch with
+* validation) discussed with AI guidance. All implementation by Andrea Sandnes.
 *
 * @author Andrea Sandnes
 * @version 1.0
