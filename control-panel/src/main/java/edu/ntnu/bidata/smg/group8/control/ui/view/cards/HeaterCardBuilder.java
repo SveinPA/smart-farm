@@ -15,14 +15,22 @@ import javafx.scene.layout.VBox;
 import org.slf4j.Logger;
 
 /**
-* Builder for the Heater Control Card.
-*
-* <p>This builder constructs and configures a ControlCard component
-* dedicated to controlling greenhouse heating with temperature target setting.</p>
-*
-* @author Andrea Sandnes & Mona Amundsen
-* @version 28.10.2025
-*/
+ * Builder for the Heater Control Card.
+ *
+ * <p>This builder constructs and configures a ControlCard component
+ * dedicated to controlling greenhouse heating with temperature target setting.</p>
+ *
+ * <h2>The heater control card includes the following features:</h2>
+ * <ul>
+ *     <li>Temperature target setting using a spinner control.</li>
+ *     <li>Apply button to set the desired temperature.</li>
+ *     <li>Quick preset buttons for common temperature settings
+ *     (Cool, Moderate, Warm, OFF).</li>
+ * </ul>
+ *
+ * @author Andrea Sandnes & Mona Amundsen
+ * @version 28.10.2025
+ */
 public class HeaterCardBuilder implements CardBuilder {
   private static final Logger log = AppLogger.get(HeaterCardBuilder.class);
 
@@ -33,8 +41,8 @@ public class HeaterCardBuilder implements CardBuilder {
   private final ControlCard card;
 
   /**
-  * Constructs a new heater card builder.
-  */
+   * Constructs a new heater card builder.
+   */
   public HeaterCardBuilder() {
     this.card = new ControlCard("Heater");
     card.setValueText("OFF");
@@ -44,10 +52,10 @@ public class HeaterCardBuilder implements CardBuilder {
   }
 
   /**
-  * Builds and returns the complete heater control card.
+   * Builds and returns the complete heater control card.
 
-  * @return the fully constructed ControlCard ready for display
-  */
+   * @return the fully constructed ControlCard ready for display
+   */
   @Override
   public ControlCard build() {
     log.info("Building Heater control card");
@@ -68,7 +76,7 @@ public class HeaterCardBuilder implements CardBuilder {
     VBox targetBox = new VBox(4, setLabel, spinnerBox);
     targetBox.setAlignment(Pos.CENTER);
 
-    VBox applyBox = new VBox(8,targetBox, applyButton);
+    VBox applyBox = new VBox(8, targetBox, applyButton);
     VBox.setMargin(applyBox, new Insets(8, 0, 10, 0));
     applyBox.setAlignment(Pos.CENTER);
 
@@ -112,10 +120,10 @@ public class HeaterCardBuilder implements CardBuilder {
   }
 
   /**
-  * Creates the control card instance.
-  *
-  * @return the ControlCard instance
-  */
+   * Creates the control card instance.
+   *
+   * @return the ControlCard instance
+   */
   @Override
   public ControlCard getCard() {
     return card;

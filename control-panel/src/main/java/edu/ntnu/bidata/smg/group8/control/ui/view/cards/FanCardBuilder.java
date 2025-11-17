@@ -18,19 +18,28 @@ import javafx.scene.layout.VBox;
 import org.slf4j.Logger;
 
 /**
-* Builder for the Fan Control Card.
-*
-* <p>This builder constructs and configures a ControlCard component
-* dedicated to controlling greenhouse fans with both manual and automatic modes.</p>
-*
-* @author Andrea Sandnes & Mona Amundsen
-* @version 28.10.2025
-*/
+ * Builder for the Fan Control Card.
+ *
+ * <p>This builder constructs and configures a ControlCard component
+ * dedicated to controlling greenhouse fans with both manual and automatic modes.</p>
+ *
+ * <h2>The fan control card includes the following features:</h2>
+ * <ul>
+ *     <li>Mode selection between Manual and Auto.</li>
+ *     <li>Manual controls with preset speed buttons
+ *     (Low, Medium, High, Full) and a custom speed slider.</li>
+ *     <li>Auto controls allowing configuration based on temperature and humidity thresholds,
+ *     with an intensity slider.</li>
+ *     <li>And and off button.</li>
+ *</ul>
+ *
+ * @author Andrea Sandnes & Mona Amundsen
+ * @version 28.10.2025
+ */
 public class FanCardBuilder implements CardBuilder {
   private static final Logger log = AppLogger.get(FanCardBuilder.class);
 
   private final ControlCard card;
-
 
   /**
    * Constructs a new fan card builder.
@@ -44,6 +53,10 @@ public class FanCardBuilder implements CardBuilder {
 
   /**
    * Builds and returns the complete fan control card.
+   *
+   * <p>This method sets up all UI components including mode selection,
+   * manual and auto controls, and display fan status, and possible
+   * configurations.</p>
    *
    * @return the fully constructed ControlCard ready for display
    */
@@ -60,14 +73,15 @@ public class FanCardBuilder implements CardBuilder {
 
     HBox modeRow = new HBox(12, new Label("Mode:"), manualMode, autoMode);
     modeRow.setAlignment(Pos.CENTER_LEFT);
-    //Create some spacing above the mode row
-    VBox.setMargin(modeRow, new Insets(13,0,10,0));
+    // Create some spacing above the mode row
+    VBox.setMargin(modeRow, new Insets(13, 0, 10, 0));
+
 
     // Manual controls
     Button lowButton = ButtonFactory.createPresetButton("Low", 60);
+    Button fullButton = ButtonFactory.createPresetButton("Full", 60);
     Button mediumButton = ButtonFactory.createPresetButton("Medium", 60);
     Button highButton = ButtonFactory.createPresetButton("High", 60);
-    Button fullButton = ButtonFactory.createPresetButton("Full", 60);
     Button offButton = ButtonFactory.createFullWidthDangerButton("Turn OFF");
 
     double presetWidth = 80;
@@ -103,14 +117,14 @@ public class FanCardBuilder implements CardBuilder {
     // Auto controls
     Label autoInfoLabel = new Label("Linked to: Temperature & Humidity");
     autoInfoLabel.getStyleClass().add("fan-auto-info");
-    VBox.setMargin(autoInfoLabel, new Insets(10,0,5,0));
+    VBox.setMargin(autoInfoLabel, new Insets(10, 0, 5, 0));
 
     Label tempLabel = new Label("Activate at: ");
     Spinner<Integer> tempSpinner = new Spinner<>(22, 35, 26, 1);
     tempSpinner.setEditable(false);
     tempSpinner.setPrefWidth(75);
     Label tempUnit = new Label("°C");
-    HBox tempRow = new HBox(8,tempLabel, tempSpinner, tempUnit);
+    HBox tempRow = new HBox(8, tempLabel, tempSpinner, tempUnit);
     tempRow.setAlignment(Pos.CENTER);
     tempSpinner.getStyleClass().add("fan-auto-spinner");
 
@@ -124,7 +138,7 @@ public class FanCardBuilder implements CardBuilder {
     humidityRow.setAlignment(Pos.CENTER);
 
     Label autoIntensityLabel = new Label("Fan intensity: 0%");
-    VBox.setMargin(autoIntensityLabel, new Insets(10,0,0,0));
+    VBox.setMargin(autoIntensityLabel, new Insets(10, 0, 0, 0));
     autoIntensityLabel.getStyleClass().add("fan-slider-label");
 
     Slider autoIntensitySlider = new Slider(0, 100, 0);

@@ -1,27 +1,36 @@
 package edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers;
 
 import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
-import edu.ntnu.bidata.smg.group8.control.ui.view.ControlCard;
 import edu.ntnu.bidata.smg.group8.control.logic.history.HistoricalDataStore;
 import edu.ntnu.bidata.smg.group8.control.logic.history.Statistics;
+import edu.ntnu.bidata.smg.group8.control.ui.view.ControlCard;
 import edu.ntnu.bidata.smg.group8.control.util.UiExecutors;
-import javafx.application.Platform;
-import javafx.scene.control.*;
-import org.slf4j.Logger;
-
 import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import javafx.application.Platform;
+import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.Dialog;
+import javafx.scene.control.Label;
+import javafx.scene.control.ListView;
+import javafx.scene.control.ProgressBar;
+import org.slf4j.Logger;
 
 /**
-* Controller for the pH control card.
-* Handles pH value updates, statistics display, and zone-based styling.
+ * Controller for the pH control card. This controller coordinates the interactions
+ * and data updates for the pH monitoring system - making it responsible for connecting
+ * the UI with backend operations.
+ *
+ * <p>This class handles pH value updates, user interactions, and synchronization
+ * of status updates with the backend system. It also provides
+ * real-time pH level monitoring and warnings for potentially harmful pH levels.</p>
 
-* @author Andrea Sandnes
-* @version 28.10.2025
-*/
+ * @author Andrea Sandnes
+ * @version 28.10.2025
+ */
 public class PHCardController {
   private static final Logger log = AppLogger.get(PHCardController.class);
 
@@ -53,17 +62,17 @@ public class PHCardController {
 
 
   /**
-  * Creates a new PHCardController with the specified UI components.
-  *
-  * @param card the main card container
-  * @param statusLabel label displaying pH status (Acidic/Neutral/Alkaline)
-  * @param phBar progress bar visualizing pH level
-  * @param minLabel label displaying minimum pH (24h)
-  * @param maxLabel label displaying maximum pH (24h)
-  * @param avgLabel label displaying average pH (24h)
-  * @param historyButton button to access historical data
+   * Creates a new PHCardController with the specified UI components.
    *
-  */
+   * @param card the main card container
+   * @param statusLabel label displaying pH status (Acidic/Neutral/Alkaline)
+   * @param phBar progress bar visualizing pH level
+   * @param minLabel label displaying minimum pH (24h)
+   * @param maxLabel label displaying maximum pH (24h)
+   * @param avgLabel label displaying average pH (24h)
+   * @param historyButton button to access historical data
+   *
+   */
   public PHCardController(ControlCard card, Label statusLabel,
                           ProgressBar phBar, Label minLabel, Label maxLabel,
                           Label avgLabel, Button historyButton) {
@@ -109,7 +118,10 @@ public class PHCardController {
 
   /**
    * Injects the historical data store and starts periodic statistics updates.
-   * 
+   *
+   * <p>The controller will query the historical data store every 30 seconds
+   * to update the displayed pH statistics (min, max, avg) for the last 24 hours.</p>
+
    * @param historicalDataStore the data store for querying 24h statistics
    */
   public void setHistoricalDataStore(HistoricalDataStore historicalDataStore) {
@@ -127,7 +139,10 @@ public class PHCardController {
   }
 
   /**
-   * Queries historical data store and updates statistics display
+   * Queries historical data store and updates statistics display.
+   *
+   * <p>This method retrieves the min, max, and average pH values
+   * from the historical data store and updates the UI accordingly.</p>
    */
   private void updateStatsFromHistory() {
     if (historicalDataStore != null) {
@@ -143,6 +158,11 @@ public class PHCardController {
 
   /**
    * Updates the pH display.
+   *
+   * <p>This method is called when new pH data arrives from the backend.
+   * It updates the UI components to reflect the new pH value, including
+   * the progress bar and status label. It also logs the update
+   * and adds the new reading to the history.</p>
    *
    * @param ph the current pH value (0-14)
    */
@@ -170,6 +190,11 @@ public class PHCardController {
 
   /**
    * Updates the pH status label and bar color based on value.
+   *
+   * <p>The method determines the status zone (e.g., Acidic, Neutral, Alkaline)
+   * based on the current pH value, updates the status label text,
+   * and applies the corresponding CSS class for color coding.
+   * It also logs any status changes and critical warnings.</p>
    *
    * @param ph the current pH value
    */
@@ -231,6 +256,9 @@ public class PHCardController {
   /**
    * Updates the statistics display.
    *
+   * <p>This method updates the minimum, maximum,
+   * and average pH labels based on the provided values.</p>
+   *
    * @param min minimum pH in last 24h
    * @param max maximum pH in last 24h
    * @param avg average pH in last 24h
@@ -253,6 +281,9 @@ public class PHCardController {
   /**
    * Ensures the given runnable executes on the JavaFX Application Thread.
    *
+   * <p>If already on the FX thread, runs immediately;
+   * otherwise, schedules for later execution.</p>
+   *
    * @param r the runnable to execute on the FX thread
    */
   private static void fx(Runnable r) {
@@ -266,7 +297,8 @@ public class PHCardController {
   /**
    * Adds a new entry to the pH history.
    *
-   * <p>The entry includes the timestamp and pH value.</p>
+   * <p>This method prepends a timestamped pH reading
+   * to the history entries list.</p>
    *
    * @param PHLevel the pH value to record
    * @param zoneText the status zone associated with the pH value
@@ -282,7 +314,8 @@ public class PHCardController {
   /**
    * Displays the history dialog with recorded pH entries.
    *
-   * <p>The dialog shows a list of recorded pH entries.</p>
+   * <p>This method creates and shows a dialog
+   * containing a list of historical pH readings.</p>
    */
   private void showHistoryDialog() {
     Dialog<Void> dialog = new Dialog<>();
@@ -295,7 +328,7 @@ public class PHCardController {
     listView.getItems().setAll(historyEntries);
 
     listView.setPrefSize(450, 300);
-    dialog.getDialogPane().setPrefSize(470,340);
+    dialog.getDialogPane().setPrefSize(470, 340);
     dialog.setResizable(true);
 
     dialog.getDialogPane().setContent(listView);

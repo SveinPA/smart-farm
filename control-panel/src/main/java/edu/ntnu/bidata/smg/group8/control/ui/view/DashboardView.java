@@ -23,16 +23,18 @@ import javafx.scene.text.TextAlignment;
 import org.slf4j.Logger;
 
 /**
-* This class represents the dashboard display of the application.
-* It provides a graphical user interface for monitoring greenhouse sensors
-* and controlling various actuators such as lights and windows.
-*/
+ * This class represents the dashboard display of the application.
+ * It provides a graphical user interface for monitoring greenhouse sensors
+ * and controlling various actuators such as valve and window.
+ *
+ * @author Andrea Sandnes & Mona Amundsen
+ * @version 17.11.2025 (last updated)
+ */
 public class DashboardView {
   private static final Logger log = AppLogger.get(DashboardView.class);
 
   private final BorderPane rootNode;
   private Button controlPanelButton;
-
   private ToggleButton valveToggleButton;
   private ToggleButton windowToggleButton;
   private Label humidityValueLabel;
@@ -40,12 +42,12 @@ public class DashboardView {
   private Label lightValueLabel;
 
   /**
-  * Constructs a new DashboardView with all UI components initialized.
-  * The dashboard is divided into three main sections:
-  * - Left: Status cards displaying sensor readings
-  * - Center: Application Logo
-  * - Right: Control buttons for actuators
-  */
+   * Constructs a new DashboardView with all UI components initialized.
+   * The dashboard is divided into three main sections:
+   * - Left: Status cards displaying sensor readings
+   * - Center: Application Logo
+   * - Right: Control buttons for actuators
+   */
   public DashboardView() {
     log.info("Initializing DashboardView");
 
@@ -180,16 +182,19 @@ public class DashboardView {
     log.info("DashboardView initialization completed successfully");
   }
 
-
   /**
-  *  Creates a status card for displaying sensor information.
+   *  Creates a status card for displaying sensor information.
+   *
+   *  <p>This method constructs a StackPane containing a VBox with
+   *  title and value labels. It also optionally stores a reference
+   *  to the value label for later updates.</p>
 
-  * @param title The title/Label of the sensor (e.g., "Humidity")
-  * @param valueText The initial value to display
-  * @param storeLabelReference If true, stores a reference to the value label
+   * @param title The title/Label of the sensor (e.g., "Humidity")
+   * @param valueText The initial value to display
+   * @param storeLabelReference If true, stores a reference to the value label
    *                            for later updates
-  * @return A StackPane containing the formatted status card
-  */
+   * @return A StackPane containing the formatted status card
+   */
   private StackPane createStatusCard(String title, String valueText, boolean storeLabelReference) {
     log.trace("Creating status card: {}", title);
 
@@ -227,10 +232,14 @@ public class DashboardView {
   }
 
   /**
-  * Updates the humidity display with a new value from the SensorNode.
+   * Updates the humidity display with a new value from the SensorNode.
+   *
+   * <p>This method checks if the humidity label reference is valid
+   * before updating its text to avoid null pointer exceptions. If not
+   * valid, it logs a warning message.</p>
 
-  * @param humidity The humidity value to display
-  */
+   * @param humidity The humidity value to display
+   */
   public void updateHumidityDisplay(String humidity) {
     log.debug("Updating humidity display to: {}", humidity);
     if (humidityValueLabel != null) {
@@ -242,6 +251,10 @@ public class DashboardView {
 
   /**
    * Updates the temperature display with a new value from the SensorNode.
+   *
+   * <p>This method checks if the temperature label reference is valid
+   * before updating its text to avoid null pointer exceptions. If
+   * not valid, it logs a warning message.</p>
 
    * @param temperature The temperature value to display
    */

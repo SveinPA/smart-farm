@@ -14,15 +14,23 @@ import javafx.scene.layout.VBox;
 import org.slf4j.Logger;
 
 /**
-* Builder for the lights control card.
-*
-* <p>This builder constructs and configures a ControlCard component
-* dedicated to controlling greenhouse lighting with ON/OFF state
-* and intensity adjustment.</p>
+ * Builder for the lights control card.
+ *
+ * <p>This builder constructs and configures a ControlCard component
+ * dedicated to controlling greenhouse lighting with ON/OFF state
+ * and intensity adjustment.</p>
+ *
+ * <h2>The lights control card includes the following features:</h2>
+ * <ul>
+ *     <li>Real-time ambient light level display with a progress bar.</li>
+ *     <li>24-hour statistics including minimum, maximum,
+ *     average ambient light levels.</li>
+ *     <li>Button to access light history.</li>
+ * </ul>
 
-* @author Andrea Sandnes & Mona Amundsen
-* @version 28.10.2025
-*/
+ * @author Andrea Sandnes & Mona Amundsen
+ * @version 28.10.2025
+ */
 public class LightCardBuilder implements CardBuilder {
   private static final Logger log = AppLogger.get(LightCardBuilder.class);
 
@@ -30,8 +38,8 @@ public class LightCardBuilder implements CardBuilder {
 
 
   /**
-  * Constructs a new lights card builder.
-  */
+   * Constructs a new lights card builder.
+   */
   public LightCardBuilder() {
     this.card = new ControlCard("Lights");
     card.setValueText("-- lx");
@@ -39,10 +47,13 @@ public class LightCardBuilder implements CardBuilder {
   }
 
   /**
-  * Builds and returns the complete lights control card.
-  *
-  * @return the fully constructed ControlCard ready for display
-  */
+   * Builds and returns the complete lights control card.
+   *
+   * <p>This method sets up all UI components including labels, progress bar,
+   * and statistics display for the ambient light level.</p>
+   *
+   * @return the fully constructed ControlCard ready for display
+   */
   @Override
   public ControlCard build() {
     log.info("Building Light control card");

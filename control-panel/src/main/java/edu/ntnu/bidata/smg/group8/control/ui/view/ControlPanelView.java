@@ -144,6 +144,20 @@ public class ControlPanelView {
   }
   //----------------------------- CREATE CARDS ----------------------------//
 
+  /**
+   * Adds a sensor control card to the grid based on the specified sensor type.
+   *
+   * <p>This method is used to build/create and add sensor control cards to the control panel
+   * grid layout. Each sensor type corresponds to a specific control card
+   * that displays real-time data and statistics for that sensor.</p>
+   *
+   * <p>The method supports the following sensor types:
+   * "temp" (Temperature), "hum" (Humidity), "ph" (pH Level), "wind" (Wind Speed),
+   * "light" (Light Intensity), "fert" (Fertilizer Level). If an
+   * unknown sensor type is provided, a warning is logged.</p>
+   *
+   * @param sensorType the type of sensor for which to create and add a control card
+   */
   public void addSensorCard(String sensorType) {
     ControlCard card = null;
 
@@ -199,6 +213,19 @@ public class ControlPanelView {
     }
   }
 
+  /**
+   * Adds an actuator control card to the grid based on the specified actuator type.
+   *
+   * <p>This method is used to build/create and add actuator control cards to the control panel
+   * grid layout. Each actuator type corresponds to a specific control card
+   * that allows users to interact with and manage the actuator's settings.</p>
+   *
+   * <p>The method supports the following actuator types:
+   * "windows" (Window Control), "fan" (Fan Control), "heater" (Heater Control),
+   * "valve" (Valve Control). If an unknown actuator type is provided, a warning is logged.</p>
+   *
+   * @param actuatorType the type of actuator for which to create and add a control card
+   */
   public void addActuatorCard(String actuatorType) {
     ControlCard card = null;
 

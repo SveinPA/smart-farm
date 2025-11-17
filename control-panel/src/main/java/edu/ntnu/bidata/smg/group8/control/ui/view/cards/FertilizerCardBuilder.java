@@ -13,22 +13,31 @@ import javafx.scene.layout.VBox;
 import org.slf4j.Logger;
 
 /**
-* Builder for the Fertilizer Control Card.
-*
-* <p>This builder constructs and configures a ControlCard component
-* dedicated to controlling greenhouse fertilizer dosing.</p>
-*
-* @author Andrea Sandnes & Mona Amundsen
-* @version 28.10.2025
-*/
+ * Builder for the Fertilizer Control Card.
+ *
+ * <p>This builder constructs and configures a ControlCard component
+ * dedicated to controlling greenhouse fertilizer dosing.</p>
+ *
+ * <h2>The fertilizer control card includes the following features:</h2>
+ * <ul>
+ *     <li>Status display of the fertilizer system.</li>
+ *     <li>Progress bar indicating current nitrogen levels.</li>
+ *     <li>24-hour statistics including minimum, maximum,
+ *     average nitrogen levels.</li>
+ *     <li>Button to access dosing history.</li>
+ * </ul>
+ *
+ * @author Andrea Sandnes & Mona Amundsen
+ * @version 28.10.2025
+ */
 public class FertilizerCardBuilder implements CardBuilder {
   private static final Logger log = AppLogger.get(FertilizerCardBuilder.class);
 
   private final ControlCard card;
 
   /**
-  * Constructs a new fertilizer card builder.
-  */
+   * Constructs a new fertilizer card builder.
+   */
   public FertilizerCardBuilder() {
     this.card = new ControlCard("Fertilizer");
     card.setValueText("-- ppm");
@@ -37,10 +46,13 @@ public class FertilizerCardBuilder implements CardBuilder {
   }
 
   /**
-  * Builds and returns the complete fertilizer control card.
-  *
-  * @return the fully constructed ControlCard ready for display
-  */
+   * Builds and returns the complete fertilizer control card.
+   *
+   * <p>This method sets up all UI components including labels, progress bar,
+   * and statistics display.</p>
+   *
+   * @return the fully constructed ControlCard ready for display
+   */
   @Override
   public ControlCard build() {
     log.info("Building Fertilizer control card");
@@ -112,10 +124,10 @@ public class FertilizerCardBuilder implements CardBuilder {
   }
 
   /**
-  * Creates the control card instance.
-  *
-  * @return the ControlCard instance
-  */
+   * Creates the control card instance.
+   *
+   * @return the ControlCard instance
+   */
   @Override
   public ControlCard getCard() {
     return card;

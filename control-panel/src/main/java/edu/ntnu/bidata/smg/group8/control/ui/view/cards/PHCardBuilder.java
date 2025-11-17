@@ -13,15 +13,22 @@ import javafx.scene.layout.VBox;
 import org.slf4j.Logger;
 
 /**
-* Builder for the pH control card.
-*
-* <p>This builder constructs and configures a ControlCard component
-* dedicated to displaying real-time pH readings and 24h statistics.</p>
-*
-
-* @author Andrea Sandnes
-* @version 28.10.2025
-*/
+ * Builder for the pH control card.
+ *
+ * <p>This builder constructs and configures a ControlCard component
+ * dedicated to displaying real-time pH readings and 24h statistics.</p>
+ *
+ * <h2>The pH control card includes the following features:</h2>
+ * <ul>
+ *     <li>Real-time pH level display with a progress bar.</li>
+ *     <li>24-hour statistics including minimum, maximum,
+ *     average pH levels.</li>
+ *     <li>Button to access pH history.</li>
+ * </ul>
+ *
+ * @author Andrea Sandnes
+ * @version 28.10.2025
+ */
 public class PHCardBuilder implements CardBuilder {
   private static final Logger log = AppLogger.get(PHCardBuilder.class);
 
@@ -29,8 +36,8 @@ public class PHCardBuilder implements CardBuilder {
 
 
   /**
-  * Constructs a new pH card builder.
-  */
+   * Constructs a new pH card builder.
+   */
   public PHCardBuilder() {
     this.card = new ControlCard("pH Level");
     card.setValueText("--");
@@ -39,10 +46,10 @@ public class PHCardBuilder implements CardBuilder {
   }
 
   /**
-  * Builds and returns the complete pH control card.
+   * Builds and returns the complete pH control card.
 
-  * @return the fully constructed ControlCard ready for display
-  */
+   * @return the fully constructed ControlCard ready for display
+   */
   @Override
   public ControlCard build() {
     log.info("Building pH control card");
@@ -106,10 +113,10 @@ public class PHCardBuilder implements CardBuilder {
   }
 
   /**
-  * Creates the control card instance.
+   * Creates the control card instance.
 
-  * @return the ControlCard instance
-  */
+   * @return the ControlCard instance
+   */
   @Override
   public ControlCard getCard() {
     return card;

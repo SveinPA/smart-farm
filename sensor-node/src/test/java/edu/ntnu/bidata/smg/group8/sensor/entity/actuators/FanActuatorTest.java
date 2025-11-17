@@ -174,6 +174,10 @@ public class FanActuatorTest {
 
   /**
    * Test that update moves current value towards target value.
+   *
+   * <p>This should result in the current value increasing
+   * towards the target value when the target is higher than the
+   * current value.</p>
    */
   @Test
   public void testUpdateMovesCurrentValueTowardsTarget() {

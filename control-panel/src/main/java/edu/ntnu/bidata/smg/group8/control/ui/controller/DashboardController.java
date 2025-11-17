@@ -6,14 +6,14 @@ import edu.ntnu.bidata.smg.group8.control.logic.state.ActuatorReading;
 import edu.ntnu.bidata.smg.group8.control.logic.state.SensorReading;
 import edu.ntnu.bidata.smg.group8.control.logic.state.StateStore;
 import edu.ntnu.bidata.smg.group8.control.ui.view.DashboardView;
-
 import java.util.List;
 import java.util.function.Consumer;
 import javafx.application.Platform;
 import org.slf4j.Logger;
 
 /**
- * Controller for the dashboard view.
+ * Controller for the dashboard view. Which is responsible for
+ * displaying real-time sensor data and managing user interactions.
  *
  * <p>Manages Dashboard-specific logic and user interactions.</p>
  *
@@ -48,6 +48,8 @@ public class DashboardController {
    *
    * @param view the DashboardView instance
    * @param sceneManager the SceneManager which handles view navigation
+   * @param stateStore the StateStore for accessing sensor and actuator data
+   * @param cmdHandler the CommandInputHandler for sending actuator commands
    */
   public DashboardController(DashboardView view, SceneManager sceneManager,
                              StateStore stateStore, CommandInputHandler cmdHandler) {
@@ -64,6 +66,10 @@ public class DashboardController {
    * <p>This method initializes the dashboard by configuring
    * button actions and registering listeners for sensor
    * and actuator updates from the StateStore.</p>
+   *
+   * <p>AI has been used as guidance for this method in order to improve
+   * relevancy/redundancy and code quality. The code as been reviewed and considered
+   * before use, which improved learning.</p>
    */
   public void start() {
     logger.info("Starting DashboardController");
@@ -73,7 +79,8 @@ public class DashboardController {
       sceneManager.showView("control-panel");
     });
 
-    setUpSensorListeners();
+    // AI helped by suggesting methods for setting up listeners and handlers
+    setUpSensorListeners(); // reduced the redundancy by extracting method
     setUpActuatorListeners();
     setUpToggleButtonHandlers();
 
@@ -85,6 +92,9 @@ public class DashboardController {
    *
    * <p>These handlers are called when the user clicks
    * the toggle buttons in the dashboard view.</p>
+   *
+   * <p>AI suggested to extract this method to improve code organization
+   * and readability.</p>
    */
   private void setUpToggleButtonHandlers() {
     view.getWindowsToggleButton().setOnAction(event -> {
@@ -101,6 +111,9 @@ public class DashboardController {
    *
    * <p>These listeners update the dashboard view
    * when sensor readings change in the system.</p>
+   *
+   * <p>AI suggested to extract this method to improve code organization
+   * and readability.</p>
    */
   private void setUpSensorListeners() {
     temperatureSink = sr -> {
@@ -152,6 +165,9 @@ public class DashboardController {
    *
    * <p>These listeners update the dashboard view
    * when actuator states change in the system.</p>
+   *
+   * <p>AI suggested to extract this method to improve code organization
+   * and readability.</p>
    */
   private void setUpActuatorListeners() {
     windowActuatorSink = ar -> {
@@ -179,6 +195,7 @@ public class DashboardController {
    *
    * <p>This method updates the window toggle button state
    * based on the latest actuator reading.</p>
+   *
    *
    * @param ar the ActuatorReading containing the new state
    */
@@ -251,7 +268,7 @@ public class DashboardController {
       return;
     }
     try {
-        cmdHandler.sendActuatorCommand(nodeId, "window", newPosition);
+      cmdHandler.sendActuatorCommand(nodeId, "window", newPosition);
     } catch (Exception e) {
       logger.warn("Failed to send window command from dashboard", e);
       Platform.runLater(() ->
@@ -284,7 +301,7 @@ public class DashboardController {
     }
 
     try {
-      cmdHandler.sendActuatorCommand( nodeId, "valve", newPosition);
+      cmdHandler.sendActuatorCommand(nodeId, "valve", newPosition);
     } catch (Exception e) {
       logger.warn("Failed to send valve command from dashboard", e);
       Platform.runLater(() ->
@@ -305,6 +322,9 @@ public class DashboardController {
 
   /**
    * Stops the controller, and clean up resources.
+   *
+   * <p>This method removes all registered listeners
+   * and handlers to prevent memory leaks and unintended behavior.</p>
    */
   public void stop() {
     logger.info("Stopping DashboardController");

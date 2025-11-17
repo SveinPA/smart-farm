@@ -9,9 +9,15 @@ import org.slf4j.Logger;
 /**
  * Manages scene navigation between different views in the application.
  *
+ * <p>The SceneManager allows registering multiple views identified by unique names
+ * and provides functionality to switch between these views seamlessly.
+ * It maintains a stack of views and ensures that only the currently active view is visible
+ * at any given time.</p>
+ *
  * <p>AI has helped in the design and implementation of this class to evaluate relevant
- * approaches and best practices. The code has been reviewed and considered before use,
- * which helps with understanding and learning.</p>
+ * approaches and best practices (especially WHY we need this class
+ * and WHAT its responsibility is). The code has been reviewed and considered
+ * before use, which helps with understanding and learning.</p>
  *
  * @author Mona Amundsen
  * @version 12.11.2025
@@ -25,6 +31,11 @@ public class SceneManager {
 
   /**
    * Constructor for SceneManager.
+   *
+   * <p>Initializes the SceneManager with an empty container and view registry.</p>
+   *
+   * <p>The container is a StackPane that holds all registered views,
+   * allowing for easy switching between them.</p>
    */
   public SceneManager() {
     this.container = new StackPane();
@@ -35,6 +46,9 @@ public class SceneManager {
 
   /**
    * Registers a view with a given name.
+   *
+   * <p>The view is added to the container and made visible.
+   * If a view with the same name already exists, an exception is thrown.</p>
    *
    * @param name the name of the view
    * @param view the Node representing the view
@@ -52,7 +66,11 @@ public class SceneManager {
   /**
    * Shows the view associated with the given name.
    *
+   * <p>Hides all other views and brings the specified view to the front.
+   * Logs the navigation event.</p>
+   *
    * @param name the name of the view to show
+   * @throws IllegalArgumentException if no view is registered with the given name
    */
   public void showView(String name) {
     Node view = views.get(name);
@@ -82,14 +100,5 @@ public class SceneManager {
    */
   public StackPane getContainer() {
     return container;
-  }
-
-  /**
-   * Gets the name of the currently displayed view.
-   *
-   * @return the current view name
-   */
-  public String getCurrentViewName() {
-    return currentViewName;
   }
 }

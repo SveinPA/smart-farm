@@ -6,7 +6,6 @@ import edu.ntnu.bidata.smg.group8.control.ui.controller.ControlPanelController;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlCard;
 import edu.ntnu.bidata.smg.group8.control.util.UiExecutors;
 import java.io.IOException;
-import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
@@ -24,15 +23,17 @@ import org.slf4j.Logger;
 
 
 /**
-* Controller class responsible for managing the "Windows" control card UI.
-*
-* <p>Handles switching between manual and automatic control modes,
-* updating slider and preset button states, reacting to sensor inputs,
-* and updating the visual state of the window control card.</p>
+ * Controller class responsible for managing the "Windows" control card UI. This
+ * controller handles user interactions, updates the UI based on sensor data,
+ * and sends commands to adjust window openings in a smart home environment.
+ *
+ * <p>Handles switching between manual and automatic control modes,
+ * updating slider and preset button states, reacting to sensor inputs,
+ * and updating the visual state of the window control card.</p>
 
-* @author Andrea Sandnes
-* @version 28.10.2025
-*/
+ * @author Andrea Sandnes
+ * @version 28.10.2025
+ */
 public class WindowsCardController {
   private static final Logger log = AppLogger.get(WindowsCardController.class);
 
@@ -138,8 +139,14 @@ public class WindowsCardController {
   }
 
   /**
-  * Initializes event handlers and starts any listeners required by this controller.
-  */
+   * Initializes event handlers and starts any listeners required by this controller.
+   *
+   * <p>This method sets up all necessary event listeners for UI components,
+   * including mode switches, slider movements, preset button clicks,
+   * and spinner value changes. It also initializes the UI state
+   * based on default settings.</p>
+   *
+   */
   public void start() {
     log.info("Starting WindowsCardController");
 
@@ -189,8 +196,12 @@ public class WindowsCardController {
   }
 
   /**
-  * Stops this controller and cleans up resources/listeners.
-  */
+   * Stops this controller and cleans up resources/listeners.
+   *
+   * <p>This method removes all event listeners and handlers
+   * attached during the controller's lifecycle to prevent memory leaks
+   * and unintended behavior after the controller is no longer needed.</p>
+   */
   public void stop() {
     log.info("Stopping WindowsCardController");
 
@@ -225,10 +236,14 @@ public class WindowsCardController {
   }
 
   /**
-  * Updates the window position display in the UI.
-  *
-  * @param position the current window opening percentage (0-100)
-  */
+   * Updates the window position display in the UI.
+   *
+   * <p>This method updates the internal state and UI components
+   * to reflect the current window opening position.</p>
+   *
+   *
+   * @param position the current window opening percentage (0-100)
+   */
   public void updateWindowPosition(int position) {
     int clamped = clampToPercent(position);
     if (!suppressSend) {
@@ -238,11 +253,14 @@ public class WindowsCardController {
   }
 
   /**
-  * Updates the window position externally (e.g., from backend).
-  * Does not trigger a new command send (prevents echo).
-  *
-  * @param position window opening percentage (0-100)
-  */
+   * Updates the window position externally (e.g., from backend).
+   * Does not trigger a new command send (prevents echo).
+   *
+   * <p>This method works by temporarily suppressing command sends
+   * while updating the UI to reflect the new position.</p>
+   *
+   * @param position window opening percentage (0-100)
+   */
   public void updateWindowPositionExternal(int position) {
     log.info("External window position update: {}%", position);
     Platform.runLater(() -> {
@@ -256,10 +274,10 @@ public class WindowsCardController {
   }
 
   /**
-  * Updates the latest temperature reading and triggers auto-mode evaluation.
-  *
-  * @param tempC current temperature in degrees Celsius
-  */
+   * Updates the latest temperature reading and triggers auto-mode evaluation.
+   *
+   * @param tempC current temperature in degrees Celsius
+   */
   public void updateTemperature(double tempC) {
     this.latestTempC = tempC;
     if (latestWindMs != null) {
@@ -294,16 +312,18 @@ public class WindowsCardController {
     updateFromSensors(latestTempC, latestWindMs);
   }
 
-
-
   /**
-  * Processes sensor reading and updates window position in automatic mode.
-  * This method implements the automatic control logic that responds to environmental
-  * conditions.
+   * Processes sensor reading and updates window position in automatic mode.
+   * This method implements the automatic control logic that responds to environmental
+   * conditions.
+   *
+   * <p>This method works by evaluating the current temperature and wind speed
+   * against user-defined thresholds. Depending on these readings, it determines
+   * the appropriate window position and updates the UI and backend accordingly.</p>
 
-  * @param currentTemp current temperature reading in degrees Celsius
-  * @param currentWind current wind speed reading in m/s
-  */
+   * @param currentTemp current temperature reading in degrees Celsius
+   * @param currentWind current wind speed reading in m/s
+   */
   public void updateFromSensors(double currentTemp, double currentWind) {
     if (!autoMode.isSelected()) {
       log.trace("Ignoring sensor update - not in auto mode");
@@ -346,49 +366,13 @@ public class WindowsCardController {
   }
 
   /**
-  * Gets the current selected control mode.
-  *
-  * @return MANUAL if manual mode is selected, AUTO if auto mode is selected
-  */
-  public String getCurrentMode() {
-    return manualMode.isSelected() ? "MANUAL" : "AUTO";
-  }
-
-  /**
-  * Gets the current window opening position from the slider.
-  *
-  * @return the current position percentage (0-100)
-  */
-  public int getCurrentPosition() {
-    return (int) openingSlider.getValue();
-  }
-
-  /**
-  * Gets the temperature threshold for automatic window opening.
-  *
-  * @return the temperature threshold in degrees Celsius (°C), range 20-35
-  */
-  public int getTemperatureThreshold() {
-    return tempSpinner.getValue();
-  }
-
-  /**
-  * Gets the wind speed limit for automatic window closing.
-
-  * @return the wind speed limit in m/s
-  */
-  public int getWindSpeedLimit() {
-    return windSpinner.getValue();
-  }
-
-  /**
-  * Updates the auto control status label.
-  * This method updates the status indicator to show the current state
-  * of the automation system. It is typically called when the automation
-  * system takes action based on sensor readings.
-  *
-  * @param isActive true if auto control is actively adjusting windows
-  * @param reason the reason for the current state (e.g., "High temperature", "Strong wind")
+   * Updates the auto control status label.
+   * This method updates the status indicator to show the current state
+   * of the automation system. It is typically called when the automation
+   * system takes action based on sensor readings.
+   *
+   * @param isActive true if auto control is actively adjusting windows
+   * @param reason the reason for the current state (e.g., "High temperature", "Strong wind")
    */
   public void updateAutoStatus(boolean isActive, String reason) {
     log.debug("Auto control status update - Active: {}, Reason: {}", isActive, reason);
@@ -411,10 +395,14 @@ public class WindowsCardController {
   }
 
   /**
-  * Sets a specific manual position if manual mode is active.
-  *
-  * @param position target window position (0-100)
-  */
+   * Sets a specific manual position if manual mode is active.
+   *
+   * <p>This method works by checking if manual mode is selected.
+   * If so, it updates the window position and sends the command
+   * to the backend. If not in manual mode, the preset command is ignored.</p>
+   *
+   * @param position target window position (0-100)
+   */
   private void setManualPosition(int position) {
     if (!manualMode.isSelected()) {
       log.trace("Preset ignored: not in manual mode");
@@ -428,10 +416,14 @@ public class WindowsCardController {
   }
 
   /**
-  * Sends window command asynchronously to avoid blocking UI thread.
-  *
-  * @param position window opening percentage (0-100)
-  */
+   * Sends window command asynchronously to avoid blocking UI thread.
+   *
+   * <p>This method retrieves the selected node ID from the controller
+   * and sends the window position command using the command handler.
+   * It logs success or failure of the command send operation.</p>
+   *
+   * @param position window opening percentage (0-100)
+   */
   private void sendWindowCommandAsync(int position) {
     UiExecutors.execute(() -> {
       try {
@@ -452,10 +444,10 @@ public class WindowsCardController {
   }
 
   /**
-  * Sends window position command if conditions are met.
-  *
-  * @param position target position (0-100)
-  */
+   * Sends window position command if conditions are met.
+   *
+   * @param position target position (0-100)
+   */
   private void sendWindowPositionIfNeeded(int position) {
     if (!suppressSend && cmdHandler != null && controller != null) {
       if (lastSentPosition != null && lastSentPosition == position) {
@@ -467,19 +459,19 @@ public class WindowsCardController {
   }
 
   /**
-  * Applies position changes triggered by the slider component.
-  *
-  * @param pos slider value in percent
-  */
+   * Applies position changes triggered by the slider component.
+   *
+   * @param pos slider value in percent
+   */
   private void applyPositionFromSlider(int pos) {
     applyPosition(pos);
   }
 
   /**
-  * Applies a new window position to both UI labels and card display.
-  *
-  * @param pos target position in percent
-  */
+   * Applies a new window position to both UI labels and card display.
+   *
+   * @param pos target position in percent
+   */
   private void applyPosition(int pos) {
     currentPosition = clampToPercent(pos);
 
@@ -494,10 +486,10 @@ public class WindowsCardController {
   }
 
   /**
-  * Switches between manual and automatic modes in the UI.
-  *
-  * @param manual true to activate manual controls, false to activate automatic
-  */
+   * Switches between manual and automatic modes in the UI.
+   *
+   * @param manual true to activate manual controls, false to activate automatic
+   */
   private void applyMode(boolean manual) {
     manualBox.setDisable(!manual);
     manualBox.setVisible(manual);
@@ -509,32 +501,23 @@ public class WindowsCardController {
   }
 
   /**
-  * Clamps a value to the valid range [0,100].
-  *
-  * @param v input value
-  * @return clamped value
-  */
+   * Clamps a value to the valid range [0,100].
+   *
+   * @param v input value
+   * @return clamped value
+   */
   private static int clampToPercent(int v) {
     return Math.max(0, Math.min(100, v));
   }
 
   /**
-  * Injects required dependencies for this window card controller.
-  *
-  * @param cmdHandler the command input handler
-  * @param controller the main control panel controller
-  */
-  public void setDependencies(CommandInputHandler cmdHandler, ControlPanelController controller) {
-    this.cmdHandler = Objects.requireNonNull(cmdHandler, "cmdHandler");
-    this.controller = Objects.requireNonNull(controller, "controller");
-    log.debug("WindowsCardController dependencies injected");
-  }
-
-  /**
-  * Ensures the given runnable executes on the JavaFX Application Thread.
-  *
-  * @param r the runnable to execute on the FX thread
-  */
+   * Ensures the given runnable executes on the JavaFX Application Thread.
+   *
+   * <p>If already on the FX thread, the runnable is executed immediately.
+   * Otherwise, it is scheduled to run later on the FX thread.</p>
+   *
+   * @param r the runnable to execute on the FX thread
+   */
   private static void fx(Runnable r) {
     if (Platform.isFxApplicationThread()) {
       r.run();

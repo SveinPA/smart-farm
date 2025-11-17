@@ -15,6 +15,7 @@ import org.slf4j.Logger;
  * <ul>
  *     <li>Opening range from 0% (closed) to 100% (fully open).</li>
  *     <li>Methods to check if the valve is open, fully open, or closed.</li>
+ *     <li>Methods to open, close, and set specific opening percentages.</li>
  *</ul>
  *
  * <p>The logger is used to log important events and state changes

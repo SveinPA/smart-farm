@@ -14,14 +14,22 @@ import javafx.scene.layout.VBox;
 import org.slf4j.Logger;
 
 /**
-* Builder for the humidity control card.
-*
-* <p>This builder constructs and configures a ControlCard component
-* dedicated to displaying real-time humidity readings and 24h statistics.</p>
-*
-* @author Andrea Sandnes & Mona Amundsen
-* @version 28.10.2025
-*/
+ * Builder for the humidity control card.
+ *
+ * <p>This builder constructs and configures a ControlCard component
+ * dedicated to displaying real-time humidity readings and 24h statistics.</p>
+ *
+ * <h2>The humidity control card includes the following features:</h2>
+ * <ul>
+ *     <li>Real-time humidity display with a progress bar.</li>
+ *     <li>24-hour statistics including minimum, maximum,
+ *     average humidity levels.</li>
+ *     <li>Button to access humidity history.</li>
+ * </ul>
+ *
+ * @author Andrea Sandnes & Mona Amundsen
+ * @version 28.10.2025
+ */
 public class HumidityCardBuilder implements CardBuilder {
   private static final Logger log = AppLogger.get(HumidityCardBuilder.class);
 
@@ -29,8 +37,8 @@ public class HumidityCardBuilder implements CardBuilder {
 
 
   /**
-  * Constructs a new humidity card builder.
-  */
+   * Constructs a new humidity card builder.
+   */
   public HumidityCardBuilder() {
     this.card = new ControlCard("Humidity");
     card.setValueText("--%");
@@ -39,10 +47,13 @@ public class HumidityCardBuilder implements CardBuilder {
   }
 
   /**
-  * Builds and returns the complete humidity control card.
-  *
-  * @return the fully constructed ControlCard ready for display
-  */
+   * Builds and returns the complete humidity control card.
+   *
+   * <p>This method sets up all UI components including labels, progress bar,
+   * and statistics display for the humidity level.</p>
+   *
+   * @return the fully constructed ControlCard ready for display
+   */
   @Override
   public ControlCard build() {
     log.info("Building Humidity control card");
@@ -99,10 +110,10 @@ public class HumidityCardBuilder implements CardBuilder {
   }
 
   /**
-  * Creates the control card instance.
-  *
-  * @return the ControlCard instance
-  */
+   * Creates the control card instance.
+   *
+   * @return the ControlCard instance
+   */
   @Override
   public ControlCard getCard() {
     return card;
