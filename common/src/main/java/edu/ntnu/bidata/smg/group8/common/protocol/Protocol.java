@@ -2,7 +2,37 @@ package edu.ntnu.bidata.smg.group8.common.protocol;
 
 
 /**
- * Protocol constants for the Smart Farm Messaging Protocol.
+ * Protocol constants for the Smart Farm Messaging Protocol.  
+ * 
+ *
+ * <p>This class defines all string constants used in the JSON-based protocol for
+ * communication between sensor nodes, control panels, and the broker. The protocol
+ * uses length-prefixed JSON messages over TCP.
+ *
+ * <p><strong>Constant Categories:</strong>
+ * <ul>
+ *   <li><strong>Protocol Version:</strong> Current protocol version identifier</li>
+ *   <li><strong>Message Types:</strong> All supported message type identifiers (13 types)</li>
+ *   <li><strong>Node Roles:</strong> Client role identifiers (SENSOR_NODE, CONTROL_PANEL)</li>
+ *   <li><strong>Heartbeat Directions:</strong> Heartbeat message direction indicators</li>
+ * </ul>
+ *
+ * <p><strong>Message Type Categories:</strong>
+ * <ul>
+ *   <li><em>Registration:</em> REGISTER_NODE, REGISTER_CONTROL_PANEL, REGISTER_ACK, NODE_LIST</li>
+ *   <li><em>Data Transfer:</em> SENSOR_DATA, ACTUATOR_STATUS, ACTUATOR_STATE</li>
+ *   <li><em>Commands:</em> ACTUATOR_COMMAND, COMMAND_ACK</li>
+ *   <li><em>Lifecycle Events:</em> NODE_CONNECTED, NODE_DISCONNECTED</li>
+ *   <li><em>Connection Management:</em> HEARTBEAT, ERROR</li>
+ * </ul>
+ *
+ * <p>For complete protocol specification, see the protocol documentation in
+ * {@code smart-farm/protocol.md}.
+ *
+ * @author Svein Antonsen
+ * @since 1.0
+ * @see MessageParser
+ * @see FrameCodec
  */
 public final class Protocol {
   private Protocol() {

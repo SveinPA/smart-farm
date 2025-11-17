@@ -6,7 +6,6 @@ import edu.ntnu.bidata.smg.group8.common.protocol.Protocol;
 import edu.ntnu.bidata.smg.group8.common.util.JsonBuilder;
 import edu.ntnu.bidata.smg.group8.common.protocol.FrameCodec;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;

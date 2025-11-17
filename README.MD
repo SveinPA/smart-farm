@@ -219,5 +219,9 @@ Authors and their main responsibility areas:
 - **10012 (Andsandn)** – Control panel UI/GUI, panel logic, communication
 - **10024 (captnsundy)** – Sensor node logic, NodeAgent, documentation
 
+## AI Assistance Declaration
+This project was developed with assistance from various AI tools including Claude Code, ChatGPT, Ninja, and GitHub Copilot. AI assistance was used as a learning aid for code design, debugging, documentation, and testing strategies.
+All code was written, reviewed, and understood by team members. Detailed AI usage information can be found in JavaDoc comments of relevant classes.
+
 ## License ©️
 This project was created as part of the **IDATA2304 Computer Communication & Network Programming** course at **NTNU Ålesund.** It is intended for educational use in the context of the course assignment.
