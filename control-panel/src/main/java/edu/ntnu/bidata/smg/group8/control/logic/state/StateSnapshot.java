@@ -19,7 +19,8 @@ import java.util.Objects;
 * system do not affect this object.</p>
 *
 * @author Andrea Sandnes
-* @version 30.10.25
+* @version 1.0
+* @since 30.10.25
 */
 public record StateSnapshot(List<SensorReading> sensors, List<ActuatorReading> actuators) {
 

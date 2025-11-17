@@ -19,7 +19,8 @@ import java.time.Instant;
 * @param ts the timestamp when this reading was taken
 *
 * @author Andrea Sandnes
-* @version 30.10.25
+* @version 1.0
+* @since 30.10.25
 */
 public record SensorReading(String nodeId, String type, String value,
                             String unit, Instant ts) {
