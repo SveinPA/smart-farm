@@ -34,8 +34,19 @@ This system simulates a **smart farm** with sensor nodes that monitor environmen
 - Custom TCP-based protocol with JSON messages
 
 ## Extras ⭐
-- Sensor data averaging (5-sample rolling window) to represent coarser time resolution
-- Automatic unique node IDs
+- Sensor data averaging (5-sample rolling window) to represent coarser time resolution **(EXTRA #6)**
+- Automatic unique sensor node IDs **(EXTRA #3)**
+- Flexible actuator commands — broadcast to ALL sensor nodes **(EXTRA #5)**
+  - The control panel console (*not GUI*) allows sending actuator commands to *all* connected sensor nodes at once
+  - **Usage:**
+    ```
+    all <actuator> <value>
+    ```
+  - **Example:**
+    ```
+    all fan 100
+    ```
+
 
 ## Prerequisites ⚠️
 

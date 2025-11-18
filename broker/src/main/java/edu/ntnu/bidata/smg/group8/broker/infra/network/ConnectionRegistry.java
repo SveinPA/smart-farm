@@ -137,4 +137,26 @@ final class ConnectionRegistry {
     }
     return String.join(",", sensorNodes.keySet());
   }
+
+  /**
+   * Broadcast a frame to all connected sensor nodes.
+   *
+   * <p>This method iterates over all registered sensor nodes and attempts to send
+   * the provided frame. If a write operation fails (indicating a dead connection),
+   * the corresponding entry is removed from the registry to maintain integrity.</p>
+   *
+   * @param payload the frame bytes to broadcast
+   */
+  void broadcastToSensors(byte[] payload) {
+      Iterator<Map.Entry<String, OutputStream>> it = sensorNodes.entrySet().iterator();
+      while (it.hasNext()) {
+          Map.Entry<String, OutputStream> e = it.next();
+          try {
+              FrameCodec.writeFrame(e.getValue(), payload);
+          } catch (IOException io) {
+              log.warn("Broadcast to sensor {} failed; pruning stream: {}", e.getKey(), io.getMessage());
+              it.remove(); // remove dead node
+          }
+      }
+  }
 }

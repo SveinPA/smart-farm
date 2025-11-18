@@ -18,7 +18,7 @@ import org.slf4j.Logger;
 * send control commands (e.g "heater 22") to a specific node in a
 * distributed system or smart grid.</p>
 *
-* @author Andrea Sandnes
+* @author Andrea Sandnes & Ida Soldal
 * @version 1.0
 * @since 01.11.2025
 * @see CommandInputHandler
@@ -87,111 +87,120 @@ public class ConsoleInputLoop implements Runnable {
     log.info("Console input loop started.");
 
     try (BufferedReader br = new BufferedReader(new InputStreamReader(System.in))) {
-      while (running) {
+
+    while (running) {
+
         if (mode == Mode.INPUT) {
-          System.out.print("> ");
-          System.out.flush();
 
-          String line = br.readLine();
-          if (line == null) {
-            break;
-          }
-          line = line.trim();
-          if (line.isEmpty()) {
-            continue;
-          }
-
-          // Handle built-in commands
-          if (line.equalsIgnoreCase("quit") || line.equalsIgnoreCase("exit")) {
-            log.info("Exiting console input loop...");
-            break;
-          }
-          if (line.equalsIgnoreCase("help")) {
-            printHelp();
-            continue;
-          }
-          if (line.equalsIgnoreCase("Status")) {
-            if (display != null) {
-              display.showOnce();
-            } else {
-              System.out.println("Display not available");
-            }
-            continue;
-          }
-          if (line.equalsIgnoreCase("view") || line.equalsIgnoreCase("display on")) {
-            mode = Mode.VIEW;
-            if (display != null) {
-              display.resume();
-            }
-            System.out.println("→ VIEW mode. Press Enter to return to INPUT...");
+            System.out.print("> ");
             System.out.flush();
-            continue;
-          }
-          if (line.equalsIgnoreCase("input") || line.equalsIgnoreCase("display off")) {
-            mode = Mode.INPUT;
-            if (display != null) {
-              display.pause();
+
+            String line = br.readLine();
+            if (line == null) break;
+            line = line.trim();
+            if (line.isEmpty()) continue;
+
+            // ---------- INTERNAL COMMANDS ----------
+            if (line.equalsIgnoreCase("quit") || line.equalsIgnoreCase("exit")) {
+                log.info("Exiting console input loop...");
+                break;
             }
-            System.out.println("→ INPUT mode.");
-            continue;
-          }
-
-          // Parse actuator command (format: "actuator value")
-          String[] parts = line.split("\\s+");
-          if (parts.length != 2) {
-            System.out.println("Use: <actuator> <int value>   e.g., heater 22");
-            continue;
-          }
-          String actuator = parts[0];
-          String valueStr = parts[1];
-
-          try {
-            int value = Integer.parseInt(valueStr);
-
-            // Make sure we have a target node selected
-            String targetNodeId = controller != null ? controller.getSelectedNodeId() : null;
-            if (targetNodeId == null) {
-              System.out.println("ERROR: No node selected. Please select a node in the GUI first.");
-              log.warn("Cannot send console command: no node selected");
-              continue;
+            if (line.equalsIgnoreCase("help")) {
+                printHelp();
+                continue;
+            }
+            if (line.equalsIgnoreCase("status")) {
+                if (display != null) display.showOnce();
+                continue;
+            }
+            if (line.equalsIgnoreCase("view") || line.equalsIgnoreCase("display on")) {
+                mode = Mode.VIEW;
+                if (display != null) display.resume();
+                System.out.println("→ VIEW mode. Press Enter to return to INPUT...");
+                continue;
+            }
+            if (line.equalsIgnoreCase("input") || line.equalsIgnoreCase("display off")) {
+                mode = Mode.INPUT;
+                if (display != null) display.pause();
+                System.out.println("→ INPUT mode.");
+                continue;
             }
 
-            // Send command to the node
-            cmdHandler.setValue(targetNodeId, actuator, value);
-            log.info("Command sent: {} {} (nodeId={})", actuator, value, targetNodeId);
+            // ---------- BROADCAST SUPPORT ----------
+            String[] parts = line.split("\\s+");
+            if (parts.length == 3 && parts[0].equalsIgnoreCase("all")) {
 
-            // Optimistically update local state so UI reflects change immediately
-            boolean optimistic = Boolean.parseBoolean(System.getProperty("panel.optimistic",
-                    "true"));
-            if (stateStore != null && optimistic) {
-              stateStore.applyActuator(targetNodeId, actuator,
-                      Integer.toString(value), Instant.now());
+                String actuator = parts[1];
+                String valueStr = parts[2];
+
+                try {
+                    int value = Integer.parseInt(valueStr);
+                    cmdHandler.setValue("ALL", actuator, value);
+                    log.info("BROADCAST command sent: {} {} → ALL nodes", actuator, value);
+                    System.out.println("Broadcast sent to ALL nodes.");
+                } catch (NumberFormatException nfe) {
+                    System.out.println("Value must be integer: " + valueStr);
+                } catch (IOException ioe) {
+                    log.error("Failed to send broadcast command", ioe);
+                    System.out.println("Failed to send broadcast: " + ioe.getMessage());
+                }
+                continue;
             }
-          } catch (NumberFormatException nfe) {
-            System.out.println("Value must be integer: " + valueStr);
-          } catch (IOException ioe) {
-            log.error("Failed to send command: {} {}", actuator, valueStr, ioe);
-          }
+
+            // ---------- NORMAL 2-ARG COMMAND ----------
+            if (parts.length != 2) {
+                System.out.println("Use:");
+                System.out.println("  <actuator> <value>     e.g., fan 60");
+                System.out.println("  all <actuator> <value> e.g., all fan 60");
+                continue;
+            }
+
+            String actuator = parts[0];
+            String valueStr = parts[1];
+
+            try {
+                int value = Integer.parseInt(valueStr);
+
+                // Normal mode → requires selected node
+                String targetNodeId = controller != null ? controller.getSelectedNodeId() : null;
+
+                if (targetNodeId == null) {
+                    System.out.println("ERROR: No node selected in GUI.");
+                    continue;
+                }
+
+                cmdHandler.setValue(targetNodeId, actuator, value);
+                log.info("Command sent: {} {} → node {}", actuator, value, targetNodeId);
+
+                // Optimistic update
+                if (stateStore != null &&
+                    Boolean.parseBoolean(System.getProperty("panel.optimistic", "true"))) {
+
+                    stateStore.applyActuator(targetNodeId, actuator,
+                            Integer.toString(value), Instant.now());
+                }
+
+            } catch (NumberFormatException nfe) {
+                System.out.println("Value must be integer: " + valueStr);
+            } catch (IOException ioe) {
+                log.error("Failed to send command", ioe);
+                System.out.println("Failed to send command: " + ioe.getMessage());
+            }
+
         } else {
-          // View mode - show live data until user presses Enter
-          if (display != null) {
-            display.resume();
-          }
-          System.out.print("\n[Viewing live data] Press Enter to return to INPUT... ");
-          System.out.flush();
+            // ---------- VIEW MODE ----------
+            if (display != null) display.resume();
+            System.out.print("\n[Viewing live data] Press Enter to return to INPUT... ");
+            System.out.flush();
 
-          br.readLine();
-          if (!running) {
-            break;
-          }
+            br.readLine(); // Wait for Enter
+            if (!running) break;
 
-          mode = Mode.INPUT;
-          if (display != null) {
-            display.pause();
-          }
-          System.out.println("\n→ INPUT mode.");
+            mode = Mode.INPUT;
+            if (display != null) display.pause();
+            System.out.println("\n→ INPUT mode.");
         }
-      }
+    }
     } catch (IOException e) {
       log.error("Console input error", e);
     } finally {
@@ -222,6 +231,7 @@ public class ConsoleInputLoop implements Runnable {
     System.out.println(" valve <0|1>                e.g., valve 1");
     System.out.println(" window <percent>           e.g., window 50");
     System.out.println(" artificial_light <0-100>   e.g., artificial_light 75");
+    System.out.println(" all <actuator> <value>     e.g., all fan 100   (broadcast to ALL nodes)");
     System.out.println();
     System.out.println("Mode control:");
     System.out.println(" view            - switch to VIEW mode (live updating)");
