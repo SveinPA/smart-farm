@@ -22,7 +22,7 @@ mkdir -p logs  # Ensure logs directory exists
 mvn exec:java -pl broker > logs/broker.log 2>&1 &
 BROKER_PID=$!
 echo "Broker started (PID: $BROKER_PID)"
-sleep 3  # Wait for broker to initialize
+sleep 5  # Wait for broker to initialize (increased for Mac compatibility)
 
 # 3. Start sensor node in background (default: all sensors)
 echo ""
@@ -30,7 +30,7 @@ echo "[3/4] Starting sensor node (all sensors)..."
 mvn exec:java -pl sensor-node > logs/sensor-node.log 2>&1 &
 SENSOR_PID=$!
 echo "Sensor node started (PID: $SENSOR_PID)"
-sleep 2  # Wait for sensor to connect
+sleep 3  # Wait for sensor to connect (increased for Mac compatibility)
 
 # 4. Start control panel GUI (foreground)
 echo ""

@@ -20,13 +20,13 @@ echo.
 echo [2/4] Starting broker...
 if not exist logs mkdir logs
 start "Smart-Farm Broker" /MIN cmd /c "mvn exec:java -pl broker > logs\broker.log 2>&1"
-timeout /t 3 /nobreak > nul
+timeout /t 5 /nobreak > nul
 
 REM 3. Start sensor node in background (default: all sensors)
 echo.
 echo [3/4] Starting sensor node (all sensors)...
 start "Smart-Farm Sensor" /MIN cmd /c "mvn exec:java -pl sensor-node > logs\sensor-node.log 2>&1"
-timeout /t 2 /nobreak > nul
+timeout /t 3 /nobreak > nul
 
 REM 4. Start control panel GUI (foreground)
 echo.
