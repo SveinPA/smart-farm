@@ -18,6 +18,7 @@ fi
 # 2. Start broker in background
 echo ""
 echo "[2/4] Starting broker..."
+mkdir -p logs  # Ensure logs directory exists
 mvn exec:java -pl broker > logs/broker.log 2>&1 &
 BROKER_PID=$!
 echo "Broker started (PID: $BROKER_PID)"

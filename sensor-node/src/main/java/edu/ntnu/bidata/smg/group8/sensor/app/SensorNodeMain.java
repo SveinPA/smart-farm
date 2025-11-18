@@ -624,10 +624,29 @@ public final class SensorNodeMain {
    * <p>The user can stop the node at any time by pressing
    * ENTER in the terminal, which triggers a graceful shutdown sequence.</p>
    *
+   * <p><b>Background Mode Detection:</b> If running in background mode (e.g., via script),
+   * System.in is unavailable. In this case, the method sleeps indefinitely instead of
+   * trying to read from Scanner, preventing immediate shutdown.</p>
+   *
    */
   private static void waitForUserInput() {
-    try (Scanner scanner = new Scanner(System.in)) {
-      scanner.nextLine();
+    try {
+      // Check if running in background/non-interactive mode
+      if (System.console() == null) {
+        log.info("Running in background mode - use stop-all script or Ctrl+C to stop");
+        // Keep main thread alive indefinitely
+        Thread.sleep(Long.MAX_VALUE);
+        return;
+      }
+
+      // Normal interactive mode
+      log.info("Press ENTER to stop the sensor node...");
+      try (Scanner scanner = new Scanner(System.in)) {
+        scanner.nextLine();
+      }
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      log.info("Interrupted - shutting down");
     } catch (Exception e) {
       log.warn("Error reading user input: {}", e.getMessage());
     }
