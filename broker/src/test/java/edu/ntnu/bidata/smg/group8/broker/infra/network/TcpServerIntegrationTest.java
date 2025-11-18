@@ -14,8 +14,28 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-
-
+/**
+ * Integration tests for the TcpServer and broker message routing functionality.
+ *
+ * <p>This test suite verifies end-to-end communication flows including:
+ * <ul>
+ *   <li>Node registration (sensor nodes and control panels)</li>
+ *   <li>Message broadcasting (sensor data, actuator status, lifecycle events)</li>
+ *   <li>Command routing (actuator commands from panels to sensors)</li>
+ *   <li>Error handling (unknown nodes, disconnected targets)</li>
+ *   <li>Connection resilience (dead stream pruning, reconnection)</li>
+ * </ul>
+ *
+ * <p>The tests simulate realistic client-server interactions by creating
+ * actual TCP socket connections and validating message flows through the broker.
+ *
+ * <p><strong>AI Usage:</strong> AI assistance was used in designing and implementing
+ * several test cases in this class to ensure comprehensive test coverage of critical
+ * message routing scenarios and edge cases.
+ *
+ * @author Svein Antonsen
+ * @since 1.0
+ */
 class TcpServerIntegrationTest {
 
   private TcpServer server;
@@ -125,6 +145,57 @@ class TcpServerIntegrationTest {
             "value", value
         );
     }
+
+    /**
+     * Builds an ACTUATOR_COMMAND JSON message.
+     *
+     * @param targetNode the target sensor node ID
+     * @param actuator the actuator name (e.g., "fan", "heater")
+     * @param action the action to perform (e.g., "1" for ON, "0" for OFF)
+     * @return JSON string for ACTUATOR_COMMAND message
+     */
+    static String actuatorCommand(String targetNode, String actuator, String action) {
+      return JsonBuilder.build(
+            "type", Protocol.TYPE_ACTUATOR_COMMAND,
+            "targetNode", targetNode,
+            "actuator", actuator,
+            "action", action
+        );
+    }
+
+    /**
+     * Builds a COMMAND_ACK JSON message.
+     *
+     * @param nodeId the sensor node ID that is acknowledging the command
+     * @param actuator the actuator that was controlled
+     * @param action the action that was performed
+     * @return JSON string for COMMAND_ACK message
+     */
+    static String commandAck(String nodeId, String actuator, String action) {
+      return JsonBuilder.build(
+            "type", Protocol.TYPE_COMMAND_ACK,
+            "nodeId", nodeId,
+            "actuator", actuator,
+            "action", action
+        );
+    }
+
+    /**
+     * Builds an ACTUATOR_STATUS JSON message.
+     *
+     * @param nodeId the sensor node ID reporting the status
+     * @param actuator the actuator name
+     * @param state the current state (e.g., "ON", "OFF", or numeric value)
+     * @return JSON string for ACTUATOR_STATUS message
+     */
+    static String actuatorStatus(String nodeId, String actuator, String state) {
+      return JsonBuilder.build(
+            "type", Protocol.TYPE_ACTUATOR_STATUS,
+            "nodeId", nodeId,
+            "actuator", actuator,
+            "state", state
+        );
+    }
   }
 
   @Test
@@ -192,6 +263,180 @@ class TcpServerIntegrationTest {
       assertTrue(received3Again.contains("26.0"));
 
       // Success: broadcast continues working, dead stream was pruned
+    }
+  }
+
+  /**
+   * Tests actuator command routing from control panel to sensor node,
+   * error handling when target node is not found, and NODE_DISCONNECTED
+   * event broadcasting when a sensor node disconnects.
+   *
+   * <p>This test verifies:
+   * <ul>
+   *   <li>ACTUATOR_COMMAND messages are correctly routed from control panel to target sensor</li>
+   *   <li>ERROR messages are sent to control panel when target node doesn't exist</li>
+   *   <li>ERROR messages are sent when command is sent to disconnected node</li>
+   *   <li>NODE_DISCONNECTED events are broadcast to all control panels when sensor disconnects</li>
+   * </ul>
+   *
+   * @throws Exception if socket communication fails
+   */
+  @Test
+  void actuatorCommandRoutingAndErrorHandling() throws Exception {
+    try (Socket panel = new Socket("127.0.0.1", port);
+         Socket sensor1 = new Socket("127.0.0.1", port);
+         Socket sensor2 = new Socket("127.0.0.1", port)) {
+
+      // 1. Register control panel
+      writeJson(panel, Jsons.registerControlPanel("panel-1"));
+      String panelAck = readJson(panel);
+      assertTrue(panelAck.contains(Protocol.TYPE_REGISTER_ACK));
+
+      // Read NODE_LIST (should be empty initially)
+      String nodeList = readJson(panel);
+      assertTrue(nodeList.contains(Protocol.TYPE_NODE_LIST));
+
+      // 2. Register sensor node 1
+      writeJson(sensor1, Jsons.registerNode("sensor-1"));
+      String sensor1Ack = readJson(sensor1);
+      assertTrue(sensor1Ack.contains(Protocol.TYPE_REGISTER_ACK));
+
+      // Panel receives NODE_CONNECTED for sensor-1
+      String nodeConnected1 = readJson(panel);
+      assertTrue(nodeConnected1.contains(Protocol.TYPE_NODE_CONNECTED));
+      assertTrue(nodeConnected1.contains("sensor-1"));
+
+      // 3. Register sensor node 2
+      writeJson(sensor2, Jsons.registerNode("sensor-2"));
+      String sensor2Ack = readJson(sensor2);
+      assertTrue(sensor2Ack.contains(Protocol.TYPE_REGISTER_ACK));
+
+      // Panel receives NODE_CONNECTED for sensor-2
+      String nodeConnected2 = readJson(panel);
+      assertTrue(nodeConnected2.contains(Protocol.TYPE_NODE_CONNECTED));
+      assertTrue(nodeConnected2.contains("sensor-2"));
+
+      // 4. Panel sends ACTUATOR_COMMAND to sensor-1 (SUCCESS CASE)
+      writeJson(panel, Jsons.actuatorCommand("sensor-1", "fan", "1"));
+
+      // Sensor-1 should receive the command
+      String receivedCommand = readJson(sensor1);
+      assertTrue(receivedCommand.contains(Protocol.TYPE_ACTUATOR_COMMAND));
+      assertTrue(receivedCommand.contains("sensor-1"));
+      assertTrue(receivedCommand.contains("fan"));
+      assertTrue(receivedCommand.contains("\"1\""));
+
+      // 5. Panel sends ACTUATOR_COMMAND to non-existent sensor (ERROR CASE)
+      writeJson(panel, Jsons.actuatorCommand("non-existent-sensor", "heater", "1"));
+
+      // Panel should receive ERROR message
+      String errorMsg = readJson(panel);
+      assertTrue(errorMsg.contains(Protocol.TYPE_ERROR));
+      assertTrue(errorMsg.contains("not found") || errorMsg.contains("disconnected"));
+
+      // 6. Close sensor-1 socket (simulate disconnect)
+      sensor1.close();
+
+      // Give broker time to detect disconnect and broadcast NODE_DISCONNECTED
+      Thread.sleep(100);
+
+      // Panel should receive NODE_DISCONNECTED event
+      String nodeDisconnected = readJson(panel);
+      assertTrue(nodeDisconnected.contains(Protocol.TYPE_NODE_DISCONNECTED));
+      assertTrue(nodeDisconnected.contains("sensor-1"));
+
+      // 7. Panel sends ACTUATOR_COMMAND to disconnected sensor-1 (ERROR CASE)
+      writeJson(panel, Jsons.actuatorCommand("sensor-1", "fan", "0"));
+
+      // Panel should receive ERROR message about disconnected node
+      String errorMsg2 = readJson(panel);
+      assertTrue(errorMsg2.contains(Protocol.TYPE_ERROR));
+      assertTrue(errorMsg2.contains("not found") || errorMsg2.contains("disconnected"));
+    }
+  }
+
+  /**
+   * Tests COMMAND_ACK and ACTUATOR_STATUS message broadcasting from sensor nodes
+   * to all connected control panels.
+   *
+   * <p>This test verifies:
+   * <ul>
+   *   <li>COMMAND_ACK messages from sensor nodes are broadcast to all control panels</li>
+   *   <li>ACTUATOR_STATUS messages from sensor nodes are broadcast to all control panels</li>
+   *   <li>Multiple control panels receive the same messages simultaneously</li>
+   * </ul>
+   *
+   * @throws Exception if socket communication fails
+   */
+  @Test
+  void commandAckAndActuatorStatusBroadcast() throws Exception {
+    try (Socket panel1 = new Socket("127.0.0.1", port);
+         Socket panel2 = new Socket("127.0.0.1", port);
+         Socket sensor = new Socket("127.0.0.1", port)) {
+
+      // 1. Register control panel 1
+      writeJson(panel1, Jsons.registerControlPanel("panel-1"));
+      assertTrue(readJson(panel1).contains(Protocol.TYPE_REGISTER_ACK));
+      String nodeList1 = readJson(panel1);
+      assertTrue(nodeList1.contains(Protocol.TYPE_NODE_LIST));
+
+      // 2. Register control panel 2
+      writeJson(panel2, Jsons.registerControlPanel("panel-2"));
+      assertTrue(readJson(panel2).contains(Protocol.TYPE_REGISTER_ACK));
+      String nodeList2 = readJson(panel2);
+      assertTrue(nodeList2.contains(Protocol.TYPE_NODE_LIST));
+
+      // 3. Register sensor node
+      writeJson(sensor, Jsons.registerNode("sensor-1"));
+      assertTrue(readJson(sensor).contains(Protocol.TYPE_REGISTER_ACK));
+
+      // Both panels receive NODE_CONNECTED event
+      String connected1 = readJson(panel1);
+      assertTrue(connected1.contains(Protocol.TYPE_NODE_CONNECTED));
+      assertTrue(connected1.contains("sensor-1"));
+
+      String connected2 = readJson(panel2);
+      assertTrue(connected2.contains(Protocol.TYPE_NODE_CONNECTED));
+      assertTrue(connected2.contains("sensor-1"));
+
+      // 4. Panel-1 sends ACTUATOR_COMMAND to sensor
+      writeJson(panel1, Jsons.actuatorCommand("sensor-1", "fan", "1"));
+
+      // Sensor receives the command
+      String command = readJson(sensor);
+      assertTrue(command.contains(Protocol.TYPE_ACTUATOR_COMMAND));
+
+      // 5. Sensor sends COMMAND_ACK back
+      writeJson(sensor, Jsons.commandAck("sensor-1", "fan", "1"));
+
+      // Both panels should receive COMMAND_ACK (broadcast)
+      String ack1 = readJson(panel1);
+      assertTrue(ack1.contains(Protocol.TYPE_COMMAND_ACK));
+      assertTrue(ack1.contains("sensor-1"));
+      assertTrue(ack1.contains("fan"));
+      assertTrue(ack1.contains("\"1\""));
+
+      String ack2 = readJson(panel2);
+      assertTrue(ack2.contains(Protocol.TYPE_COMMAND_ACK));
+      assertTrue(ack2.contains("sensor-1"));
+      assertTrue(ack2.contains("fan"));
+      assertTrue(ack2.contains("\"1\""));
+
+      // 6. Sensor sends ACTUATOR_STATUS update
+      writeJson(sensor, Jsons.actuatorStatus("sensor-1", "fan", "ON"));
+
+      // Both panels should receive ACTUATOR_STATUS (broadcast)
+      String status1 = readJson(panel1);
+      assertTrue(status1.contains(Protocol.TYPE_ACTUATOR_STATUS));
+      assertTrue(status1.contains("sensor-1"));
+      assertTrue(status1.contains("fan"));
+      assertTrue(status1.contains("ON"));
+
+      String status2 = readJson(panel2);
+      assertTrue(status2.contains(Protocol.TYPE_ACTUATOR_STATUS));
+      assertTrue(status2.contains("sensor-1"));
+      assertTrue(status2.contains("fan"));
+      assertTrue(status2.contains("ON"));
     }
   }
 }

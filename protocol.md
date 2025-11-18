@@ -12,11 +12,23 @@ delivery of messages. It defines message formats, value types, and mechanisms fo
 or message errors to maintain robust communication.
 
 ## Terminology
-- **Sensor Node**: Devices that generate simulated **sensor data** (e.g., temperature, humidity, wind speed, etc.) and use **actuators** to change them
-- **Actuator**: Controllable element on a sensor node (e.g., fan, heater, window opener, etc.)
-- **Control-Panel Node**: Node providing a user interface to view data and send commands
-- **Broker**: Central component to relay messages between sensor nodes and control panels
-- **IANA**: Internet Assigned Numbers Authority
+
+### Core Components
+- **Node**: A network-connected device in the system (either a sensor node or control-panel node)
+- **Sensor Node**: A device that monitors environmental conditions using sensors (e.g., temperature, humidity, wind speed) and controls them using actuators (e.g., fan, heater, window opener)
+- **Control-Panel Node**: A node providing a user interface for users to view sensor data and send actuator commands
+- **Broker**: Central server component that relays messages between sensor nodes and control panels
+
+### Devices and Data
+- **Sensor**: A device that measures environmental data (e.g., temperature sensor, humidity sensor, light sensor)
+- **Actuator**: A controllable element on a sensor node that affects environmental conditions (e.g., fan, heater, window opener, valve)
+
+### Protocol Concepts
+- **Message**: A unit of communication between nodes, formatted as JSON and transmitted with a 4-byte length prefix
+- **Registration**: The process where a node identifies itself to the broker and reports its capabilities (sensors/actuators)
+
+### Network Standards
+- **IANA**: Internet Assigned Numbers Authority (defines port number ranges)
 
 ## Transport Choice - TCP / UDP
 We have chosen **TCP** as our transport protocol for the following reasons:
