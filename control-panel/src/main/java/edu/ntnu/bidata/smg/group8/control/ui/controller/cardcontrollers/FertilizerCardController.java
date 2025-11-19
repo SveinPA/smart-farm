@@ -2,10 +2,15 @@ package edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers;
 
 import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlCard;
+import edu.ntnu.bidata.smg.group8.control.logic.history.HistoricalDataStore;
+import edu.ntnu.bidata.smg.group8.control.logic.history.Statistics;
+import edu.ntnu.bidata.smg.group8.control.util.UiExecutors;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import javafx.application.Platform;
 import javafx.collections.ObservableList;
 import javafx.scene.control.Button;
@@ -16,6 +21,7 @@ import javafx.scene.control.ListView;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.layout.Region;
 import org.slf4j.Logger;
+
 
 
 /**
@@ -55,6 +61,9 @@ public class FertilizerCardController {
 
   private final List<String> historyEntries = new ArrayList<>();
   private double currentNitrogenLevel = 0.0;
+
+  private HistoricalDataStore historicalDataStore;
+  private ScheduledFuture<?> statsUpdateTask;
 
   /**
    * Creates a new FertilizerCardController with the specified UI components.
@@ -98,8 +107,80 @@ public class FertilizerCardController {
    */
   public void stop() {
     log.info("Stopping FertilizerCardController");
+
+    // Cancel statistics update task
+    if (statsUpdateTask != null && !statsUpdateTask.isCancelled()) {
+      statsUpdateTask.cancel(false);
+      log.debug("Statistics update task cancelled");
+    }
+
     historyButton.setOnAction(null);
     log.debug("FertilizerCardController stopped successfully");
+  }
+
+  /**
+   * Injects the historical data store and starts periodic statistics updates.
+   *
+   * <p>The controller will query the historical data store every 30 seconds
+   * to update the 24-hour nitrogen statistics display.</p>
+
+   * @param historicalDataStore the data store for querying 24h statistics
+   */
+  public void setHistoricalDataStore(HistoricalDataStore historicalDataStore) {
+    this.historicalDataStore = historicalDataStore;
+
+    // Start periodic statistics updates (every 30 seconds)
+    statsUpdateTask = UiExecutors.scheduleAtFixedRate(
+      this::updateStatsFromHistory,
+      0, // Initial delay
+      30, // Period
+      TimeUnit.SECONDS
+    );
+
+    log.debug("FertilizerCardController statistics updates started (every 30s)");
+  }
+
+  /**
+   * Queries historical data store and updates statistics display.
+   *
+   * <p>This method retrieves the 24-hour nitrogen statistics from the
+   * historical data store and updates the UI accordingly.</p>
+   */
+  private void updateStatsFromHistory() {
+    if (historicalDataStore != null) {
+      Statistics stats = historicalDataStore.getStatistics("fert");
+
+      if (stats.isValid()) {
+        updateStatistics(stats.min(), stats.max(), stats.average());
+      } else {
+        log.trace("No valid nitrogen statistics available yet");
+      }
+    }
+  }
+
+  /**
+   * Updates the statistics display.
+   *
+   * <p>This method updates the minimum, maximum, and average
+   * nitrogen level labels based on the provided statistics.</p>
+   *
+   * @param min minimum nitrogen level in last 24h
+   * @param max maximum nitrogen level in last 24h
+   * @param avg average nitrogen level in last 24h
+   */
+  public void updateStatistics(double min, double max, double avg) {
+    log.debug("Updating 24h statistics - Min: {} ppm, Max: {} ppm, Avg: {} ppm",
+            String.format("%.1f", min),
+            String.format("%.1f", max),
+            String.format("%.1f", avg));
+
+    fx(() -> {
+      minLabel.setText(String.format("Min: %.1f ppm", min));
+      maxLabel.setText(String.format("Max: %.1f ppm", max));
+      avgLabel.setText(String.format("Avg: %.1f ppm", avg));
+
+      log.trace("Statistics labels updated successfully");
+    });
   }
 
   /**

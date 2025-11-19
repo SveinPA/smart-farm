@@ -151,7 +151,7 @@ public class DashboardController {
       try {
         double light = Double.parseDouble(sr.value());
         Platform.runLater(() ->
-                view.updateLightStatus(String.format("%.1f m/s", light)));
+                view.updateLightStatus(String.format("%.1f lx", light)));
       } catch (NumberFormatException e) {
         logger.warn("Invalid light value '{}' for nodeId={}", sr.value(), sr.nodeId());
       }

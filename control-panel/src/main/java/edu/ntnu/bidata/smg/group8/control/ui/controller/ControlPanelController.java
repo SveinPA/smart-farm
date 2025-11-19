@@ -469,6 +469,7 @@ public class ControlPanelController {
     safeInjectHistoricalData(lightController, "LightCardController");
     safeInjectHistoricalData(pHController, "PHCardController");
     safeInjectHistoricalData(windSpeedController, "WindSpeedCardController");
+    safeInjectHistoricalData(fertilizerController, "FertilizerCardController");
 
     log.debug("Dependency injection completed");
   }
