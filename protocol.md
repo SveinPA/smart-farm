@@ -12,11 +12,23 @@ delivery of messages. It defines message formats, value types, and mechanisms fo
 or message errors to maintain robust communication.
 
 ## Terminology
-- **Sensor Node**: Devices that generate simulated **sensor data** (e.g., temperature, humidity, wind speed, etc.) and use **actuators** to change them
-- **Actuator**: Controllable element on a sensor node (e.g., fan, heater, window opener, etc.)
-- **Control-Panel Node**: Node providing a user interface to view data and send commands
-- **Server**: Central component to relay messages between sensor nodes and control panels
-- **IANA**: Internet Assigned Numbers Authority
+
+### Core Components
+- **Node**: A network-connected device in the system (either a sensor node or control-panel node)
+- **Sensor Node**: A device that monitors environmental conditions using sensors (e.g., temperature, humidity, wind speed) and controls them using actuators (e.g., fan, heater, window opener)
+- **Control-Panel Node**: A node providing a user interface for users to view sensor data and send actuator commands
+- **Broker**: Central server component that relays messages between sensor nodes and control panels
+
+### Devices and Data
+- **Sensor**: A device that measures environmental data (e.g., temperature sensor, humidity sensor, light sensor)
+- **Actuator**: A controllable element on a sensor node that affects environmental conditions (e.g., fan, heater, window opener, valve)
+
+### Protocol Concepts
+- **Message**: A unit of communication between nodes, formatted as JSON and transmitted with a 4-byte length prefix
+- **Registration**: The process where a node identifies itself to the broker and reports its capabilities (sensors/actuators)
+
+### Network Standards
+- **IANA**: Internet Assigned Numbers Authority (defines port number ranges)
 
 ## Transport Choice - TCP / UDP
 We have chosen **TCP** as our transport protocol for the following reasons:
@@ -32,12 +44,12 @@ Commands must be executed in the correct order. If a control panel sends several
 order they were sent.
 
 ### Connection Management
-Our protocol is stateful, where the server keeps track of connected nodes. TCP gives us a natural way to know which sensor devices
-are available through established connections. When a node disconnects, the server immediately knows that it is no longer available.
+Our protocol is stateful, where the broker keeps track of connected nodes. TCP gives us a natural way to know which sensor devices
+are available through established connections. When a node disconnects, the broker immediately knows that it is no longer available.
 
 ###
-Our hub-and-spoke architecture, where all communication goes through a central server, fits well with the connection-oriented nature
-of TCP. The server must handle multiple simultaneous connections from both sensor devices and control panels, which is what TCP is designed for.
+Our hub-and-spoke architecture, where all communication goes through a central broker, fits well with the connection-oriented nature
+of TCP. The broker must handle multiple simultaneous connections from both sensor devices and control panels, which is what TCP is designed for.
 
 ### Performance vs. Reliability
 Although TCP has more overhead than UDP, the data volumes in our system (sensor measurements and commands) are relatively modest.
@@ -48,7 +60,7 @@ TCP handles retransmission, flow control and error detection automatically, whic
 focus on the application logic instead of implementing reliability features at the application level.
 
 ## Port Number
-Default TCP listening port (server/broker): 23048
+Default TCP listening port (broker): 23048
 
 - The selected port is within the IANA registered rage (1024 - 49151), meaning it is safe from ephemeral port conflicts.
 - Not a commonly used service port (low collision risk)
@@ -64,20 +76,20 @@ Both Sensor Nodes and Control-Panel Nodes connect to host:port 23048 (unless con
 ### Actors (nodes)
 - Sensor Nodes
 - Control-Panel Nodes
-- Server
+- Broker
 
-### Clients & Server
+### Clients & Broker
 - **Clients**: Both sensor nodes and control-panel nodes initiate TCP connections  
-- **Server**: Server maintains sessions, routes messages, and tracks registered nodes
+- **Broker**: Broker maintains sessions, routes messages, and tracks registered nodes
 
 ### Summary
 The system uses a **hub-and-spoke architecture**:  
 ```text
 +------------------+      TCP      +---------+      TCP      +----------------------+
-|  Sensor Node(s)  | <-----------> | Server  | <-----------> | Control-Panel Node(s)|
+|  Sensor Node(s)  | <-----------> | Broker   | <-----------> | Control-Panel Node(s)|
 +------------------+                +---------+               +----------------------+
 ```
-All communication flows through the hub/server, which makes the system **scalable** to multiple sensors and multiple control panels.
+All communication flows through the hub/broker, which makes the system **scalable** to multiple sensors and multiple control panels.
 
 ## Flow of Information
 
@@ -85,15 +97,15 @@ All communication flows through the hub/server, which makes the system **scalabl
 Our protocol implements multiple communication patterns to efficiently handle different types of information exchange:
 
 ### Registration Flow
-- Connection-based: Nodes establish a TCP connection to the server before any data exchange.
+- Connection-based: Nodes establish a TCP connection to the broker before any data exchange.
 - Identification: Nodes sends registration messages containing their capabilities (sensors/actuators).
-- Acknowledgement: Server confirms registration with assigned node IDs.
+- Acknowledgement: Broker confirms registration with assigned node IDs.
 
 ### Sensor Data Transmission
-- Push Model: Sensor nodes actively send data to the server without being polled.
-- Periodic Updates: Default interval of 5 seconds (configurable).
+- Push Model: Sensor nodes actively send data to the broker without being polled.
+- Periodic Updates: Default interval of 12 seconds (configurable).
 - Threshold-based: Additional updates when readings change significantly (e.g., temperature change > 1°C).
-- Fan-out distribution: Server forwards data to all connected control panels.
+- Fan-out distribution: Broker forwards data to all connected control panels.
 
 ### Command Processing
 - Request-Response: Commands follow a clear request → acknowledgement → status update sequence.
@@ -101,7 +113,7 @@ Our protocol implements multiple communication patterns to efficiently handle di
 - Execution confirmation: Two-phase feedback (command received + execution completed).
 
 ### Event Notifications
-- Publish-Subscribe: Server publishes node status events to all subscribed control panels.
+- Publish-Subscribe: Broker publishes node status events to all subscribed control panels.
 - Immediate delivery: Status changes are communicated without delay.
 
 ### Message Timing
@@ -119,7 +131,7 @@ Our protocol implements multiple communication patterns to efficiently handle di
 #### Flow Control
 - Rate limiting: Maximum message frequency enforced to prevent network congestion.
 - Message prioritization: Command messages processed before routine updates.
-- Connection management: Server maintains persistent TCP connections to all nodes.
+- Connection management: Broker maintains persistent TCP connections to all nodes.
 
 ### Justification
 
@@ -127,46 +139,43 @@ This hybrid communication approach was selected to balance:
 - Responsiveness: Critical commands are processed immediately.
 - Efficiency: Regular updates avoid unnecessary polling overhead.
 - Consistency: All control panels maintain synchronized system views.
-- Scalability: Central server handles message distribution to multiple clients.
+- Scalability: Central broker handles message distribution to multiple clients.
 
 The centralizes architecture simplifies implementation while providing clear message routing paths.
 The push-based sensor data model ensures timely updates without requiring control panels to continuously request information.
 
 ## Protocol Type
-- **Connection-oriented**: The protocol uses TCP, which establishes a dedicated connection between nodes and the server before exchanging data. This ensures reliable, ordered delivery of messages.
-- **Stateful**: The server keeps track of connected nodes, their assigned identifiers, and available sensors/actuators. This state is necessary to support multiple nodes and to route commands from a specific control-panel node to the correct sensor node.
+- **Connection-oriented**: The protocol uses TCP, which establishes a dedicated connection between nodes and the broker before exchanging data. This ensures reliable, ordered delivery of messages.
+- **Stateful**: The broker keeps track of connected nodes, their assigned identifiers, and available sensors/actuators. This state is necessary to support multiple nodes and to route commands from a specific control-panel node to the correct sensor node.
 
 
 ## Types and Special Values
-The protocol uses text-based messages separated by semicolons. Each message has a message type
-identifier, followed by Key-value pairs that describes the content.
+The protocol uses JSON-formatted messages for structured data exchange.
 ### Message types
-| Type            | Direction          | Description                                         |
-|-----------------|--------------------|-----------------------------------------------------|
-| SENSOR_DATA     | Sensor → Control   | Periodic sensor readings from sensor node           |
-| ACTUATOR_STATUS | Sensor → Control   | Current state of actuator                           |
-| COMMAND         | Control → Sensor   | Command to control an actuator (TURN_ON, SET_LEVEL) |
-| ACK             | Sensor → Control   | Acknowledgment of successful command execution       |
-| ERROR           | Any → Any          | Indicates invalid message or command failure         |
+| Message Type           | Direction                    | Description                                              |
+|------------------------|------------------------------|----------------------------------------------------------|
+| REGISTER_NODE          | Sensor → Broker              | Sensor node registration request                         |
+| REGISTER_CONTROL_PANEL | Control Panel → Broker       | Control panel registration request                       |
+| REGISTER_ACK           | Broker → Client              | Registration acknowledgment                              |
+| SENSOR_DATA            | Sensor → Broker → Panels     | Periodic sensor readings                                 |
+| ACTUATOR_COMMAND       | Panel → Broker → Sensor      | Command to control an actuator                           |
+| ACTUATOR_STATUS        | Sensor → Broker → Panels     | Current actuator state (periodic)                        |
+| ACTUATOR_STATE         | Sensor → Broker → Panels     | Immediate actuator state update                          |
+| COMMAND_ACK            | Sensor → Broker → Panel      | Command execution acknowledgment                         |
+| NODE_CONNECTED         | Broker → Panels              | Notification when sensor node connects                   |
+| NODE_DISCONNECTED      | Broker → Panels              | Notification when sensor node disconnects                |
+| NODE_LIST              | Broker → Panel               | List of connected sensor nodes (on panel registration)   |
+| HEARTBEAT              | Bidirectional                | Keep-alive message                                       |
+| ERROR                  | Any → Any                    | Error notification                                       |
 
 ### Common Fields
-| Field     | Description                                     | Example               | 
-|-----------|-------------------------------------------------|-----------------------|
-| NODE_ID   | Unique identifier for each sensor/actuator node | NODE_ID=7             |
-| TYPE      | Sensor or actuator type                         | TYPE?TEMP or TYPE=FAN |
-| VALUE     | Sensor reading or actuator setting              | VALUE=25.6            |
-| STATUS    | Actuator state                                  | STATUS=ON             |
-| TIMESTAMP | UNIX timestamp of message                       | TIMESTAMP=1728439923  |
-
-### Special Values
-| Constant    | Meaning                                         | 
-|-------------|-------------------------------------------------|
-| OK          | Unique identifier for each sensor/actuator node | 
-| FAIL        | Sensor or actuator type                         |
-| NA          | Sensor reading or actuator setting              | 
-| ALL         | Actuator state                                  | 
-| ERR_FORMAT  | UNIX timestamp of message                       |
-| ERR_UNK_CMD | Unknown command received                        |
+| Field     | Description                                     | Example                             | 
+|-----------|-------------------------------------------------|-------------------------------------|
+| NODE_ID   | Unique identifier for each sensor/actuator node | "nodeId":"Sensor-1"                 |
+| TYPE      | Sensor or actuator type                         | "type":"SENSOR_DATA"                |
+| VALUE     | Sensor reading or actuator setting              | "value":"22.5"                      |
+| STATUS    | Actuator state                                  | "status":"ON"                       |
+| TIMESTAMP | UNIX timestamp of message                       | "timestamp":"2025-11-16T14:30:00Z"  |
 
 ## Message Format
 - **Framing**: Each message is sent as **length-prefixed**: a 4-byte **big-endian** unsigned length `N`, followed by `N` bytes of payload.
@@ -177,57 +186,47 @@ The protocol defines a clear seperation between **data messages** and **command 
 Each message includes a **type identifier** and a structured payload.  
 |  Category 	|   Message Type	|  Direction 	|  Description 	|
 |---	|---	|---	|---	|
-|  Registration 	|  `REGISTER_NODE`, <br>`REGISTER_CONTROL_PANEL`, <br> `REGISTER_ACK`, `NODE_LIST`	|  Client &rarr; Server (first two), Server &rarr; Client (last two)   	|  Join/acknowledge and initial inventory. 	|
-|  Sensor Data	|  `SENSOR_DATA`, `ACTUATOR_STATUS` 	|  Sensor &rarr; Server &rarr; Control 	|  Periodic readings and actuator states. 	|
-|  Commands 	|   `ACTUATOR_COMMAND`, `COMMAND_ACK`	|  Control &rarr; Server &rarr; Sensor 	|  Actuator commands and acknowledgements 	|
-|  Connection Events 	|  `NODE_CONNECTED`, `NODE_DISCONNECTED`  	|  Server &rarr; Control 	|   Broadcast connectivity changes	|
+|  Registration 	|  `REGISTER_NODE`, <br>`REGISTER_CONTROL_PANEL`, <br> `REGISTER_ACK`, `NODE_LIST`	|  Client &rarr; Broker (first two), Broker &rarr; Client (last two)   	|  Join/acknowledge and initial inventory. 	|
+|  Sensor Data	|  `SENSOR_DATA`, `ACTUATOR_STATUS` 	|  Sensor &rarr; Broker &rarr; Control 	|  Periodic readings and actuator states. 	|
+|  Commands 	|   `ACTUATOR_COMMAND`, `COMMAND_ACK`	|  Control &rarr; Broker &rarr; Sensor 	|  Actuator commands and acknowledgements 	|
+|  Connection Events 	|  `NODE_CONNECTED`, `NODE_DISCONNECTED`  	|  Broker &rarr; Control 	|   Broadcast connectivity changes	|
 |  Errors 	|  `ERROR` 	|  Any 	|   Application-level error reporting	|
 
-### Marshalling and Encoding
-* **Encoding type**: Seperator-based (human-readable) text format
-* **Seperator**: Semicolon(`;`) between key-value pairs
-* **Rationale**: Easy to parse and debug during testing. Avoid binary complexity
+### JSON Encoding
+All messages use **JSON (JavaScript Object Notation)** format for structured, human-readable data exchange.
 
-**Example Messages:**
+**Advantages of JSON:**
+- **Structured:** Nested objects and arrays support complex data
+- **Language-agnostic:** Parsers available for all platforms
+- **Human-readable:** Easy to debug and log
+- **Extensible:** New fields can be added without breaking existing parsers
+
+### Framing
+Each message is prefixed with a **4-byte big-endian length header** indicating the size of the JSON payload in bytes. This allows the receiver to know exactly how many bytes to read for each complete
+message.
+
+**Frame Structure:**
+[4 bytes: length][N bytes: JSON payload]
+
+**Example:**
+Length: 0x00 0x00 0x00 0x4A (74 bytes)
+Payload: {"type":"SENSOR_DATA","nodeId":"node-1","sensorKey":"temp","value":"22.5","unit":"°C","timestamp":"2025-11-16T14:30:00Z"}
+
+### Message Examples
+
+**SENSOR_DATA:**
 ```json
-{"type":"REGISTER_NODE","role":"SENSOR_NODE","nodeId":"dev-1"}
-{"type":"REGISTER_CONTROL_PANEL","role":"CONTROL_PANEL","nodeId":"ui-1"}
-{"type":"REGISTER_ACK","protocolVersion":"1.0","message":"Registration successful"}
+{"type":"SENSOR_DATA","nodeId":"sensor-node-abc123","sensorKey":"temp","value":"22.5","unit":"°C","timestamp":"2025-11-16T14:30:00Z"}
 
-{"type":"SENSOR_DATA","nodeId":"42","temp":"22.4","humidity":"55","status":"OK"}
-{"type":"ACTUATOR_COMMAND","targetNode":"42","actuator":"fan","action":"ON"}
-{"type":"ACTUATOR_STATUS","nodeId":"42","actuator":"fan","status":"ON"}
+ACTUATOR_COMMAND:
+{"type":"ACTUATOR_COMMAND","targetNode":"sensor-node-abc123","actuator":"heater","action":"ON","value":"25"}
 
-{"type":"HEARTBEAT","direction":"S→C","protocolVersion":"1.0"}
+HEARTBEAT:
+{"type":"HEARTBEAT","direction":"SERVER_TO_CLIENT","protocolVersion":"1.0"}
 
+REGISTER_ACK:
+{"type":"REGISTER_ACK","nodeId":"sensor-node-abc123","message":"Registration successful"}
 ```
-If future efficiency improvements are needed, the format can be upgraded to **TLV (Type-Length-Value)** or binary marshalling without changing the logical structure of the protocol.
-
-### Message Direction
-|  Node Type | Sends  | Receives  |
-|---|---|---|
-| Sensor Node  | `REGISTER_NODE`, `SENSOR_DATA`, <br> `ACTUATOR_STATUS`, `HEARTBEAT`  |  `ACTUATOR_COMMAND`, `REGISTER_ACK`, `HEARTBEAT` |
-|  Control Panel | `REGISTER_CONTROL_PANEL`, <br> `ACTUATOR_COMMAND`, `HEARTBEAT`  | `NODE_LIST`, `SENSOR_DATA`, `ACTUATOR_STATUS`, <br> `COMMAND_ACK`, `ERROR`, `HEARTBEAT`  |
-|  Server | Routes all  |  Receives all |
-
-### Structure Summary
-Each message follows a consistent pattern:
-```text
-<MESSAGE_TYPE>;<field1>=<value1>;<field2>=<value2>;...;<fieldN>=<valueN>
-```
-**Example communication flow**:
-```text
-ControlPanel → Server → SensorNode:
-ACTUATOR_COMMAND;targetNode=42;actuator=window;action=open
-
-SensorNode → Server → ControlPanel:
-ACTUATOR_STATUS;nodeId=42;actuator=window;status=open
-```
-
-### Justification
-We chose a **seperator-based**, **text-oriented message format** because it offers high **readability** and **low complexity** during development and debugging. It allows straightforward inspection of network traffic with tools like wireshar or simple console logs.  
-Although binary protocols may achieve higher throughput, the small message size and moderate update frequency in our greenhouse simulation make human-readable encoding ideal.  
-Additionally, this format ensures **extensibility**, allowing new sensors, actuators, or fields to be added later without breaking existing implementations.
 
 ## Error handling
 ### Overview
@@ -235,31 +234,34 @@ Error handling in our protocolensures that communication remains **robust** and 
 Error can occur due to malformed messages, connection loss, or invalid commands. The protocol defiens a standard response mechanism using the `ERROR`message type.
 
 ### Error Categories
+
+**NOTE: Error codes are currently not implemented in the protocol. ERROR messages contain only `type` and `message` fields. The codes below represents a planned feature we had to drop because of time limitations.
+
 | Error type  | Code  | Typical Cause  | Handling Strategy  |
 |---|---|---|---|
-| **Malformed Message**   | `400`  |  Missing fields, wrong seperators, or <br> unknown message type | The receiver ignores the message and sends <br> `ERROR;code=404;reason=InvalidMessageFormat` <br> to the sender.  |
+| **Malformed Message**   | `400`  |  Missing fields, wrong separators, or <br> unknown message type | The receiver ignores the message and sends <br> `ERROR;code=404;reason=InvalidMessageFormat` <br> to the sender.  |
 | **Uknown command**  | `404`  | Command name or actuator not <br> recognized by the target node | The receiver replies with <br> `ERROR;code=404;reason=UknownCommand`  |
-| **Unauthorized Action**  | `403`  | A control panel tries to control a <br> node it is not authorized for  | The server rejects the request and <br> notifies the sender  |
-| **Disconnected Node**  | `408`  |  A control panel issues a command <br> to an offline node  | The server returns <br> `ERROR;code=408;reason=NodeUnavailable`  |
-|  **Internal Server Error** | `500`  | Unexpected exceptions or state <br> corruption within the server  | Server logs the error, notifies all <br> connected control panels, and keeps <br> running  |  
+| **Unauthorized Action**  | `403`  | A control panel tries to control a <br> node it is not authorized for  | The broker rejects the request and <br> notifies the sender  |
+| **Disconnected Node**  | `408`  |  A control panel issues a command <br> to an offline node  | The broker returns <br> `ERROR;code=408;reason=NodeUnavailable`  |
+|  **Internal Server Error** | `500`  | Unexpected exceptions or state <br> corruption within the broker  | Server logs the error, notifies all <br> connected control panels, and keeps <br> running  |  
 
 ### Error Propagation
 * **Local errors (non-critical)**: <br>
 Handled at the node level (e.g., malformed data ignored). No connection reset is required.
 * **Critical errors (connection-level)**: <br>
-The server may close the TCP connection and mark the node as **disconnected**. <br>
+The broker may close the TCP connection and mark the node as **disconnected**. <br>
 Control panels are notified via a `NODE_DISCONNECTED` message.
 
 ### Example Flows
 **Example 1: Malformed message**
 ```json
-SensorNode -> Server: {"type":"REGISTER_NODE","role":"SENSOR_NODE","nodeId":"dev-1"}
-Server -> SensorNode: {"type":"REGISTER_ACK","protocolVersion":"1.0","message":"Registration successful"}
+SensorNode -> Broker: {"type":"REGISTER_NODE","role":"SENSOR_NODE","nodeId":"dev-1"}
+Broker -> SensorNode: {"type":"REGISTER_ACK","protocolVersion":"1.0","message":"Registration successful"}
 ```
 **Example 2: Node Unavailable**
 ```json
-ControlPanel -> Server: {"type":"REGISTER_CONTROL_PANEL","role":"CONTROL_PANEL","nodeId":"ui-1"}
-Server -> ControlPanel: {"type":"NODE_LIST", ...}
+ControlPanel -> Broker: {"type":"REGISTER_CONTROL_PANEL","role":"CONTROL_PANEL","nodeId":"ui-1"}
+Broker -> ControlPanel: {"type":"NODE_LIST", ...}
 ```
 
 ### Justification
@@ -272,27 +274,27 @@ Since TCP already provides delivery guarantees, our error handling focuses on **
 ### Scenario 1: Startup and Registration
 When the system boots up, the following happens:
 
-1. **The server starts** and starts listening on port 23048
+1. **The broker starts** and starts listening on port 23048
 
-2. **Sensor nodes connect to the server**:
-   - Each sensor node establishes a TCP connection to the server.
+2. **Sensor nodes connect to the broker**:
+   - Each sensor node establishes a TCP connection to the broker.
    - The sensor node sends a 'REGISTER_NODE' message with information about its sensors and actuators.
-   - The server stores the information and sends back an acknowledgement with the assigned node ID.
+   - The broker stores the information and sends back an acknowledgement with the assigned node ID.
    - The sensor node start sending sensor data periodically.
 
-3. **Control panel connects to the server**:
-   - The control panel establishes a TCP connection to the server.
+3. **Control panel connects to the broker**:
+   - The control panel establishes a TCP connection to the broker.
    - The control panel sends a 'REGISTER_CONTROL_PANEL' message.
-   - The server responds with a list of all registered sensor nodes and their capabilities.
+   - The broker responds with a list of all registered sensor nodes and their capabilities.
    - The control panel displays this information to the user.
 
 Message flow:
 ```text
-SensorNode -> Server: REGISTER_NODE {sensors:[temp, humidity], actuators:[fan, heater]}
-Server -> SensorNode: REGISTER_ACK {nodeId: 42}
-SensorNode -> Server: SENSOR_DATA {nodeId: 42, readings: {temp: 23,5, humidity: 65}}
-ControlPanel -> Server: REGISTER_CONTROL_PANEL
-Server -> ControlPanel: NODE_LIST {nodes: [{id: 42, sensors:[temp, humidity], actuators:[fan, heater]}]
+SensorNode -> Broker: REGISTER_NODE {sensors:[temp, humidity], actuators:[fan, heater]}
+Broker -> SensorNode: REGISTER_ACK {nodeId: 42}
+SensorNode -> Broker: SENSOR_DATA {nodeId: 42, readings: {temp: 23,5, humidity: 65}}
+ControlPanel -> Broker: REGISTER_CONTROL_PANEL
+Broker -> ControlPanel: NODE_LIST {nodes: [{id: 42, sensors:[temp, humidity], actuators:[fan, heater]}]
 ```
 
 ### Scenario 2: Actuator control
@@ -302,51 +304,51 @@ A farmer notices that the temperatures in the greenhouse is too high and wants t
    - The farmer sees on the control panel that the temperature is 28°C in the greenhouse 3.
    - The farmer selects sensor node 42 from the list and clicks "Open window"
 
-2. **Command sent to the server**:
-   - The control panel sends and 'ACTUATORS_COMMAND' message to the server.
-   - The server forwards the command to the specific sensor unit.
+2. **Command sent to the broker**:
+   - The control panel sends and 'ACTUATORS_COMMAND' message to the broker.
+   - The broker forwards the command to the specific sensor unit.
 
 3. **Sensor node executes the command**:
    - Sensor node 42 receives the command and activates the window opener.
-   - Sensor node 42 sends a status update back to the server.
-   - The server forwards the status update to the control panel.
+   - Sensor node 42 sends a status update back to the broker.
+   - The broker forwards the status update to the control panel.
    - The control panel updates the user interface to show that the window is open.
 
 Message flow:
 ```text
-ControlPanel -> Server: ACTUATOR_COMMAND {targetNode: 42, actuator: "window", action: "open"}
-Server -> SensorNode: ACTUATOR_COMMAND {actuator: "window", action: "open"}
-SensorNode -> Server: ACTUATOR_STATUS {nodeId: 42, actuator: "window", status: "open"}
-Server -> ControlPanel: ACTUATOR_STATUS {nodeId: 42, actuator: "window", status: "open"}
+ControlPanel -> Broker: ACTUATOR_COMMAND {targetNode: 42, actuator: "window", action: "open"}
+Broker -> SensorNode: ACTUATOR_COMMAND {actuator: "window", action: "open"}
+SensorNode -> Broker: ACTUATOR_STATUS {nodeId: 42, actuator: "window", status: "open"}
+Broker -> ControlPanel: ACTUATOR_STATUS {nodeId: 42, actuator: "window", status: "open"}
 ```   
 
 ### Scenario 3: Handling a disconnected node
 A sensor node loses power or network connection:
 
 1. **TCP connection broken**:
-    - The server detects that the TCP connection to sensor node 42 is broken.
-    - The server marks the node as disconnected in its internal state.
+    - The broker detects that the TCP connection to sensor node 42 is broken.
+    - The broker marks the node as disconnected in its internal state.
 
 2. **Update to control panels**:
-    - The server sends a 'NODE_DISCONNECTED' message to all connected control panels.
+    - The broker sends a 'NODE_DISCONNECTED' message to all connected control panels.
     - The control panels update their user interfaces to show that the node is unavailable.
     - Any commands to the disconnected node will be rejected.
 
 3. **Reconnect**:
-    - When sensor node 42 regains power/network, it reconnects to the server.
+    - When sensor node 42 regains power/network, it reconnects to the broker.
     - The registration process is repeated as in Scenario 1.
-    - The server sends a 'NODE_CONNECTED' message to all control panels.
+    - The broker sends a 'NODE_CONNECTED' message to all control panels.
     - The control panels update the user interface to show that the node is available again.
 
 Message flow:
 ```text
-Server -> ControlPanel: NODE_DISCONNECTED {nodeId: 42}
+Broker -> ControlPanel: NODE_DISCONNECTED {nodeId: 42}
 
 [Later, when the node reconnects]
 
-SensorNode -> Server: REGISTER_NODE {sensors: [temp, humidity], actuators: [fan, heater]}
-Server -> SensorNode: REGISTER_ACK {nodeId: 42}
-Server -> ControlPanel: NODE_CONNECTED {nodeId: 42, sensors: [temp, humidity], actuators: [fan, heater]}
+SensorNode -> Broker: REGISTER_NODE {sensors: [temp, humidity], actuators: [fan, heater]}
+Broker -> SensorNode: REGISTER_ACK {nodeId: 42}
+Broker -> ControlPanel: NODE_CONNECTED {nodeId: 42, sensors: [temp, humidity], actuators: [fan, heater]}
 ```   
 
 ## Reliability mechanisms
@@ -354,31 +356,17 @@ The current version of the protocol does not yet include reliability mechanisms 
 what is provided by the underlying Transport layer(TCP). Several mechanisms are planned for future
 implementation to improve robustness and fault tolerance.
 
-**Current status**: Length-prefixed frames + TCP provide delivery guarantees; `HEARTBEAT` is implemented to keep idle connections alive. `ACK/NACK`, sequence numbers, node events, and `ERROR` remain planned.
-### Planned Reliability Features
-- **Acknowledgement(ACK/NACK) System**:
-   - Each command message will require an explicit acknowledgment(ACK) from the receiver.
-   - If no acknowledgment is received within a specifies timeout, the sender will
-    automatically retransmit the message up to a limited number of times.
-  
-- **Heartbeat / Keep-Alive Messages**:
-   - Sensor and control nodes will periodically send small "heartbeat" packets to confirm active connections.
-   - If a node does not respond within a certain timeframe, the server will mark is as disconnected/offline,
-    and reconnection attempts will begin.
-  
-- **Message Sequence Numbers**:
-    - Each message will include a unique sequence number.
-    - This allows detection of duplication, lost, or out-of-order messages, in case of temporary network issues.
-  
-- **Buffered Data and Resend on Reconnect**
-    - Sensor nodes will temporarily buffer unsent data.
-    - When the connection to the control node is restored all buffered sensor readings will be
-    retransmitted to ensure no data is lost.
+## Current status
+**Currently Implemented:**
+- HEARTBEAT messages (30-second intervals)
+- NODE_CONNECTED/NODE_DISCONNECTED events
+- ERROR messages (without error codes)
+- COMMAND_ACK for actuator command acknowledgment
 
-- **Error Handling and Recovery**
-    - When malformed or invalid messages are received, the node will respond with an ERROR message
-    indicating the issue stated as an error code.
-    - This ensures both sides can handle unexpected communication.
+## Planned, but had to drop:
+- ACK/NACK with automatic retransmission
+- Message sequence numbers
+- Buffered data and resend on reconnect
 
 ## Security
 - **Initial phase**: No authentication or encryption. The system runs in a trusted environment. Future development might readjust this.

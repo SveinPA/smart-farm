@@ -25,6 +25,7 @@ public class ActuatorCommandMessage {
   private final String targetNode;  // May be null if message is already routed
   private final String actuator;
   private final String action;
+  private final String value;
 
   /**
    * Constructs a new ActuatorCommandMessage.
@@ -34,11 +35,12 @@ public class ActuatorCommandMessage {
    * @param actuator the actuator to control (e.g., "fan", "window")
    * @param action the action to perform (e.g., "ON", "OFF", "open")
    */
-  public ActuatorCommandMessage(String type, String targetNode, String actuator, String action) {
+  public ActuatorCommandMessage(String type, String targetNode, String actuator, String action, String value) {
     this.type = type;
     this.targetNode = targetNode;
     this.actuator = actuator;
     this.action = action;
+    this.value = value;
   }
 
   /**
@@ -85,6 +87,15 @@ public class ActuatorCommandMessage {
            ", actuator='" + actuator + '\'' +
            ", action='" + action + '\'' +
            "}";
+  }
+
+  /**
+   * Returns the value associated with the actuator command (e.g., "75.0" for setting a numeric value).
+   *
+   * @return the value as a String
+   */
+  public String getValue() {
+    return value;
   }
   
 }

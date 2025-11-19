@@ -22,22 +22,27 @@
 .progress-bar.light-ambient-bar {
     -fx-padding: 2, 0, 2, 0;
 }
+/*--------------- RETURN BUTTON ---------------*/
+#return-button {
+    -fx-font-family: "Inter";
+    -fx-font-weight: BOLD;
+    -fx-background-color: #9bdbdc;
+    -fx-border-color: black;
+    -fx-border-radius: 7;
+    -fx-font-size: 14px;
+    -fx-fill: BLACK;
+}
 
+#return-button:hover {
+    -fx-background-color: #87cfd0;
+    -fx-border-color: #2C3E50;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.35), 12, 0.4, 0, 4);
+    -fx-scale-x: 1.00;
+    -fx-scale-y: 1.00;
+    -fx-cursor: hand;
+}
 
 /*--------------- LIGHT TOGGLE BUTTON ---------------*/
-
-#light-toggle-button {
-    -fx-border-radius: 25px;
-    -fx-background-radius: 25px;
-    -fx-background-color: #FEE7EA;
-    -fx-border-color: black;
-    -fx-border-width: 2;
-    -fx-text-fill: black;
-    -fx-font-weight: bold;
-    -fx-font-size: 16px;
-    -fx-padding: 10px 20px;
-    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.30), 2, 0, 0, 2);
-}
 
 .light-ambient-stats-box {
     -fx-spacing: 6px;
@@ -203,19 +208,26 @@
     -fx-padding: 24;
     -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.12), 16, 0.25, 0, 4);
 }
-
+/*-------- ACTUATOR & SENSORS --------*/
 .control-card {
-    -fx-background-color: #AFC7B2;
-    -fx-border-color: #AAC7B2;
     -fx-border-width: 2;
     -fx-background-radius: 20;
     -fx-border-radius: 20;
     -fx-padding: 15;
-    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.20), 6, 0.2, 0, 2);
     -fx-cursor: hand;
     -fx-scale-x: 1.0;
     -fx-scale-y: 1.0;
     -fx-transition: all 160ms ease-in-out;
+}
+
+.control-card.actuator-card {
+    -fx-background-color: #d3cedf;
+    -fx-border-color: #b7afbf;
+}
+
+.control-card.sensor-card {
+    -fx-background-color: #AFC7B2;
+    -fx-border-color: #7fa386;
 }
 
 .control-card:hover {
@@ -404,6 +416,38 @@
 }
 
 /*--------------- Valve card ---------------*/
+#valve-toggle-button {
+    -fx-border-radius: 25px;
+    -fx-background-radius: 25px;
+    -fx-background-color: #efd1d1;
+    -fx-border-color: black;
+    -fx-border-width: 2;
+    -fx-text-fill: black;
+    -fx-font-weight: bold;
+    -fx-font-size: 16px;
+    -fx-padding: 10px 20px;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.30), 2, 0, 0, 2);
+}
+
+#valve-toggle-button .switch-track {
+    -fx-background-color: #F5B7B1;
+    -fx-background-radius: 14;
+    -fx-text-fill: black;
+}
+
+#valve-toggle-button:selected .switch-track {
+    -fx-background-color: #F1948A;
+}
+
+#valve-toggle-button .switch-thumb {
+    -fx-background-color: white;
+    -fx-background-radius: 999;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.25), 6, 0.2, 0, 1);
+}
+
+#valve-toggle-button:selected {
+    -fx-text-fill: black;
+}
 
 .valve-state {
     -fx-font-weight: bold;

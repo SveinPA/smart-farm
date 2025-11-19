@@ -4,7 +4,6 @@ import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
 import edu.ntnu.bidata.smg.group8.control.logic.state.StateStore;
 import edu.ntnu.bidata.smg.group8.control.util.FlatJson;
 import java.io.BufferedReader;
-import java.io.FileReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -14,14 +13,25 @@ import java.util.Map;
 import org.slf4j.Logger;
 
 /**
-* Simulates incoming data by reading mock and actuator messages from a file.
+* <h3>Mock Feeder - Test Data Simulator</h3>
+*
+* <p>Simulates incoming data by reading mock and actuator messages from a file.
 * The MockFeeder class is primarily intended for testing and demonstration
 * purposes. It reads lines from a given text file, parses them as flat JSON
 * key–value pairs, and updates the StateStore as if they were received
-* from a live network connection.
+* from a live network connection.</p>
+*
+* <p><strong>AI Usage:</strong> Flexible JSON field mapping strategy (firstNonNull pattern
+* for handling multiple key naming conventions) and robust timestamp parsing (epoch millis
+* vs ISO format with graceful fallback) discussed with AI guidance. Case-insensitive key
+* lookup approach and file reading best practices (BufferedReader with UTF-8) explored
+* with AI assistance. All implementation by Andrea Sandnes.
 *
 * @author Andrea Sandnes
-* @version 02.11.2025
+* @version 1.0
+* @since 02.11.2025
+* @see StateStore
+* @see FlatJson
 */
 public class MockFeeder implements Runnable {
   private static final Logger log = AppLogger.get(MockFeeder.class);
@@ -57,16 +67,23 @@ public class MockFeeder implements Runnable {
     try (BufferedReader br = Files.newBufferedReader(
             Paths.get(filePath), StandardCharsets.UTF_8)) {
       String line;
+
+      // Process each line in the file
       while ((line = br.readLine()) != null) {
         line = line.trim();
+
+        // Skip empty lines and comments
         if (line.isEmpty() || line.startsWith("#")) {
           continue;
         }
+
+        // Parse JSON into key-value map
         Map<String, String> m = FlatJson.parse(line);
         if (m.isEmpty()) {
           continue;
         }
 
+        // Extract required fields
         String type = val(m, "type");
         String nodeId = val(m, "nodeId");
         if (type == null || nodeId == null) {
@@ -74,6 +91,8 @@ public class MockFeeder implements Runnable {
         }
         Instant ts = parseTs(m.get("timestamp"));
 
+
+        // Route message to appropriate handler based on type
         switch (type.toUpperCase(Locale.ROOT)) {
           case "SENSOR_DATA" -> {
             String key   = firstNonNull(m, "sensorKey", "sensorType", "key", "typeKey");
@@ -85,6 +104,7 @@ public class MockFeeder implements Runnable {
               log.warn("Skipping SENSOR_DATA (missing key/value): {}", line);
             }
           }
+
           case "ACTUATOR_STATE" -> {
             String actuator = firstNonNull(m, "actuator", "actuatorType", "key");
             String state    = val(m, "state");
@@ -99,6 +119,7 @@ public class MockFeeder implements Runnable {
           }
         }
 
+        // Optional delay to simulate realistic data arrival rate
         if (delayMs > 0) {
           try {
             Thread.sleep(delayMs);

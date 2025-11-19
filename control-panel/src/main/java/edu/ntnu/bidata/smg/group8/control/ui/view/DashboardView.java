@@ -22,29 +22,32 @@ import javafx.scene.text.Text;
 import javafx.scene.text.TextAlignment;
 import org.slf4j.Logger;
 
-
 /**
-* This class represents the dashboard display of the application.
-* It provides a graphical user interface for monitoring greenhouse sensors
-* and controlling various actuators such as lights and windows.
-*/
+ * This class represents the dashboard display of the application.
+ * It provides a graphical user interface for monitoring greenhouse sensors
+ * and controlling various actuators such as valve and window.
+ *
+ * @author Andrea Sandnes & Mona Amundsen
+ * @version 17.11.2025 (last updated)
+ */
 public class DashboardView {
   private static final Logger log = AppLogger.get(DashboardView.class);
 
   private final BorderPane rootNode;
-
-  // Labels for dynamic sensor values
+  private Button controlPanelButton;
+  private ToggleButton valveToggleButton;
+  private ToggleButton windowToggleButton;
   private Label humidityValueLabel;
   private Label temperatureValueLabel;
   private Label lightValueLabel;
 
   /**
-  * Constructs a new DashboardView with all UI components initialized.
-  * The dashboard is divided into three main sections:
-  * - Left: Status cards displaying sensor readings
-  * - Center: Application Logo
-  * - Right: Control buttons for actuators
-  */
+   * Constructs a new DashboardView with all UI components initialized.
+   * The dashboard is divided into three main sections:
+   * - Left: Status cards displaying sensor readings
+   * - Center: Application Logo
+   * - Right: Control buttons for actuators
+   */
   public DashboardView() {
     log.info("Initializing DashboardView");
 
@@ -121,55 +124,29 @@ public class DashboardView {
     optionsButtons.setAlignment(Pos.CENTER_RIGHT);
     optionsButtons.setPadding(new Insets(0));
 
-    // Light - Toggle Button
-    ToggleButton lightButton = new ToggleButton("LIGHTS");
-    lightButton.setId("light-toggle-button");
+    valveToggleButton = new ToggleButton("VALVE");
+    valveToggleButton.setId("valve-toggle-button");
+    valveToggleButton.setPrefWidth(230);
+    valveToggleButton.setPrefHeight(75);
+    valveToggleButton.setTextAlignment(TextAlignment.CENTER);
 
-    // TODO: Connect light button to actual actuator control logic
-    // TODO: Update lightValueLabel when light state changes
-    lightButton.selectedProperty().addListener((obs, oldVal, newVal) -> {
-      if (newVal) {
-        log.info("User toggled lights ON");
-        // TODO: Send command to turn lights ON via ActuatorController
-        // TODO: Call updateLightStatus("ON")
-      } else {
-        log.info("User toggled lights OFF");
-        // TODO: Send command to turn lights OFF via ActuatorController
-        // TODO: Call updateLightStatus("OFF")
-      }
-    });
+    ButtonFactory.attachSwitch(valveToggleButton);
+    log.debug("Valve toggle button created and configured");
 
-    lightButton.setPrefWidth(230);
-    lightButton.setPrefHeight(75);
-    lightButton.setTextAlignment(TextAlignment.CENTER);
-
-    // Switch animation
-    ButtonFactory.attachSwitch(lightButton);
-    log.debug("Light toggle button created and configured");
 
     // Window - Toggle button
-    ToggleButton windowButton = new ToggleButton("WINDOWS");
-    windowButton.selectedProperty().addListener((obs, oldVal, newVal) -> {
-      if (newVal) {
-        log.info("User toggled windows OPEN");
-        // TODO: Connect window button to actual actuator control logic
-      } else {
-        log.info("User toggled windows CLOSE");
-        // TODO: Send command to close windows via ActuatorController
-      }
-    });
-
-    windowButton.setPrefWidth(230);
-    windowButton.setPrefHeight(75);
-    windowButton.setTextAlignment(TextAlignment.CENTER);
-    windowButton.setId("window-toggle-button");
+    windowToggleButton = new ToggleButton("WINDOWS");
+    windowToggleButton.setPrefWidth(230);
+    windowToggleButton.setPrefHeight(75);
+    windowToggleButton.setTextAlignment(TextAlignment.CENTER);
+    windowToggleButton.setId("window-toggle-button");
 
     // Switch animation
-    ButtonFactory.attachWindowSwitch(windowButton);
+    ButtonFactory.attachSwitch(windowToggleButton);
     log.debug("Window toggle button created and configured");
 
     // Control Panel Button
-    Button controlPanelButton = new Button("CONTROL PANEL");
+    controlPanelButton = new Button("CONTROL PANEL");
     controlPanelButton.setPrefWidth(230);
     controlPanelButton.setPrefHeight(75);
     controlPanelButton.setId("control-panel-button");
@@ -178,11 +155,9 @@ public class DashboardView {
       log.info("User clicked Control Panel button");
     });
 
-    // TODO: Add setOnAction to open Control Panel view/window
-
     log.debug("Control Panel button created");
 
-    optionsButtons.getChildren().addAll(lightButton, windowButton, controlPanelButton);
+    optionsButtons.getChildren().addAll(valveToggleButton, windowToggleButton, controlPanelButton);
 
     //------------------------------- Main Layout Assembly ----------------------------//
 
@@ -208,14 +183,18 @@ public class DashboardView {
   }
 
   /**
-  *  Creates a status card for displaying sensor information.
+   *  Creates a status card for displaying sensor information.
+   *
+   *  <p>This method constructs a StackPane containing a VBox with
+   *  title and value labels. It also optionally stores a reference
+   *  to the value label for later updates.</p>
 
-  * @param title The title/Label of the sensor (e.g., "Humidity")
-  * @param valueText The initial value to display
-  * @param storeLabelReference If true, stores a reference to the value label
+   * @param title The title/Label of the sensor (e.g., "Humidity")
+   * @param valueText The initial value to display
+   * @param storeLabelReference If true, stores a reference to the value label
    *                            for later updates
-  * @return A StackPane containing the formatted status card
-  */
+   * @return A StackPane containing the formatted status card
+   */
   private StackPane createStatusCard(String title, String valueText, boolean storeLabelReference) {
     log.trace("Creating status card: {}", title);
 
@@ -252,14 +231,16 @@ public class DashboardView {
     return card;
   }
 
-
-  //TODO: Call this method when receiving humidity data from SensorNode
   /**
-  * Updates the humidity display with a new value from the SensorNode.
+   * Updates the humidity display with a new value from the SensorNode.
+   *
+   * <p>This method checks if the humidity label reference is valid
+   * before updating its text to avoid null pointer exceptions. If not
+   * valid, it logs a warning message.</p>
 
-  * @param humidity The humidity value to display
-  */
-  public void updateHumidity(String humidity) {
+   * @param humidity The humidity value to display
+   */
+  public void updateHumidityDisplay(String humidity) {
     log.debug("Updating humidity display to: {}", humidity);
     if (humidityValueLabel != null) {
       humidityValueLabel.setText(humidity);
@@ -268,13 +249,16 @@ public class DashboardView {
     }
   }
 
-  //TODO: Call this method when receiving temperature data from SensorNode
   /**
    * Updates the temperature display with a new value from the SensorNode.
+   *
+   * <p>This method checks if the temperature label reference is valid
+   * before updating its text to avoid null pointer exceptions. If
+   * not valid, it logs a warning message.</p>
 
    * @param temperature The temperature value to display
    */
-  public void updateTemperature(String temperature) {
+  public void updateTemperatureDisplay(String temperature) {
     if (temperatureValueLabel != null) {
       log.debug("Updating temperature display to: {}", temperature);
       temperatureValueLabel.setText(temperature);
@@ -283,7 +267,6 @@ public class DashboardView {
     }
   }
 
-  //TODO: Call this method when light actuator state changes
   /**
    * Updates the light status display.
 
@@ -298,9 +281,40 @@ public class DashboardView {
     }
   }
 
+  /**
+   * Gets the root node of the DashboardView.
+   *
+   * @return the BorderPane root node
+   */
   public BorderPane getRootNode() {
     return rootNode;
   }
-}
 
-// TODO: Add getter methods for buttons if Controller needs access
+  /**
+   * Gets the Control Panel button.
+   *
+   * @return the Control Panel Button
+   */
+  public Button getControlPanelButton() {
+    return controlPanelButton;
+  }
+
+  /**
+   * Gets the Valve toggle button.
+   *
+   * @return the Valve ToggleButton
+   */
+  public ToggleButton getValveTogglebutton() {
+    return valveToggleButton;
+  }
+
+  /**
+   * Gets the Windows toggle button.
+   *
+   * @return the Windows ToggleButton
+   */
+  public ToggleButton getWindowsToggleButton() {
+    return windowToggleButton;
+  }
+
+}

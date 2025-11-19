@@ -21,14 +21,23 @@ import javafx.scene.text.TextAlignment;
 import org.slf4j.Logger;
 
 /**
-* Builder for the Windows Control Card.
+ * Builder for the Windows Control Card.
  *
-* <p>This builder constructs and configures a comprehensive ControlCard component
-* dedicated to displaying real-time and statis</p>
+ * <p>This builder constructs and configures a comprehensive ControlCard component
+ * dedicated to displaying real-time and status</p>
+ *
+ * <h2>The windows control card includes the following features:</h2>
+ * <ul>
+ *     <li>Mode selection between Manual and Auto.</li>
+ *     <li>Manual controls with preset opening buttons
+ *     (Closed, Slight, Half, Mostly, Open) and a custom opening slider.</li>
+ *     <li>Auto controls allowing configuration based on temperature and wind speed thresholds.</li>
+ *     <li>Status display indicating whether auto-control is active.</li>
+ * </ul>
 
-* @author Andrea Sandnes
-* @version 27.10.2025
-*/
+ * @author Andrea Sandnes
+ * @version 27.10.2025
+ */
 public class WindowsCardBuilder implements CardBuilder {
   private static final Logger log = AppLogger.get(WindowsCardBuilder.class);
 
@@ -41,10 +50,16 @@ public class WindowsCardBuilder implements CardBuilder {
     this.card = new ControlCard("Windows");
     card.setValueText("CLOSED");
     log.debug("WindowsCardBuilder initialized with default state: CLOSED, Mode: Manual");
+    card.getStyleClass().add("actuator-card");
   }
 
   /**
    * Builds and returns the complete windows control card.
+   *
+   * <p>This method sets up all UI components, such as: mode selection
+   * manual and auto controls, and status display indicating whether
+   * auto-control is active. It also has buttons for opening and closing
+   * the window.</p>
    *
    * @return the fully constructed ControlCard ready for display
    */
@@ -131,7 +146,8 @@ public class WindowsCardBuilder implements CardBuilder {
     VBox.setVgrow(spacerTop, Priority.ALWAYS);
     VBox.setVgrow(spacerBottom, Priority.ALWAYS);
 
-    VBox autoBox = new VBox(8, autoInfoLabel, tempBox, windBox, spacerTop ,autoStatusLabel, spacerBottom);
+    VBox autoBox = new VBox(8, autoInfoLabel, tempBox,
+             windBox, spacerTop, autoStatusLabel, spacerBottom);
     autoBox.setAlignment(Pos.CENTER_LEFT);
     autoBox.setFillWidth(true);
 
@@ -167,10 +183,10 @@ public class WindowsCardBuilder implements CardBuilder {
   }
 
   /**
-  * Creates the control card instance.
-  *
-  * @return the ControlCard instance
-  */
+   * Creates the control card instance.
+   *
+   * @return the ControlCard instance
+   */
   @Override
   public ControlCard getCard() {
     return card;

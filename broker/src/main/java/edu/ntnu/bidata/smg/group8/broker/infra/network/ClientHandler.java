@@ -64,7 +64,16 @@ import org.slf4j.Logger;
  *   <li>IOException: Logged as warning, connection closed</li>
  *   <li>Unknown message types: Logged as warning, connection continues</li>
  * </ul>
+ * 
+ * <p><strong>AI Usage:</strong> Developed with AI assistance (Claude Code) for designing
+ * the heartbeat timeout mechanism (30-second socket timeout with 2-miss disconnect logic)
+ * and message routing architecture (broadcast vs targeted routing patterns). Socket timeout
+ * coordination (distinguishing idle timeout from actual disconnect), role-based message
+ * validation strategy, and error handling approach (EOFException vs SocketTimeoutException 
+ * differentiation) discussed with AI guidance. All implementation and testing by Svein Antonsen.
  *
+ * @author Svein Antonsen
+ * @since 1.0
  * @see TcpServer
  * @see ConnectionRegistry
  */
@@ -312,6 +321,16 @@ final class ClientHandler implements Runnable {
     ActuatorCommandMessage cmd = MessageParser.parseActuatorCommand(msg);
     String targetNode = cmd.getTargetNode();
 
+    // Handle broadcast command to all sensor nodes (Extra #5)
+    if ("ALL".equalsIgnoreCase(targetNode)) {
+      try {
+        handleBroadcastActuatorCommand(msg, who);
+      } catch (IOException e) {
+        log.warn("Broadcast ACTUATOR_COMMAND failed: {}", e.getMessage());
+      }
+    return; // SKIP normal routing
+   }
+
     if (targetNode == null || targetNode.trim().isEmpty()) {
       log.warn("ACTUATOR_COMMAND from {} missing targetNode: {}", who, msg);
       return;
@@ -491,4 +510,34 @@ final class ClientHandler implements Runnable {
     return socket.getRemoteSocketAddress() != null ? socket.getRemoteSocketAddress().toString()
                 : "unknown";
   }
+  
+  /**
+   * Handles broadcast actuator commands ("targetNode": "ALL").
+   *
+   * @param msg the incoming actuator command JSON
+   * @param who identifier of the sending control panel
+   * @throws IOException if sending responses fails
+   */
+  private void handleBroadcastActuatorCommand(String msg, String who) throws IOException {
+  log.info("Broadcasting ACTUATOR_COMMAND to ALL sensor nodes from {}", who);
+
+  byte[] bytes = msg.getBytes(StandardCharsets.UTF_8);
+
+  // Broadcast to all connected sensor nodes
+  registry.broadcastToSensors(bytes);
+
+  // Send ACK back to the originating control panel
+  try {
+    String ack = JsonBuilder.build(
+            "type", Protocol.TYPE_COMMAND_ACK,
+            "nodeId", "ALL",
+            "accepted", "true",
+            "timestamp", String.valueOf(System.currentTimeMillis())
+    );
+    FrameCodec.writeFrame(registeredPanelOut, ack.getBytes(StandardCharsets.UTF_8));
+    log.info("Sent COMMAND_ACK for broadcast actuator command to {}", who);
+  } catch (Exception e) {
+    log.warn("Failed to send COMMAND_ACK to panel {}", who);
+  }
+ }
 }

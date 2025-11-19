@@ -2,12 +2,11 @@ package edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers;
 
 import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
 import edu.ntnu.bidata.smg.group8.control.logic.command.CommandInputHandler;
+import edu.ntnu.bidata.smg.group8.control.ui.controller.ControlPanelController;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlCard;
-import java.io.IOException;
-import java.util.Objects;
-import java.util.concurrent.TimeUnit;
-
 import edu.ntnu.bidata.smg.group8.control.util.UiExecutors;
+import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.event.ActionEvent;
@@ -22,13 +21,20 @@ import javafx.scene.control.ToggleGroup;
 import org.slf4j.Logger;
 
 /**
-* Controller for the Fan control card.
-* This controller coordinates the interaction between the FanCardBuilder UI
-* and the underlying logic it is responsible for.
+ * Controller for the Fan control card.
+ * This controller coordinates the interaction between the FanCardBuilder UI
+ * and the underlying logic it is responsible for.
+ *
+ * <p>The FanCardController manages both manual and automatic fan speed control modes.
+ * In manual mode, users can set the fan speed directly using preset buttons
+ * or a custom slider. In automatic mode, the controller adjusts the fan speed
+ * based on temperature and humidity thresholds defined by the user.
+ * It also handles communication with the backend system to send fan speed commands
+ * and receive updates.</p>
 
-* @author Andrea Sandnes & Mona Amundsen
-* @version 28.10.2025
-*/
+ * @author Andrea Sandnes & Mona Amundsen
+ * @version 28.10.2025
+ */
 public class FanCardController {
   private static final Logger log = AppLogger.get(FanCardController.class);
 
@@ -73,7 +79,7 @@ public class FanCardController {
   private ChangeListener<Number> autoIntensityListener;
 
   private CommandInputHandler cmdHandler;
-  private String nodeId;
+  private ControlPanelController controller;
   private final String actuatorKey = "fan";
 
   private volatile boolean suppressSend = false;
@@ -83,7 +89,6 @@ public class FanCardController {
    * Creates a new FanCardController with the specified UI components.
    *
    * @param card the main card container
-
    * @param manualMode radio button for manual mode
    * @param autoMode radio button for automatic mode
    * @param modeGroup toggle group for mode selection
@@ -100,7 +105,7 @@ public class FanCardController {
    * @param autoIntensitySlider slider for auto mode fan intensity
    * @param autoIntensityLabel label displaying auto intensity value
    */
-  public FanCardController(ControlCard card, //Label speedLabel,
+  public FanCardController(ControlCard card, // Label speedLabel,
                            RadioButton manualMode, RadioButton autoMode,
                            ToggleGroup modeGroup, Button lowButton,
                            Button mediumButton, Button highButton,
@@ -111,7 +116,7 @@ public class FanCardController {
                            Label autoStatusLabel,
                            Slider autoIntensitySlider,
                            Label autoIntensityLabel
-  ){
+  ) {
     this.card = card;
     this.manualMode = manualMode;
     this.autoMode = autoMode;
@@ -133,8 +138,12 @@ public class FanCardController {
   }
 
   /**
-  * Initializes event handlers and starts any listeners required by this controller.
-  */
+   * Initializes event handlers and starts any listeners required by this controller.
+   *
+   * <p>This method sets up listeners for mode changes, slider adjustments, and button
+   * actions. It ensures that the UI components are responsive
+   * to user interactions and that the fan speed is updated accordingly.</p>
+   */
   public void start() {
     log.info("Starting FanCardController");
 
@@ -162,7 +171,7 @@ public class FanCardController {
       setFanSpeed(finalValue);
     });
 
-    //Manual mode buttons
+    // Manual mode buttons
     lowHandler = e -> setFanSpeed(SPEED_LOW);
     lowButton.setOnAction(lowHandler);
 
@@ -196,7 +205,6 @@ public class FanCardController {
       }
     };
 
-
     tempSpinner.valueProperty().addListener(tempSpinnerListener);
 
     humiditySpinnerListener = (obs, oldVal, newVal) -> {
@@ -214,8 +222,12 @@ public class FanCardController {
 
 
   /**
-  * Stops this controller and cleans up resources/listeners.
-  */
+   * Stops this controller and cleans up resources/listeners.
+   *
+   * <p>This method removes all event listeners and handlers
+   * that were set up during the start() method. It ensures that no memory leaks occur
+   * and that the controller can be safely discarded or restarted.</p>
+   */
   public void stop() {
     log.info("Stopping FanCardController");
 
@@ -293,7 +305,7 @@ public class FanCardController {
       updateCardValue(s);
     });
 
-    if (!suppressSend && cmdHandler != null && nodeId != null) {
+    if (!suppressSend && cmdHandler != null && controller != null) {
       if (lastSentSpeed != null && lastSentSpeed == s) {
         log.debug("Skipping duplicate fan speed send ({}%)", s);
         return;
@@ -303,28 +315,38 @@ public class FanCardController {
   }
 
   /**
-  * This method sends a fan speed command asynchronously to the connected node.
-  *  It creates a new background thread to avoid blocking the JavaFX UI thread
-  *  during network or I/O operations. It communicates the desired fan speed
-  *  to the system through CommandInputHandler.
-  *
-  * @param speed the fan speed percentage (0–100) to send to the backend node
-  */
+   * This method sends a fan speed command asynchronously to the connected node.
+   * It creates a new background thread to avoid blocking the JavaFX UI thread
+   * during network or I/O operations. It communicates the desired fan speed
+   * to the system through CommandInputHandler.
+   *
+   * @param speed the fan speed percentage (0–100) to send to the backend node
+   */
   private void sendFanSpeedAsync(int speed) {
     UiExecutors.execute(() -> {
       try {
+        String nodeId = controller != null ? controller.getSelectedNodeId() : null;
+        if (nodeId == null) {
+          log.warn("Cannot send fan speed command: no node selected");
+          return;
+        }
+
         log.debug("Attempting to send fan speed command nodeId={} speed={}", nodeId, speed);
         cmdHandler.setValue(nodeId, actuatorKey, speed);
         lastSentSpeed = speed;
         log.info("Fan speed command sent successfully nodeId={} speed={}", nodeId, speed);
       } catch (IOException e) {
-        log.error("Failed to send fan speed command nodeId={} speed={}", nodeId, speed, e);
+        log.error("Failed to send fan speed command speed={}", speed, e);
       }
     });
   }
 
   /**
    * Updates the card's main value text based on speed.
+   *
+   * <p>This method translates the numeric speed value into a human-readable
+   * status text (e.g., OFF, LOW, MEDIUM, HIGH, FULL) and updates
+   * the ControlCard display accordingly.</p>
    *
    * @param speed the speed percentage (0-100)
    */
@@ -348,6 +370,11 @@ public class FanCardController {
 
   /**
    * Updates the fan speed externally (e.g., from auto mode or backend).
+   *
+   * <p>This method is used to reflect changes in fan speed
+   * that originate outside of the manual controls, such as automatic
+   * adjustments based on sensor data. It temporarily suppresses sending commands
+   * back to the backend to avoid feedback loops.</p>
    *
    * @param speed the speed percentage (0-100)
    */
@@ -380,59 +407,11 @@ public class FanCardController {
   }
 
   /**
-   * Gets the current fan speed.
-   *
-   * @return the current speed percentage (0-100)
-   */
-  public int getCurrentSpeed() {
-    return currentSpeed;
-  }
-
-  /**
-   * Gets whether the fan is in manual mode.
-   *
-   * @return true if in manual mode, false if in auto mode
-   */
-  public boolean isManualMode() {
-    return isManualMode;
-  }
-
-  /**
-   * Gets the current temperature threshold for auto mode.
-   *
-   * @return the temperature threshold in Celsius
-   */
-  public int getTempThreshold() {
-    return tempSpinner.getValue();
-  }
-
-  /**
-   * Gets the current humidity threshold for auto mode.
-   *
-   * @return the humidity threshold percentage
-   */
-  public int getHumidityThreshold() {
-    return humiditySpinner.getValue();
-  }
-
-  /**
-  * Injects required dependencies for this fan card controller.
-  * This method must be called before the controller can be used, typically during
-  * initialization or setup phase. Both parameters are required and cannot be null.
-  *
-  * @param cmdHandler the command input handler used to process user commands
-  *                   and interactions with the fan card
-  * @param nodeId the unique identifier for the node this controller manages
-  * @throws NullPointerException if either cmdHandler or nodeId is null
-  */
-  public void setDependencies(CommandInputHandler cmdHandler, String nodeId) {
-    this.cmdHandler = Objects.requireNonNull(cmdHandler, "cmdHandler");
-    this.nodeId = Objects.requireNonNull(nodeId, "nodeId");
-    log.debug("FanCardController dependencies injected (nodeId={})", nodeId);
-  }
-
-  /**
    * Ensures the given runnable executes on the JavaFX Application Thread.
+   *
+   * <p>If the current thread is the FX Application Thread,
+   * the runnable is executed immediately. Otherwise, it is scheduled
+   * to run later on the FX thread.</p>
    *
    * @param r the runnable to execute on the FX thread
    */

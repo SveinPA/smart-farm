@@ -1,27 +1,37 @@
 package edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers;
 
 import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
+import edu.ntnu.bidata.smg.group8.control.logic.history.HistoricalDataStore;
+import edu.ntnu.bidata.smg.group8.control.logic.history.Statistics;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlCard;
-import javafx.application.Platform;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.ProgressBar;
-import org.slf4j.Logger;
-import java.util.ArrayList;
-import java.util.List;
+import edu.ntnu.bidata.smg.group8.control.util.UiExecutors;
 import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
-import javafx.scene.control.Dialog;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import javafx.application.Platform;
+import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.Dialog;
+import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
+import javafx.scene.control.ProgressBar;
+import org.slf4j.Logger;
 
 /**
-* Controller for the Humidity control card.
-* Handles humidity updates, statistics display, and zone-based styling.
+ * Controller for the Humidity control card. This controller is responsible for
+ * coordinating the interactions and data updates for the humidity monitoring
+ * system-which makes this controller responsible for connecting the UI with backend operations.
+ *
+ * <p>This class handles real-time humidity monitoring, user interactions,
+ * and synchronization of status updates with the backend system.
+ * It also provides warnings for potentially harmful humidity levels.</p>
 
-* @author Andrea Sandnes & Mona Amundsen
-* @version 28.10.2025
-*/
+ * @author Andrea Sandnes & Mona Amundsen
+ * @version 28.10.2025
+ */
 public class HumidityCardController {
   private static final Logger log = AppLogger.get(HumidityCardController.class);
 
@@ -46,6 +56,9 @@ public class HumidityCardController {
 
   private String previousLevel = null;
   private String activeZoneClass = null;
+
+  private HistoricalDataStore historicalDataStore;
+  private ScheduledFuture<?> statsUpdateTask;
 
   /**
    * Creates a new HumidityCardController with the specified UI components.
@@ -73,11 +86,10 @@ public class HumidityCardController {
   }
 
   /**
-  * Initializes event handlers and starts any listeners required by this controller.
-  */
+   * Initializes event handlers and starts any listeners required by this controller.
+   */
   public void start() {
     log.info("Starting HumidityCardController");
-    // TODO: Add initialization logic here
     historyButton.setOnAction(e -> {
       showHistoryDialog();
       log.info("Humidity history button clicked - showing humidity history dialog");
@@ -86,17 +98,68 @@ public class HumidityCardController {
   }
 
   /**
-  * Stops this controller and cleans up resources/listeners.
-  */
+   * Stops this controller and cleans up resources/listeners.
+   */
   public void stop() {
     log.info("Stopping HumidityCardController");
-    // TODO: Add cleanup logic here
+
+    // Cancel statistics update task
+    if (statsUpdateTask != null && !statsUpdateTask.isCancelled()) {
+      statsUpdateTask.cancel(false);
+      log.debug("Statistics update task cancelled");
+    }
+
     historyButton.setOnAction(null);
     log.debug("HumidityCardController stopped successfully");
   }
 
   /**
+   * Injects the historical data store and starts periodic statistics updates.
+   *
+   * <p>The controller will query the historical data store every 30 seconds
+   * to update the 24-hour humidity statistics display.</p>
+   *
+   * @param historicalDataStore the data store for querying 24h statistics
+   */
+  public void setHistoricalDataStore(HistoricalDataStore historicalDataStore) {
+    this.historicalDataStore = historicalDataStore;
+
+    // Start periodic statistics updates (every 30 seconds)
+    statsUpdateTask = UiExecutors.scheduleAtFixedRate(
+      this::updateStatsFromHistory,
+      0, // Initial delay
+      30, // Period
+      TimeUnit.SECONDS
+    );
+
+    log.debug("HumidityCardController statistics updates started (every 30s)");
+  }
+
+  /**
+   * Queries historical data store and updates statistics display.
+   *
+   * <p>This method retrieves the 24-hour humidity statistics from the
+   * historical data store and updates the UI accordingly.</p>
+   */
+  private void updateStatsFromHistory() {
+    if (historicalDataStore != null) {
+      Statistics stats = historicalDataStore.getStatistics("hum");
+
+      if (stats.isValid()) {
+        updateStatistics(stats.min(), stats.max(), stats.average());
+      } else {
+        log.trace("No valid temperature statistics available yet");
+      }
+    }
+  }
+
+  /**
    * Updates the humidity display.
+   *
+   * <p>This method is called when new humidity data arrives from the backend.
+   * It updates the UI components to reflect the new humidity level, including the
+   * progress bar and status label. It also logs the update
+   * and checks for critical humidity levels.</p>
    *
    * @param humidity the current relative humidity (0-100%)
    */
@@ -107,9 +170,8 @@ public class HumidityCardController {
       double clamped = Math.max(0, Math.min(100, humidity));
       card.setValueText(String.format("%.1f %% RH", clamped));
 
-      // Update progress bar (humidity is already 0-100, convert to 0-1)
       double progress = humidity / 100.0;
-      progress = Math.max(0, Math.min(1, progress)); // Clamp to 0-1
+      progress = Math.max(0, Math.min(1, progress));
       humidityBar.setProgress(progress);
 
       log.trace("Humidity progress bar updated: {} ({}%)",
@@ -128,6 +190,9 @@ public class HumidityCardController {
 
   /**
    * Updates the humidity bar color based on value.
+   *
+   * <p>Changes the styling of the humidity bar to reflect
+   * the current humidity zone.</p>
    *
    * @param humidity the current humidity percentage
    */
@@ -177,24 +242,35 @@ public class HumidityCardController {
   /**
    * Checks for critical humidity levels and logs warnings.
    *
+   * <p>Logs warnings if humidity is outside safe ranges,
+   * indicating potential risks to plant health.</p>
+   *
    * @param humidity the current humidity percentage
    */
   private void checkCriticalLevels(double humidity) {
     if (humidity < HUMIDITY_CRITICAL_LOW) {
-      log.warn("CRITICAL: Humidity too low ({}%) - Risk of plant stress and wilting. Consider misting or irrigation.",
+      log.warn("CRITICAL: Humidity too low ({}%) - Risk of plant stress and wilting."
+                      + " Consider misting or irrigation.",
               String.format("%.1f", humidity));
     } else if (humidity > HUMIDITY_CRITICAL_HIGH) {
-      log.warn("CRITICAL: Humidity too high ({}%) - Risk of fungal diseases and mold. Increase ventilation.",
+      log.warn("CRITICAL: Humidity too high ({}%) - Risk of fungal diseases and mold. "
+                      + "Increase ventilation.",
               String.format("%.1f", humidity));
     } else if (humidity < HUMIDITY_DRY) {
-      log.info("NOTICE: Humidity low ({}%) - Monitor plant conditions", String.format("%.1f", humidity));
+      log.info("NOTICE: Humidity low ({}%) - Monitor plant conditions",
+              String.format("%.1f", humidity));
     } else if (humidity > HUMIDITY_SLIGHTLY_HUMID) {
-      log.info("NOTICE: Humidity high ({}%) - Consider increasing ventilation", String.format("%.1f", humidity));
+      log.info("NOTICE: Humidity high ({}%) - Consider increasing ventilation",
+              String.format("%.1f", humidity));
     }
   }
 
   /**
    * Updates the statistics display.
+   *
+   * <p>This method updates the minimum, maximum, and average humidity
+   * labels based on the provided statistics. It also logs the updated
+   * values and checks for critical levels and large fluctuations.</p>
    *
    * @param min minimum humidity in last 24h
    * @param max maximum humidity in last 24h
@@ -229,10 +305,13 @@ public class HumidityCardController {
                 String.format("%.1f", max));
       }
     });
-    }
+  }
 
   /**
    * Ensures the given runnable executes on the JavaFX Application Thread.
+   *
+   * <p>If already on the FX thread, runs immediately; otherwise,
+   * schedules for later execution.</p>
    *
    * @param r the runnable to execute on the FX thread
    */
@@ -277,7 +356,7 @@ public class HumidityCardController {
     listView.getItems().setAll(historyEntries);
 
     listView.setPrefSize(450, 300);
-    dialog.getDialogPane().setPrefSize(470,340);
+    dialog.getDialogPane().setPrefSize(470, 340);
     dialog.setResizable(true);
 
     dialog.getDialogPane().setContent(listView);

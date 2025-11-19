@@ -1,6 +1,7 @@
 package edu.ntnu.bidata.smg.group8.control.ui.view;
 
 import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
+import edu.ntnu.bidata.smg.group8.control.ui.factory.ButtonFactory;
 import edu.ntnu.bidata.smg.group8.control.ui.view.cards.FanCardBuilder;
 import edu.ntnu.bidata.smg.group8.control.ui.view.cards.FertilizerCardBuilder;
 import edu.ntnu.bidata.smg.group8.control.ui.view.cards.HeaterCardBuilder;
@@ -15,11 +16,11 @@ import java.util.ArrayList;
 import java.util.List;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.control.Button;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
 import javafx.scene.text.Text;
@@ -41,17 +42,10 @@ public class ControlPanelView {
   private static final Logger log = AppLogger.get(ControlPanelView.class);
 
   private final BorderPane rootNode;
+  private Button returnButton;
 
-  private TemperatureCardBuilder temperatureBuilder;
-  private HumidityCardBuilder humidityBuilder;
-  private PHCardBuilder phBuilder;
-  private WindSpeedCardBuilder windSpeedBuilder;
-  private LightCardBuilder lightBuilder;
-  private WindowsCardBuilder windowsBuilder;
-  private FanCardBuilder fanBuilder;
-  private HeaterCardBuilder heaterBuilder;
-  private ValveCardBuilder valveBuilder;
-  private FertilizerCardBuilder fertilizerBuilder;
+  private GridPane cardGrid;
+  private List<StackPane> cards;
 
   private ControlCard temperatureCard;
   private ControlCard humidityCard;
@@ -63,6 +57,7 @@ public class ControlPanelView {
   private ControlCard heaterCard;
   private ControlCard valveCard;
   private ControlCard fertilizerCard;
+
 
   /**
    * Constructs a new Control Panel View with all sensor and actuator cards.
@@ -83,22 +78,21 @@ public class ControlPanelView {
     this.rootNode = new BorderPane();
 
     //----------------------------- Upper Border Section ----------------------------//
+    returnButton = ButtonFactory.createReturnButton("Return");
+    returnButton.setId("return-button");
 
-    // The header bar with application title
-    HBox upperBorder = new HBox();
+    Text title = new Text("Control Panel");
+    title.setId("upper-border-title");
 
-    Text upperBorderTitle = new Text("Control Panel");
-    upperBorderTitle.setId("upper-border-title");
-    upperBorder.getChildren().add(upperBorderTitle);
-    upperBorder.setAlignment(Pos.CENTER);
-    upperBorder.setPadding(new Insets(70, 0, 0, 0));
-    upperBorder.setId("upper-border");
-    rootNode.setTop(upperBorder);
+    StackPane header = new StackPane();
+    header.setPadding(new Insets(35, 50, 35, 40));
 
-    log.debug("Header section created");
+    StackPane.setAlignment(title, Pos.CENTER);
+    StackPane.setAlignment(returnButton, Pos.CENTER_RIGHT);
+    header.getChildren().addAll(title, returnButton);
+    rootNode.setTop(header);
 
     //----------------------------- Grid Layout ----------------------------//
-
     GridPane grid = new GridPane();
     grid.setAlignment(Pos.CENTER);
     grid.setHgap(24);
@@ -119,76 +113,14 @@ public class ControlPanelView {
 
     log.debug("Grid layout configured with 3 columns");
 
-    //----------------------------- Create Cards ----------------------------//
-    log.debug("Creating control cards");
-
-    List<StackPane> cards = new ArrayList<>();
-
-    temperatureBuilder = new TemperatureCardBuilder();
-    temperatureCard = temperatureBuilder.build();
-    cards.add(temperatureCard);
-    log.trace("Temperature card created");
-
-    humidityBuilder = new HumidityCardBuilder();
-    humidityCard = humidityBuilder.build();
-    cards.add(humidityCard);
-    log.trace("Humidity card created");
-
-    phBuilder = new PHCardBuilder();
-    phCard = phBuilder.build();
-    cards.add(phCard);
-    log.trace("pH card created");
-
-    windSpeedBuilder = new WindSpeedCardBuilder();
-    windSpeedCard = windSpeedBuilder.build();
-    cards.add(windSpeedCard);
-    log.trace("Wind speed card created");
-
-    lightBuilder = new LightCardBuilder();
-    lightCard = lightBuilder.build();
-    cards.add(lightCard);
-    log.trace("Lights card created");
-
-    windowsBuilder = new WindowsCardBuilder();
-    windowsCard = windowsBuilder.build();
-    cards.add(windowsCard);
-    log.trace("Windows card created");
-
-    fanBuilder = new FanCardBuilder();
-    fanCard = fanBuilder.build();
-    cards.add(fanCard);
-    log.trace("Fan card created");
-
-    heaterBuilder = new HeaterCardBuilder();
-    heaterCard = heaterBuilder.build();
-    cards.add(heaterCard);
-    log.trace("Heater card created");
-
-    valveBuilder = new ValveCardBuilder();
-    valveCard = valveBuilder.build();
-    cards.add(valveCard);
-    log.trace("Valve card created");
-
-    fertilizerBuilder = new FertilizerCardBuilder();
-    fertilizerCard = fertilizerBuilder.build();
-    cards.add(fertilizerCard);
-    log.trace("Fertilizer card created");
-
-    log.debug("All {} control cards created successfully", cards.size());
-
-    for (StackPane card : cards) {
-      GridPane.setHgrow(card, Priority.ALWAYS);
-      GridPane.setVgrow(card, Priority.NEVER);
-    }
-
-    // Add cards to grid
-    addCardsToGrid(grid, cards, 3);
+    this.cardGrid = grid;
+    this.cards = new ArrayList<>();
 
     //----------------------------- Scrollable Surface ----------------------------//
-
     StackPane surface = new StackPane(grid);
     surface.getStyleClass().add("control-surface");
     surface.setPadding(new Insets(32));
+    log.debug("Creating control cards(surface)");
 
     ScrollPane scroll = new ScrollPane(surface);
     scroll.setFitToWidth(true);
@@ -210,27 +142,178 @@ public class ControlPanelView {
     log.debug("Scrollable surface configured");
     log.info("ControlPanelView initialization completed successfully");
   }
+  //----------------------------- CREATE CARDS ----------------------------//
 
   /**
-   * Adds a list of control cards to a grid pane.
+   * Adds a sensor control card to the grid based on the specified sensor type.
    *
-   * <p>This method distributes the cards evenly across the specified number
-   * of columns, calculating the appropriate row and column position for each card.</p>
+   * <p>This method is used to build/create and add sensor control cards to the control panel
+   * grid layout. Each sensor type corresponds to a specific control card
+   * that displays real-time data and statistics for that sensor.</p>
    *
-   * @param grid  the grid pane to add cards to
-   * @param cards the list of cards to add
-   * @param cols  the number of columns in the grid
+   * <p>The method supports the following sensor types:
+   * "temp" (Temperature), "hum" (Humidity), "ph" (pH Level), "wind" (Wind Speed),
+   * "light" (Light Intensity), "fert" (Fertilizer Level). If an
+   * unknown sensor type is provided, a warning is logged.</p>
+   *
+   * @param sensorType the type of sensor for which to create and add a control card
    */
-  private void addCardsToGrid(GridPane grid, List<StackPane> cards, int cols) {
-    log.debug("Adding {} cards to grid with {} columns", cards.size(), cols);
+  public void addSensorCard(String sensorType) {
+    ControlCard card = null;
 
-    for (int i = 0; i < cards.size(); i++) {
-      int col = i % cols;
-      int row = i / cols;
-      grid.add(cards.get(i), col, row);
+    switch (sensorType.toLowerCase()) {
+      case "temp":
+        TemperatureCardBuilder temperatureBuilder = new TemperatureCardBuilder();
+        temperatureCard = temperatureBuilder.build();
+        card = temperatureCard;
+        log.info("Temperature card created and added");
+        break;
+
+      case "hum":
+        HumidityCardBuilder humidityBuilder = new HumidityCardBuilder();
+        humidityCard = humidityBuilder.build();
+        card = humidityCard;
+        log.info("Humidity card created and added");
+        break;
+
+      case "ph":
+        PHCardBuilder phBuilder = new PHCardBuilder();
+        phCard = phBuilder.build();
+        card = phCard;
+        log.info("pH card created and added");
+        break;
+
+      case "wind":
+        WindSpeedCardBuilder windSpeedBuilder = new WindSpeedCardBuilder();
+        windSpeedCard = windSpeedBuilder.build();
+        card = windSpeedCard;
+        log.info("Wind Speed card created and added");
+        break;
+
+      case "light":
+        LightCardBuilder lightBuilder = new LightCardBuilder();
+        lightCard = lightBuilder.build();
+        card = lightCard;
+        log.info("Light card created and added");
+        break;
+
+      case "fert":
+        FertilizerCardBuilder fertilizerBuilder = new FertilizerCardBuilder();
+        fertilizerCard = fertilizerBuilder.build();
+        card = fertilizerCard;
+        log.info("Fertilizer card created and added");
+        break;
+
+      default:
+        log.warn("Unknown sensor type: {}", sensorType);
+        return;
     }
+    if (card != null) {
+      addCardToGrid(card);
+    }
+  }
 
-    log.trace("Cards arranged in {} rows", (cards.size() + cols - 1) / cols);
+  /**
+   * Adds an actuator control card to the grid based on the specified actuator type.
+   *
+   * <p>This method is used to build/create and add actuator control cards to the control panel
+   * grid layout. Each actuator type corresponds to a specific control card
+   * that allows users to interact with and manage the actuator's settings.</p>
+   *
+   * <p>The method supports the following actuator types:
+   * "windows" (Window Control), "fan" (Fan Control), "heater" (Heater Control),
+   * "valve" (Valve Control). If an unknown actuator type is provided, a warning is logged.</p>
+   *
+   * @param actuatorType the type of actuator for which to create and add a control card
+   */
+  public void addActuatorCard(String actuatorType) {
+    ControlCard card = null;
+
+    switch (actuatorType.toLowerCase()) {
+      case "windows":
+        WindowsCardBuilder windowsBuilder = new WindowsCardBuilder();
+        windowsCard = windowsBuilder.build();
+        card = windowsCard;
+        log.info("Windows card created and added");
+        break;
+
+      case "fan":
+        FanCardBuilder fanBuilder = new FanCardBuilder();
+        fanCard = fanBuilder.build();
+        card = fanCard;
+        log.info("Fan card created and added");
+        break;
+
+      case "heater":
+        HeaterCardBuilder heaterBuilder = new HeaterCardBuilder();
+        heaterCard = heaterBuilder.build();
+        card = heaterCard;
+        log.info("Heater card created and added");
+        break;
+
+      case "valve":
+        ValveCardBuilder valveBuilder = new ValveCardBuilder();
+        valveCard = valveBuilder.build();
+        card = valveCard;
+        log.info("Valve card created and added");
+        break;
+
+      default:
+        log.warn("Unknown actuator type: {}", actuatorType);
+        return;
+    }
+    if (card != null) {
+      addCardToGrid(card);
+    }
+  }
+
+  /**
+   * Adds a ControlCard to the grid layout in the next available position.
+   *
+   * <p>The grid is organized in three columns, and cards are added
+   * row by row. This method calculates the appropriate column
+   * and row indices based on the current number of cards.</p>
+   *
+   * @param card the ControlCard to add to the grid
+   */
+  private void addCardToGrid(ControlCard card) {
+    int position = cards.size();
+    int col = position % 3;
+    int row = position / 3;
+
+    GridPane.setHgrow(card, Priority.ALWAYS);
+    GridPane.setVgrow(card, Priority.NEVER);
+    cardGrid.add(card, col, row);
+    cards.add(card);
+    log.debug("Card added at [{}, {}], total cards: {}", col, row, cards.size());
+  }
+
+  /**
+   * Re-arranges the visible cards in the grid layout.
+   *
+   * <p>This method iterates through all cards and updates their
+   * positions based on their visibility status. Only managed
+   * (cards that are visible) are considered for layout.</p>
+   *
+   * <p>This method helps maintain a compact grid layout when cards
+   * are shown or hidden dynamically.</p>
+   */
+  public void reLayoutVisibleCards() {
+    int position = 0;
+    
+    for (StackPane card : cards) {
+      if (!card.isManaged()) {
+        continue;
+      }
+
+      int col = position % 3;
+      int row = position / 3;
+
+      GridPane.setColumnIndex(card, col);
+      GridPane.setRowIndex(card, row);
+
+      position++;
+    }
   }
 
   /**
@@ -336,6 +419,15 @@ public class ControlPanelView {
    */
   public ControlCard getFanCard() {
     return fanCard;
+  }
+
+  /**
+   * Gets the return button from the header.
+   *
+   * @return the return Button instance
+   */
+  public Button getReturnButton() {
+    return returnButton;
   }
 }
 

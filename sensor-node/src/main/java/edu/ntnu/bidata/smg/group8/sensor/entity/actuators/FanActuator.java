@@ -13,8 +13,10 @@ import org.slf4j.Logger;
  * <p>The fan actuator has the following features: </p>
  * <ul>
  *     <li>Speed range from 0% (off) to 100% (full speed).</li>
- *     <li>Methods to check if the fan is on, set speed,
+ *     <li>Methods to check if the fan is on, set the speed,
  *     turn on full, and turn off.</li>
+ *     <li>Convenience methods to set low (25%), medium (50%),
+ *     and high (75%) speeds.</li>
  * </ul>
  *
  * <p>The logger is used to log important events and state changes

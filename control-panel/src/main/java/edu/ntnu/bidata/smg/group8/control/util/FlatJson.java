@@ -16,17 +16,19 @@ import java.util.Map;
 *     <li>Preserves insertion order (LinkedHashMap)</li>
 * </ul>
 *
-* <p>Supported input examples:</p>
-* <pre>
-*     {"type":"SENSOR_DATA","nodeId":"7","sensorKey":"temperature"}
-* </pre>
-*
 * <p>Typical use-case: Parsing application-layer protocol messages
 * where we control the JSON shape and keep it flat to avoid heavy Json
 * libraries.</p>
 *
+* <p><strong>AI Usage:</strong> JSON parsing strategy without external dependencies
+* (character-by-character state machine with quote tracking) and escape sequence handling
+* (minimal unescape subset for protocol messages) discussed with AI guidance. Top-level
+* delimiter splitting approach (comma/colon parsing while respecting string boundaries)
+* explored with AI assistance. All implementation by Andrea Sandnes.
+*
 * @author Andrea Sandnes
-* @version 30.10.25
+* @version 1.0
+* @since 30.10.25
 */
 public final class FlatJson {
 
@@ -135,12 +137,11 @@ public final class FlatJson {
   }
 
   /**
-  * If the input is a quoted string, strips the quotes and unescapes a small
-  * subset of JSON escapes (\", \\, \n, \r, \t, \b). If it is not quoted,
-  * returns the trimmed input as-is.
+   * Strips quotes and unescapes basic JSON escape sequences.
+   * If not quoted, returns trimmed input as-is.
   *
-  * @param text the raw key or value text (possibly quoted)
-  * @return the unquoted and minimally unescaped string; never null
+  * @param text the raw key or value text
+  * @return the unquoted and minimally unescaped string
   */
   private static String unquoteAndUnescape(String text) {
     String s = text.trim();

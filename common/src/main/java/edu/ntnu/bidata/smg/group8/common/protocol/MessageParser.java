@@ -19,7 +19,15 @@ import java.util.regex.Pattern;
  * <p>
  * <b>Not a full JSON parser</b> - designed specifically for this protocol's message formats.
  * Does not handle nested objects, arrays, or complex JSON structures.
+ * 
+ * <p><strong>AI Usage:</strong> Developed with AI assistance (Claude Code) for designing
+ * the regex-based field extraction pattern to handle both quoted string values and unquoted
+ * numeric/boolean values, and for the parsing strategy decision (lightweight regex vs full
+ * JSON parser trade-offs). Multi-message-type support architecture discussed with AI guidance.
+ * All implementation and testing by Svein Antonsen.
  *
+ * @author Svein Antonsen
+ * @since 1.0
  * @see RegisterMessage
  * @see SensorDataMessage
  * @see HeartbeatMessage
@@ -125,8 +133,9 @@ public final class MessageParser {
     String targetNode = getField(json, FIELD_TARGET_NODE);
     String actuator = getField(json, FIELD_ACTUATOR);
     String action = getField(json, FIELD_ACTION);
+    String value = getField(json, FIELD_VALUE);
 
-    return new ActuatorCommandMessage(type, targetNode, actuator, action);
+    return new ActuatorCommandMessage(type, targetNode, actuator, action, value);
   }
 
   /**

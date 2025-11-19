@@ -7,14 +7,21 @@ import java.util.Objects;
 import org.slf4j.Logger;
 
 /**
-* This class handles user commands for controlling actuators on remote nodes.
+* <h3>Command Input Handler.</h3>
 *
 * <p>Provides a high-level interface for sending control commands to actuators
 * through the panel agent. It validates input parameters and logs all command
 * requests before forwarding them to the network layer.</p>
 *
+* <p>The handler supports common operations like turning actuators on/off and
+* setting specific values. All commands are validated before being forwarded
+* to the network layer, and detailed logging is performed for debugging and
+* audit purposes.</p>
+*
 * @author Andrea Sandnes
-* @version 31.10.25
+* @version 1.0
+* @since 31.10.25
+* @see PanelAgent
 */
 public class CommandInputHandler {
   private static final Logger log = AppLogger.get(CommandInputHandler.class);
@@ -32,7 +39,7 @@ public class CommandInputHandler {
   }
 
   /**
-  * Turns on the specified actuator by setting its value to 1.
+  * Turns on the specified actuator (sets value to 1).
   *
   * @param nodeId the unique identifier of the node containing the actuator
   * @param actuatorKey the key identifying the actuator control
@@ -64,9 +71,8 @@ public class CommandInputHandler {
   }
 
   /**
-  * Sets the specified actuator to a custom numeric value.
-  * This method is useful for actuators that support a range of values,
-  * such as dimmers, fan speed controllers, or temperature setpoints.
+   * Sets the actuator to a specific integer value.
+   * Useful for dimmers, fan speeds, temperature setpoints, etc.
   *
   * @param nodeId the unique identifier of the node containing the actuator
   * @param actuatorKey the key identifying the actuator control
@@ -97,4 +103,35 @@ public class CommandInputHandler {
       throw new IllegalArgumentException("actuatorKey must not be blank");
     }
   }
+
+  /**
+   * Sends a command to the specified actuator to move to the given position.
+   *
+   * @param nodeId the unique identifier of the node containing the actuator
+   * @param actuatorType the type of actuator
+   * @param position the target position (0-100)
+   * @throws IllegalArgumentException if actuatorType is null/empty
+   * or position is out of range
+   * @throws IOException if communication with the node fails
+   */
+  public void sendActuatorCommand(String nodeId, String actuatorType,
+                                  int position) throws IOException {
+    if (nodeId == null || nodeId.isBlank()) {
+      throw new IllegalArgumentException("Node ID cannot be null or empty");
+    }
+    if (actuatorType == null || actuatorType.isBlank()) {
+      throw new IllegalArgumentException("Actuator type cannot be null or empty");
+    }
+    if (position < 0 || position > 100) {
+      throw new IllegalArgumentException("Position must be between 0 and 100");
+    }
+
+    log.info("Sending command: actuator={} position={} to node={}",
+            actuatorType, position, nodeId);
+    log.debug("Sending ACTUATOR_COMMAND nodeId={} actuator={} action=SET value={}",
+            nodeId, actuatorType, position);
+
+    agent.sendActuatorCommand(nodeId, actuatorType, "SET", position);
+  }
 }
+

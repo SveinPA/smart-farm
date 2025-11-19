@@ -18,7 +18,8 @@ import java.time.Instant;
 * @param ts the timestamp when the state was recorded
 *
 * @author Andrea Sandnes
-* @version 30.10.25
+* @version 1.0
+* @since 30.10.25
 */
 public record ActuatorReading(String nodeId, String type, String state,
                               Instant ts) {

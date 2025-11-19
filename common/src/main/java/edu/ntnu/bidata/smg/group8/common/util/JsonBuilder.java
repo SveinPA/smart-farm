@@ -10,6 +10,9 @@ package edu.ntnu.bidata.smg.group8.common.util;
  *       "protocolVersion", "1.0",
  *       "message", "Registration successful"
  *   );
+ * 
+ * @author Svein Antonsen
+ * @since 1.0
  */
 public final class JsonBuilder {
   private JsonBuilder() {}

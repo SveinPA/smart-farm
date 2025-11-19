@@ -1,5 +1,6 @@
 package edu.ntnu.bidata.smg.group8.control.infra.network;
 
+import edu.ntnu.bidata.smg.group8.common.protocol.FrameCodec;
 import edu.ntnu.bidata.smg.group8.common.protocol.Protocol;
 import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
 import edu.ntnu.bidata.smg.group8.common.util.JsonBuilder;
@@ -9,27 +10,50 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 import org.slf4j.Logger;
 
 /**
-* Manages network communication between a control panel and a broker server.
-* This agent handles registration, sensor data reception, and actuator command
-* transmission for a specific control panel in the smart greenhouse system.
+* <h3>Panel Agent - Network Communication Handler</h3>
+*
+* <p>Manages the TCP connection between a control panel and the message broker.
+* This agent handles registration, receiving sensor data, sending actuator commands,
+* and maintaining connection health through heartbeats.</p>
 *
 * <p>The agent establishes a socket connection to the broker, registers
-* the control panel, and maintains a dedicated reader thread to process
-* incoming messages. It supports automatic resource cleanup through the
+* the control panel on startup, and maintains a dedicated background threads for
+* reading incoming messages and sending periodic heartbeats. It receives and routes
+* sensor data and actuator states to the StateStore, sends actuator commands
+* to specific nodes via broker, and tracks which sensor nodes are currently
+* available. The agent supports automatic resource cleanup through the
 * AutoCloseable interface</p>
 *
-* <p>Thread-safety: The sendActuatorsCommand method is synchronized to ensure
-* thread-safe writes to the output stream</p>
+* <p><b>Threading Model:</b> The agent uses two daemon threads - a reader thread
+* that continuously processes incoming messages from the broker, and a heartbeat
+* thread that sends keep-alive messages at regular intervals. The sendActuatorCommand
+* method is synchronized to ensure thread-safe writes to the output stream.</p>
+*
+* <p><strong>AI Usage:</strong> Developed with AI assistance for designing the
+* connection lifecycle management (AtomicBoolean for thread-safe state, daemon threads
+* for reader/heartbeat), heartbeat keep-alive mechanism (20-second interval with
+* synchronized writes), and observer pattern for node list updates (CopyOnWriteArrayList
+* with Consumer listeners). Message routing architecture (switch-based dispatch with
+* validation) discussed with AI guidance. All implementation by Andrea Sandnes.
 *
 * @author Andrea Sandnes
-* @version 30.10.25
+* @version 1.0
+* @since 30.10.25
+* @see StateStore
+* @see Protocol
+* @see FrameCodec
 */
 public class PanelAgent implements AutoCloseable {
   private static final Logger log = AppLogger.get(PanelAgent.class);
@@ -38,6 +62,12 @@ public class PanelAgent implements AutoCloseable {
   private final int port;
   private final String nodeId;
   private final StateStore state;
+  private Thread heartbeatThread;
+
+  private final List<String> availableNodes = new CopyOnWriteArrayList<>();
+  private final List<Consumer<List<String>>> nodeListListeners = new CopyOnWriteArrayList<>();
+
+  private static final int HEARTBEAT_INTERVAL_MS = 20_000;
 
   private final AtomicBoolean running = new AtomicBoolean(false);
 
@@ -47,12 +77,12 @@ public class PanelAgent implements AutoCloseable {
   private Thread reader;
 
   /**
-  * Constructs a new PanelAgent for managing communication with a broker.
+  * Creates a new panel agent.
   *
-  * @param host the hostname or IP address of the broker server
-  * @param port the port number on which the broker is listening
+  * @param host the broker hostname or IP address
+  * @param port the broker port number
   * @param nodeId the unique identifier for this control panel
-  * @param state the state store for managing sensor data and system state
+  * @param state the state store for sensor/actuator data
   * @throws NullPointerException if host, nodeId, or state is null
   */
   public PanelAgent(String host, int port, String nodeId, StateStore state) {
@@ -63,12 +93,11 @@ public class PanelAgent implements AutoCloseable {
   }
 
   /**
-  * Starts the panel agent by establishing a connection to the broker and
-  * registering this control panel. Initiates a daemon reader thread to
-  * process incoming messages.
+  * Connects to the broker and registers this control panel.
+  * Starts background threads for reading messages and sending
+  * heartbeats.
   *
-  * @throws IOException if an I/O error occurs when creating the socket
-  * or sending the registration message
+  * @throws IOException if connection or registration fails
   */
   public void start() throws IOException {
     if (running.getAndSet(true)) {
@@ -79,18 +108,25 @@ public class PanelAgent implements AutoCloseable {
       in = socket.getInputStream();
       out = socket.getOutputStream();
 
+      // Send registration message to broker
       String reg = JsonBuilder.build(
               "type", Protocol.TYPE_REGISTER_CONTROL_PANEL,
               "protocolVersion", Protocol.PROTOCOL_VERSION,
               "role", Protocol.ROLE_CONTROL_PANEL,
               "nodeId", nodeId);
 
-      ClientFrameCodec.writeFrame(out, ClientFrameCodec.utf8(reg));
+      FrameCodec.writeFrame(out, reg.getBytes(StandardCharsets.UTF_8));
       log.info("REGISTER_CONTROL_PANEL sent for {}", nodeId);
 
+      // Start background threads
       reader = new Thread(this::readLoop, "panel-agent-reader");
       reader.setDaemon(true);
       reader.start();
+
+      heartbeatThread = new Thread(this::heartbeatLoop, "panel-agent-heartbeat");
+      heartbeatThread.setDaemon(true);
+      heartbeatThread.start();
+
     } catch (IOException e) {
       running.set(false);
       try {
@@ -105,15 +141,14 @@ public class PanelAgent implements AutoCloseable {
   }
 
   /**
-  * Continuously reads frames from the input stream and processes
-  * incoming messages. This method runs in a separate daemon thread
-  * and continues until the agent is stopped or an I/O error occurs.
+  * Background thread that continuously reads incoming messages.
+  * Runs until the agent is stopped or connection is lost.
   */
   private void readLoop() {
     try {
       while (running.get()) {
-        byte[] frame = ClientFrameCodec.readFrame(in);
-        String json = ClientFrameCodec.utf8(frame);
+        byte[] frame = FrameCodec.readFrame(in);
+        String json = FrameCodec.utf8(frame);
         handleIncoming(json);
       }
     } catch (IOException e) {
@@ -132,9 +167,14 @@ public class PanelAgent implements AutoCloseable {
   * <p>Supported message types:</p>
   * <ul>
   *     <li>SENSOR_DATA - updates the state store with new sensor readings</li>
-  *     <li>HEARTBEAT - logs the heartbeat for connection monitoring</li>
-  *     <li>ERROR - Logs error messages from the broker</li>
-  *     <li>REGISTER_ACK - logs successful registration acknowledgment</li>
+   *    *     <li>ACTUATOR_STATE - updates actuator state after command execution</li>
+   *    *     <li>ACTUATOR_STATUS - receives periodic actuator status reports</li>
+   *    *     <li>NODE_LIST - updates list of available nodes</li>
+   *    *     <li>NODE_CONNECTED/DISCONNECTED - tracks node online status</li>
+   *    *     <li>COMMAND_ACK - confirms command acceptance/rejection</li>
+   *    *     <li>HEARTBEAT - logs the heartbeat for connection monitoring</li>
+   *    *     <li>ERROR - Logs error messages from the broker</li>
+   *    *     <li>REGISTER_ACK - logs successful registration acknowledgment</li>
   * </ul>
   *
   * @param json the JSON-formatted message string to process
@@ -163,8 +203,10 @@ public class PanelAgent implements AutoCloseable {
           log.warn("Missing required fields in SENSOR_DATA: {}", json);
           return;
         }
+
         state.touchNodeSeen(srcNodeId);
         state.applySensor(srcNodeId, sensorKey, value, unit, Instant.ofEpochMilli(ts));
+
       }
 
       case Protocol.TYPE_ACTUATOR_STATE -> {
@@ -179,14 +221,51 @@ public class PanelAgent implements AutoCloseable {
         }
         state.touchNodeSeen(srcNodeId);
         state.applyActuator(srcNodeId, actuatorKey, current, Instant.ofEpochMilli(ts));
-        log.debug("ACTUATOR_STATE applied nodeId={} actuator={} state={}", srcNodeId, actuatorKey, current);
+        log.debug("ACTUATOR_STATE applied nodeId={} actuator={} state={}",
+                srcNodeId, actuatorKey, current);
       }
 
-//      case Protocol.TYPE_NODE_LIST -> {
-//        String csv = msg.get("nodes");
-//        state.replaceAllNodesFromCsv(csv);
-//        log.info("NODE_LIST received: {}", csv);
-//      }
+      case Protocol.TYPE_ACTUATOR_STATUS -> {
+        String srcNodeId = msg.get("nodeId");
+        String actuatorKey = msg.get("actuatorKey");
+        String status = msg.get("status");
+        String value = msg.get("value");
+        long ts = parseLong(msg.get("timestamp"), System.currentTimeMillis());
+
+        if (srcNodeId == null || actuatorKey == null || status == null) {
+          log.warn("Missing required fields in ACTUATOR_STATUS: {}", json);
+          return;
+        }
+        state.touchNodeSeen(srcNodeId);
+        state.applyActuator(srcNodeId, actuatorKey, status, Instant.ofEpochMilli(ts));
+        log.debug("ACTUATOR_STATUS applied nodeId={} actuator={} status={} value={}",
+                srcNodeId, actuatorKey, status, value);
+      }
+
+      case Protocol.TYPE_NODE_LIST -> {
+        String csv = msg.get("nodes");
+        state.replaceAllNodesFromCsv(csv);
+        log.info("NODE_LIST received: {}", csv);
+
+        if (csv != null && !csv.trim().isEmpty()) {
+          List<String> nodeList = java.util.Arrays.asList(csv.split(","));
+          nodeList = nodeList.stream().map(String::trim)
+                  .filter(s -> !s.isEmpty())
+                  .toList();
+
+          availableNodes.clear();
+          availableNodes.addAll(nodeList);
+
+          notifyNodeListListeners();
+
+          log.debug("NODE_LIST updated: {} nodes available", nodeList.size());
+
+        } else {
+          availableNodes.clear();
+          notifyNodeListListeners();
+          log.info("NODE_LIST received: empty list");
+        }
+      }
 
       case Protocol.TYPE_NODE_CONNECTED -> {
         String nid = msg.get("nodeId");
@@ -201,26 +280,31 @@ public class PanelAgent implements AutoCloseable {
         if (nid != null) {
           state.setNodeOnline(nid, false);
           log.warn("Node disconnected: {}", nid);
+
+          if (availableNodes.remove(nid)) {
+            log.debug("Removed disconnected node from available list: {}", nid);
+            notifyNodeListListeners();
+          }
         }
       }
 
-   //   case Protocol.TYPE_COMMAND_ACK -> {
-   //     String cmdId = msg.get("commandId");
-   //     String target = msg.get("nodeId");
-   //     String accepted = msg.get("accepted");
-   //     String reason = msg.get("reason");
-   //     if (cmdId != null) {
-   //       boolean ok = "true".equalsIgnoreCase(accepted);
-   //       state.markCommandAccepted(cmdId, target, ok, reason);
-   //       if (ok) {
-   //         log.info("COMMAND_ACK OK [{}] node={}", cmdId, target);
-   //       } else {
-   //         log.warn("COMMAND_ACK REJECTED [{}] node={} reason={}", cmdId, target, reason);
-   //       }
-   //     } else {
-   //         log.info("COMMAND_ACK (no commandId) {}", json);
-   //       }
-   //     }
+      case Protocol.TYPE_COMMAND_ACK -> {
+        String cmdId = msg.get("commandId");
+        String target = msg.get("nodeId");
+        String accepted = msg.get("accepted");
+        String reason = msg.get("reason");
+        if (cmdId != null) {
+          boolean ok = "true".equalsIgnoreCase(accepted);
+          state.markCommandAccepted(cmdId, target, ok, reason);
+          if (ok) {
+            log.info("COMMAND_ACK OK [{}] node={}", cmdId, target);
+          } else {
+            log.warn("COMMAND_ACK REJECTED [{}] node={} reason={}", cmdId, target, reason);
+          }
+        } else {
+          log.info("COMMAND_ACK (no commandId) {}", json);
+        }
+      }
 
 
       case Protocol.TYPE_HEARTBEAT -> {
@@ -268,19 +352,31 @@ public class PanelAgent implements AutoCloseable {
   * @param valueOrNull optional value parameter for the action, or
   *                    null if not needed.
   * @throws IOException if an I/O error occurs when writing to the
-  * output stream
+  *                    output stream
   */
   public synchronized void sendActuatorCommand(String targetNode, String actuator,
                                                String action, String valueOrNull)
           throws IOException {
-    final String actionField = (valueOrNull != null ? valueOrNull : action);
-    String payload = JsonBuilder.build(
-                    "type", Protocol.TYPE_ACTUATOR_COMMAND,
-            "panelId", this.nodeId,
-            "targetNode", targetNode,
-            "actuator", actuator,
-            "action", actionField
-    );
+
+    String payload;
+    if (valueOrNull != null) {
+      payload = JsonBuilder.build(
+              "type", Protocol.TYPE_ACTUATOR_COMMAND,
+              "panelId", this.nodeId,
+              "targetNode", targetNode,
+              "actuator", actuator,
+              "action", action,
+              "value", valueOrNull
+      );
+    } else {
+      payload = JsonBuilder.build(
+              "type", Protocol.TYPE_ACTUATOR_COMMAND,
+              "panelId", this.nodeId,
+              "targetNode", targetNode,
+              "actuator", actuator,
+              "action", action
+      );
+    }
 
     log.info("Sending ACTUATOR_COMMAND: {}", payload);
 
@@ -289,7 +385,7 @@ public class PanelAgent implements AutoCloseable {
     }
 
     try {
-      ClientFrameCodec.writeFrame(out, ClientFrameCodec.utf8(payload));
+      FrameCodec.writeFrame(out, payload.getBytes(StandardCharsets.UTF_8));
       out.flush();
       log.info("ACTUATOR_COMMAND sent successfully");
     } catch (IOException e) {
@@ -332,12 +428,131 @@ public class PanelAgent implements AutoCloseable {
   }
 
   /**
+  * Checks if agent is currently connected to the broker.
+  *
+  * @return true if connected and socket is open
+  */
+  public boolean isConnected() {
+    return running.get() && socket != null && socket.isConnected()
+            && !socket.isClosed();
+  }
+
+  /**
+  * Get the node ID of this control panel.
+  *
+  * @return the node ID
+  */
+  public String getNodeId() {
+    return nodeId;
+  }
+
+  /**
+  * Register a listener that will be notified when the list of
+  * available nodes changes. The listener will be notified immediately
+  * with the current node list, if it's not empty.
+   *
+  * @param listener Consumer that receives the updated node list
+  */
+  public void addNodeListListener(Consumer<List<String>> listener) {
+    if (listener == null) {
+      return;
+    }
+
+    nodeListListeners.add(listener);
+
+    // Notify immediately with current state
+    if (!availableNodes.isEmpty()) {
+      listener.accept(new ArrayList<>(availableNodes));
+    }
+
+    log.debug("Node list listener registered. Current nodes: {}", availableNodes);
+  }
+
+  /**
+  * Returns the current list of available sensor nodes.
+  *
+  * @return copy of the available nodes list
+  */
+  public List<String> getAvailableNodes() {
+    return new ArrayList<>(availableNodes);
+  }
+
+  /**
+   * Notify all registered listeners about node list changes.
+   */
+  public void notifyNodeListListeners() {
+    if (nodeListListeners.isEmpty()) {
+      return;
+    }
+
+    List<String> nodesCopy = new ArrayList<>(availableNodes);
+    for (Consumer<List<String>> listener : nodeListListeners) {
+      try {
+        listener.accept(nodesCopy);
+      } catch (Exception e) {
+        log.error("Error notifying node list listener", e);
+      }
+    }
+  }
+
+  /**
+  * Background thread that sends periodic heartbeats to keep the connection alive.
+  * Runs until the agent is stopped or an error occurs.
+  */
+  private void heartbeatLoop() {
+    log.info("Heartbeat thread started");
+
+    while (running.get()) {
+      try {
+        Thread.sleep(HEARTBEAT_INTERVAL_MS);
+
+        if (out != null) {
+          String hb = JsonBuilder.build(
+                  "type", Protocol.TYPE_HEARTBEAT,
+                  "direction", Protocol.HB_CLIENT_TO_SERVER,
+                  "protocolVersion", Protocol.PROTOCOL_VERSION);
+
+          synchronized (this) {
+            FrameCodec.writeFrame(out, hb.getBytes(StandardCharsets.UTF_8));
+            out.flush();
+          }
+          log.trace("Heartbeat sent to broker");
+        }
+
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        log.debug("Heartbeat thread interrupted");
+        break;
+      } catch (IOException e) {
+        if (running.get()) {
+          log.warn("Failed to send heartbeat: {}", e.getMessage());
+        }
+        break;
+      }
+    }
+    log.info("Heartbeat thread stopped");
+  }
+
+  /**
   * Closes the panel agent and releases all associated resources.
   * Stops the reader thread and closes the socket connection to the broker.
   */
   @Override
   public void close() {
+    log.info("Closing PanelAgent (nodeId={})", nodeId);
     running.set(false);
+
+    // Stop heartbeat thread
+    if (heartbeatThread != null) {
+      heartbeatThread.interrupt();
+      try {
+        heartbeatThread.join(2000);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
+    }
+
+    // Close streams and socket
     try {
       if (in != null) {
         in.close();
@@ -359,6 +574,17 @@ public class PanelAgent implements AutoCloseable {
     } catch (Exception e) {
       log.debug("Error closing socket: {}", e.getMessage());
     }
+
+    // Wait for reader thread to finish
+    if (reader != null && reader.isAlive()) {
+      try {
+        reader.join(2000);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
+    }
+
+    log.info("PanelAgent closed");
   }
 }
 

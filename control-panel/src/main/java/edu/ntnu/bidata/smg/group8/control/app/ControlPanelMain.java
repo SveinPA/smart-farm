@@ -5,9 +5,13 @@ import edu.ntnu.bidata.smg.group8.control.console.ConsoleInputLoop;
 import edu.ntnu.bidata.smg.group8.control.console.DisplayManager;
 import edu.ntnu.bidata.smg.group8.control.infra.network.PanelAgent;
 import edu.ntnu.bidata.smg.group8.control.logic.command.CommandInputHandler;
+import edu.ntnu.bidata.smg.group8.control.logic.history.HistoricalDataStore;
 import edu.ntnu.bidata.smg.group8.control.logic.state.StateStore;
 import edu.ntnu.bidata.smg.group8.control.ui.controller.ControlPanelController;
+import edu.ntnu.bidata.smg.group8.control.ui.controller.DashboardController;
+import edu.ntnu.bidata.smg.group8.control.ui.controller.SceneManager;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlPanelView;
+import edu.ntnu.bidata.smg.group8.control.ui.view.DashboardView;
 import edu.ntnu.bidata.smg.group8.control.util.UiExecutors;
 import java.io.IOException;
 import java.util.Objects;
@@ -17,16 +21,48 @@ import javafx.stage.Stage;
 import org.slf4j.Logger;
 
 /**
-* Entry point for the Smart Greenhouse application.
+* <h3>Control Panel Main - Entry Point for the Smart Greenhouse GUI.</h3>
+*
+* <p>This class binds the entire application by initializing the
+* JavaFX GUI establishing connection to the message broker,
+* setting up state management and coordinating all the major
+* components like sensors, actuators and historical data tracking.</p>
+*
+* <p><b>Core Components:</b></p>
+* <ul>
+*     <li><b>Network layer:</b> Connects to message broker via PanelAgent for live sensor data</li>
+*     <li><b>State management:</b> Centralized StateStore that all components observe</li>
+*     <li><b>Historical tracking:</b> Records 24-hour statistics for trend analysis</li>
+*     <li><b>Dual UI:</b> Dashboard overview + detailed control panel views</li>
+*     <li><b>Optional console:</b> Text-based display and input for debugging</li>
+* </ul>
+*
+* <p><b>Important Notes:</b></p>
+* <ul>
+*     <li>Application continues running even if broker connection fails</li>
+*     <li>All sensor readings are automatically stored for historical analysis</li>
+*     <li>Window close triggers proper shutdown of all threads and connections</li>
+*     <li>CSS styling is loaded from {@code /css/styleSheet.css} in resources</li>
+* </ul>
 *
 * @author Andrea Sandnes
-* @version 16.10.2025
+* @version 1.0
+* @since 16.10.2025
+* @see PanelAgent
+* @see StateStore
+* @see HistoricalDataStore
+* @see DashboardController
+* @see ControlPanelController
+* @see SceneManager
 */
 public final class ControlPanelMain extends Application {
   private static final Logger log = AppLogger.get(ControlPanelMain.class);
 
   private PanelAgent agent;
   private ControlPanelController controller;
+  private DashboardController dashboardController;
+  private SceneManager sceneManager;
+  private HistoricalDataStore historicalDataStore;
 
   private DisplayManager consoleDisplay;
 
@@ -36,18 +72,38 @@ public final class ControlPanelMain extends Application {
   private Thread dynamicDataThread;
 
   /**
-  * Initializes and launches the Control Panel user interface.
+  * Sets up and launches the main application window.
+  *
+  * <p>This method handles all the heavy lifting: connecting to
+  * broker, initializing the state management, creating UI views,
+  * and wiring everything together. If the broker connection fails,
+  * the app will continue running but without live data.</p>
   *
   * @param stage the primary stage provided by the JavaFX runtime
+  * @throws Exception if critical initialization fails
   */
   @Override
   public void start(Stage stage) {
-    log.info("Starting application (host={} port={} panelId={} nodeId={})",
-            BROKER_HOST(), BROKER_PORT(), PANEL_ID(), NODE_ID());
+    log.info("Starting application (host={} port={} panelId={})",
+            BROKER_HOST(), BROKER_PORT(), PANEL_ID());
 
     try {
       StateStore stateStore = new StateStore();
 
+      // Create historical data store for 24-hour statistics
+      this.historicalDataStore = new HistoricalDataStore();
+
+      // Register historical data store to receive all sensor readings
+      stateStore.addSensorSink(reading -> {
+        try {
+          double value = Double.parseDouble(reading.value());
+          historicalDataStore.addReading(reading.type(), value, reading.ts());
+        } catch (NumberFormatException e) {
+          log.debug("Skipping non-numeric sensor value: {} = {}", reading.type(), reading.value());
+        }
+      });
+
+      // Connect to message broker (optional - app works without it)
       try {
         agent = new PanelAgent(BROKER_HOST(), BROKER_PORT(), PANEL_ID(), stateStore);
         agent.start();
@@ -55,19 +111,44 @@ public final class ControlPanelMain extends Application {
       } catch (IOException e) {
         log.warn("Failed to connect to broker at {}:{}. Using test data only.",
                 BROKER_HOST(), BROKER_PORT(), e);
-        // Continue without broker - will use test data
       }
-
-      // TEMPORARY: Always inject test data for GUI development
-      injectTestData(stateStore);
-      dynamicDataThread = startDynamicTestData(stateStore);
 
       CommandInputHandler cmdHandler = new CommandInputHandler(agent);
 
-      ControlPanelView view = new ControlPanelView();
-      controller = new ControlPanelController(view, cmdHandler, stateStore, NODE_ID());
-      controller.start();
+      // Create the main UI views
+      ControlPanelView controlPanelView = new ControlPanelView();
+      DashboardView dashboardView = new DashboardView();
 
+      // Wiring up controllers with their dependencies
+      controller = new ControlPanelController(controlPanelView,
+              cmdHandler, stateStore, this.historicalDataStore);
+
+      if (agent != null) {
+        agent.addNodeListListener(controller::updateAvailableNodes);
+      }
+
+      // Register views with scene manager for navigation
+      sceneManager = new SceneManager();
+      sceneManager.registerView("dashboard", dashboardView.getRootNode());
+      sceneManager.registerView("control-panel", controlPanelView.getRootNode());
+      log.info("Views registered with SceneManager");
+
+      dashboardController = new DashboardController(dashboardView,
+              sceneManager, stateStore, cmdHandler);
+
+      controller.start();
+      dashboardController.start();
+
+      // Setting up navigation between views
+      controlPanelView.getReturnButton().setOnAction(e -> {
+        log.info("Return button clicked");
+        sceneManager.showView("dashboard");
+      });
+
+      sceneManager.showView("dashboard");
+      log.info("DashboardController and ControlPanelController initialized and started");
+
+      // Optional console interface (enabled via system properties)
       boolean enableConsoleDisplay = Boolean.parseBoolean(
               System.getProperty("console.display", "false"));
       boolean enableConsoleInput = Boolean.parseBoolean(
@@ -82,14 +163,15 @@ public final class ControlPanelMain extends Application {
       }
 
       if (enableConsoleInput) {
-        consoleInput = new ConsoleInputLoop(cmdHandler, NODE_ID(), consoleDisplay, stateStore);
+        consoleInput = new ConsoleInputLoop(cmdHandler, controller, consoleDisplay, stateStore);
         consoleInputThread = new Thread(consoleInput, "console-input");
         consoleInputThread.setDaemon(true);
         consoleInputThread.start();
       }
 
+      // Building and configuring the main window
       log.debug("Creating Scene with dimensions 1000x700");
-      Scene scene = new Scene(view.getRootNode(), 1000, 700);
+      Scene scene = new Scene(sceneManager.getContainer(), 1000, 700);
 
       String cssPath = "/css/styleSheet.css";
       log.debug("Loading CSS from: {}", cssPath);
@@ -98,8 +180,7 @@ public final class ControlPanelMain extends Application {
                       "stylesheet not found: " + cssPath).toExternalForm());
       log.debug("CSS stylesheet loaded successfully");
 
-      stage.setTitle("Control Panel - Node " + NODE_ID()
-              + " @ " + BROKER_HOST() + ":" + BROKER_PORT());
+      stage.setTitle("Smart Farm - Dashboard @ " + BROKER_HOST() + ":" + BROKER_PORT());
       stage.setScene(scene);
 
       stage.setOnCloseRequest(e -> shutdown());
@@ -114,7 +195,8 @@ public final class ControlPanelMain extends Application {
   }
 
   /**
-  * Stops the JavaFx application gracefully.
+  * Called by JavaFX when the application window is closed.
+  * Delegates to {@link #shutdown()} for cleanup.
   */
   @Override
   public void stop() {
@@ -122,10 +204,28 @@ public final class ControlPanelMain extends Application {
   }
 
   /**
-  * Gracefully shuts down the control panel and all its components.
+  * Performs a clean shutdown of all application components.
+  *
+  * <p>Stops controllers, closes  network connections, terminates
+  * background threads, and releases resources in the correct order
+  * to avoid issues. Each component is shut down in its own try-catch
+  * block so that one failure doesn't prevent the rest from being
+  * cleaned up.</p>
   */
   private void shutdown() {
     log.info("Shutting down Control Panel");
+
+    // Stopping UI controllers first since they depend on other components
+    if (dashboardController != null) {
+      try {
+        dashboardController.stop();
+        log.debug("DashboardController stopped");
+      } catch (Exception e) {
+        log.error("Error stopping dashboard controller", e);
+      } finally {
+        dashboardController = null;
+      }
+    }
 
     if (controller != null) {
       try {
@@ -138,6 +238,7 @@ public final class ControlPanelMain extends Application {
       }
     }
 
+    // Shutting down the shared thread pool used by UI components
     try {
       log.info("Shutting down UiExecutors thread pool");
       UiExecutors.shutDown();
@@ -146,6 +247,7 @@ public final class ControlPanelMain extends Application {
       log.error("Error shutting down UiExecutors", e);
     }
 
+    // Stopping console I/O threads
     if (consoleInput != null) {
       try {
         consoleInput.stop();
@@ -167,6 +269,7 @@ public final class ControlPanelMain extends Application {
       }
     }
 
+    // Giving the dynamic data thread some time to finish gracefully
     if (dynamicDataThread != null) {
       try {
         dynamicDataThread.interrupt();
@@ -195,6 +298,7 @@ public final class ControlPanelMain extends Application {
       }
     }
 
+    // Closing network connection last since other components might still need it
     if (agent != null) {
       try {
         agent.close();
@@ -210,11 +314,11 @@ public final class ControlPanelMain extends Application {
 
 
   /**
-  * Displays error dialog with a title and message.
-  *
-  * @param title the title text of the dialog window
-  * @param message the message to display inside the dialogue
-  */
+   * Displays a simple error dialog to the user.
+   *
+   * @param title the title text of the dialog window
+   * @param message the message to display inside the dialogue
+   */
   private void showErrorDialog(String title, String message) {
     javafx.scene.control.Alert alert = new javafx.scene.control.Alert(
             javafx.scene.control.Alert.AlertType.ERROR);
@@ -224,146 +328,12 @@ public final class ControlPanelMain extends Application {
     alert.showAndWait();
   }
 
+
   /**
-   * Injects test data into the StateStore for testing purposes.
-   * This is a temporary solution for GUI development without a broker.
+   * Application entry point. Launches the JavaFx application.
+
+   * @param args command line arguments
    */
-  private void injectTestData(StateStore stateStore) {
-    log.info("Injecting test sensor data...");
-
-    java.time.Instant now = java.time.Instant.now();
-
-    // Initial sensor readings
-    stateStore.applySensor("node-1", "temperature", "28.5", "°C", now);
-    stateStore.applySensor("node-1", "wind", "12.3", "m/s", now);
-    stateStore.applySensor("node-1", "humidity", "65.0", "%", now);
-    stateStore.applySensor("node-1", "pH", "6.8", "", now);
-
-    log.info("Test data injection complete");
-  }
-
-  /**
-   * Starts a background thread that continuously updates test data.
-   * This simulates real sensor readings for testing the auto-mode functionality.
-   *
-   * @param stateStore the state store to inject data into
-   * @return the thread running the dynamic data injection
-   */
-  private Thread startDynamicTestData(StateStore stateStore) {
-    Thread testThread = new Thread(() -> {
-      try {
-        // Initial values
-        double temp = 28.5;
-        double wind = 12.3;
-        double humidity = 65.0;
-        double pH = 6.8;
-        double fertilizer = 90.0;
-        double light = 40000.0;
-        // Actuator states
-        int windowPosition = 50;
-        boolean fanOn = true;
-        boolean heaterOn = false;
-
-
-        while (!Thread.currentThread().isInterrupted()) {
-          // ===== SIMULATE SENSOR CHANGES =====
-
-          // Temperature: ±1°C per update
-          temp += (Math.random() - 0.5) * 2;
-          temp = Math.max(15.0, Math.min(35.0, temp));
-
-          // Wind: ±0.5 m/s per update
-          wind += (Math.random() - 0.5) * 1;
-          wind = Math.max(0.0, Math.min(20.0, wind));
-
-          // Humidity: ±2% per update
-          humidity += (Math.random() - 0.5) * 4;
-          humidity = Math.max(30.0, Math.min(90.0, humidity));
-
-          // pH: ±0.1 per update
-          pH += (Math.random() - 0.5) * 0.2;
-          pH = Math.max(5.5, Math.min(8.0, pH));
-
-          //Fertilizer: ±2% per update
-          fertilizer += (Math.random() - 0.5) * 4;
-          fertilizer = Math.max(0.0, Math.min(300.0, fertilizer));
-
-          // Light: ±5000 lx per update (simulates changing daylight/cloud cover)
-          light += (Math.random() - 0.5) * 10000;
-          light = Math.max(0.0, Math.min(80000.0, light));
-
-          // Update sensors - VIKTIG: Bruk Locale.US for punktum som desimalskilletegn
-          java.time.Instant now = java.time.Instant.now();
-          stateStore.applySensor("node-1", "temperature",
-                  String.format(java.util.Locale.US, "%.1f", temp), "°C", now);
-          stateStore.applySensor("node-1", "wind",
-                  String.format(java.util.Locale.US, "%.1f", wind), "m/s", now);
-          stateStore.applySensor("node-1", "humidity",
-                  String.format(java.util.Locale.US, "%.1f", humidity), "%", now);
-          stateStore.applySensor("node-1", "pH",
-                  String.format(java.util.Locale.US, "%.1f", pH), "", now);
-          stateStore.applySensor("node-1", "fertilizer",
-                  String.format(java.util.Locale.US, "%.1f", fertilizer), "ppm", now);
-          stateStore.applySensor("node-1", "light",
-                  String.format(java.util.Locale.US, "%.1f", light), "lx", now);
-
-
-          // ===== SIMULATE ACTUATOR CHANGES =====
-
-          // Window: adjust based on temperature and wind
-          if (temp > 30 && wind < 15) {
-            windowPosition = Math.min(100, windowPosition + 10);
-          } else if (temp < 20 || wind > 15) {
-            windowPosition = Math.max(0, windowPosition - 10);
-          }
-
-          // Fan: turn on if temperature is high
-          fanOn = temp > 28;
-
-          // Heater: turn on if temperature is low
-          heaterOn = temp < 18;
-
-          // Update actuators
-          stateStore.applyActuator("node-1", "window",
-                  String.valueOf(windowPosition), now);
-          stateStore.applyActuator("node-1", "fan",
-                  fanOn ? "on" : "off", now);
-          stateStore.applyActuator("node-1", "heater",
-                  heaterOn ? "on" : "off", now);
-
-          log.debug("Updated test data: temp={}, wind={}, humidity={}, pH={}, "
-                          + "window={}%, fan={}, heater={}, fertilizer={}",
-                  String.format(java.util.Locale.US, "%.1f", temp),
-                  String.format(java.util.Locale.US, "%.1f", wind),
-                  String.format(java.util.Locale.US, "%.1f", humidity),
-                  String.format(java.util.Locale.US, "%.1f", pH),
-                  String.format(java.util.Locale.US, "%.1f", fertilizer),
-                  windowPosition,
-                  fanOn ? "on" : "off",
-                  heaterOn ? "on" : "off");
-
-          Thread.sleep(2000); // Update every 2 seconds
-        }
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        log.debug("Dynamic test data thread interrupted");
-      }
-    }, "dynamic-test-data");
-
-    testThread.setDaemon(true);
-    testThread.start();
-    log.info("Dynamic test data thread started (updates every 2 seconds)");
-
-    return testThread;
-  }
-
-
-
-  /**
-  * Main entry point for the application.
-
-  * @param args command line arguments
-  */
   public static void main(String[] args) {
     log.info("Launching Control Panel application");
     try {
@@ -375,19 +345,21 @@ public final class ControlPanelMain extends Application {
   }
 
   /**
-  * Gets the hostname or IP address of the broker.
-  *
-  * @return the broker hostname
-  */
+   * Returns the broker hostname from system properties.
+   * Defaults to "localhost" if not specified.
+   *
+   * @return the broker hostname
+   */
   private static String BROKER_HOST() {
     return System.getProperty("broker.host", "localhost");
   }
 
   /**
-  * Gets the TCP port number used to connect to the broker.
-  *
-  * @return the broker port number
-  */
+   * Returns the broker port from system properties.
+   * Defaults to 23048 if not specified or if the value is invalid.
+   *
+   * @return the broker port number
+   */
   private static int BROKER_PORT() {
     String portStr = System.getProperty("broker.port", "23048");
     try {
@@ -400,20 +372,13 @@ public final class ControlPanelMain extends Application {
   }
 
   /**
-  * Gets the unique identifier for this control panel instance.
-  *
-  * @return the panel ID
-  */
+   * Returns the Panel ID from system properties.
+   * Defaults to "panel-1" if not specified.
+   *
+   * @return the panel ID
+   */
   private static String PANEL_ID() {
     return System.getProperty("panel.id", "panel-1");
   }
 
-  /**
-  * Gets the node identifier that this control panel manages.
-  *
-  * @return the node ID
-  */
-  private static String NODE_ID() {
-    return System.getProperty("node.id", "node-1");
-  }
 }

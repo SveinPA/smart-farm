@@ -8,6 +8,22 @@ import org.slf4j.Logger;
 
 /**
  * Main class for the Broker application.
+ * 
+ * <p>Entry point for the Smart Farm broker server. Configures and starts the TCP server
+ * on port 23048 (default) or custom port via {@code BROKER_PORT} environment variable.
+ * 
+ * <p>Implements graceful shutdown handling using a JVM shutdown hook that cleanly stops 
+ * the server when Ctrl+C is pressed. Uses {@link CountDownLatch} to keep the main thread
+ * alive while the server runs in background threads.
+ * 
+ * <p><strong>AI usage:</strong> Developed with AI assistance (Claude Code) for designing
+ * the graceful shutdown mechanism (shutdown hook + CountDownLatch coordination) to ensure
+ * clean server termination on exit signals. Port validation and environment configuration
+ * pattern discussed with AI guidance. All implementation and testing by Svein Antonsen.
+ * 
+ * @author Svein Antonsen
+ * @since 1.0
+ * @see TcpServer
  */
 public class BrokerMain {
   private static final Logger log = AppLogger.get(BrokerMain.class);
@@ -28,7 +44,7 @@ public class BrokerMain {
     }, "Broker-Shutdown-hook"));
 
     log.info("Broker starting on port {}", port);
-    server.start(); // Start the TCP server (Still skeleton implementation)
+    server.start();
     log.info("Broker started. Press Ctrl+C to exit.");
 
     try {

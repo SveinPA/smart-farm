@@ -1,11 +1,25 @@
 package edu.ntnu.bidata.smg.group8.control.util;
 
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
-* Shared executor service for UI command operations.
-* Provides daemon threads to prevent blocking JVM shutdown.
+* <h3>UI Executors - Shared Thread Pool for UI Operations</h3>
+*
+* <p>Provides centralized thread pool management for asynchronous UI operations.
+* All threads are daemon threads to ensure they don't prevent JVM shutdown.</p>
+*
+* <p><strong>AI Usage:</strong> Daemon thread factory pattern (preventing JVM shutdown
+* blocking) discussed with AI guidance. All implementation by Andrea Sandnes.
+*
+* @author Andrea Sandnes
+* @version 1.0
+* @since 11.11.2025
 */
 public class UiExecutors {
   private static final int THREAD_POOL_SIZE = 10;
@@ -87,9 +101,21 @@ public class UiExecutors {
   * @param delay the delay before execution begins
   * @param unit the time unit for the delay value
   */
-  public static void schedule(Runnable task, long delay, TimeUnit  unit) {
+  public static void schedule(Runnable task, long delay, TimeUnit unit) {
     SCHEDULED_INSTANCE.schedule(task, delay, unit);
   }
 
-
+  /**
+  * Schedule a task to be executed repeatedly with a fixed rate.
+  *
+  * @param task the runnable task to schedule
+  * @param initialDelay the initial delay before first execution
+  * @param period the period between successive executions
+  * @param unit the time unit for delay and period values
+  * @return a ScheduledFuture representing pending completion of the task
+  */
+  public static ScheduledFuture<?> scheduleAtFixedRate(Runnable task, long initialDelay,
+      long period, TimeUnit unit) {
+    return SCHEDULED_INSTANCE.scheduleAtFixedRate(task, initialDelay, period, unit);
+  }
 }

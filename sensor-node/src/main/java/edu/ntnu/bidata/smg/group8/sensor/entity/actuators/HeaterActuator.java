@@ -79,7 +79,7 @@ public class HeaterActuator extends AbstractActuator {
    * 0°C to 40°C.</p>
    *
    * <p>The method uses the {@link #act(double)} method
-   * to update the heater's state.</p>
+   * to set the heater to the desired temperature.</p>
 
    * @param temperature the desired target temperature
    * @throws IllegalArgumentException if the temperature is out of range
@@ -97,6 +97,9 @@ public class HeaterActuator extends AbstractActuator {
 
   /**
    * Turn the heater off (sets temperature to minimum).
+   *
+   * <p>This method uses the {@link #act(double)} method
+   * to set the heater to its minimum temperature value (0°C).</p>
    */
   public void turnOff() {
     log.info("Turning heater OFF (current: {} °C)", getCurrentValue());

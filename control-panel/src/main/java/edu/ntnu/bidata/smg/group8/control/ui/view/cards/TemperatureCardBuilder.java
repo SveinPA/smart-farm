@@ -14,14 +14,23 @@ import javafx.scene.layout.VBox;
 import org.slf4j.Logger;
 
 /**
-* Builder for the temperature control card.
-*
-* <p>This builder constructs and configures a ControlCard component
-* dedicated to displaying real-time temperature readings and 24h statistics</p>
+ * Builder for the temperature control card.
+ *
+ * <p>This builder constructs and configures a ControlCard component
+ * dedicated to displaying real-time temperature readings and 24h statistics.</p>
+ *
+ * <h2>The temperature control card includes the following features:</h2>
+ * <ul>
+ *     <li>Real-time temperature display with a progress bar.</li>
+ *     <li>24-hour statistics including minimum, maximum,
+ *     average temperature levels.</li>
+ *     <li>Button to access temperature history.</li>
+ * </ul>
+ *
 
-* @author Andrea Sandnes & Mona Amundsen
-* @version 27.10.2025
-*/
+ * @author Andrea Sandnes & Mona Amundsen
+ * @version 27.10.2025
+ */
 public class TemperatureCardBuilder implements CardBuilder {
   private static final Logger log = AppLogger.get(TemperatureCardBuilder.class);
 
@@ -35,6 +44,7 @@ public class TemperatureCardBuilder implements CardBuilder {
     card.setValueText("--°C");
 
     log.debug("TemperatureCardBuilder initialized");
+    card.getStyleClass().add("sensor-card");
   }
 
   /**

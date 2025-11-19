@@ -1,11 +1,16 @@
 package edu.ntnu.bidata.smg.group8.control.ui.controller.cardcontrollers;
 
 import edu.ntnu.bidata.smg.group8.common.util.AppLogger;
+import edu.ntnu.bidata.smg.group8.control.logic.history.HistoricalDataStore;
+import edu.ntnu.bidata.smg.group8.control.logic.history.Statistics;
 import edu.ntnu.bidata.smg.group8.control.ui.view.ControlCard;
+import edu.ntnu.bidata.smg.group8.control.util.UiExecutors;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
@@ -18,17 +23,19 @@ import javafx.scene.control.ProgressBar;
 import javafx.scene.layout.Region;
 import org.slf4j.Logger;
 
-
-
 /**
-* Controller for the Wind Speed control card.
-* This controller manages the wind speed display card, handling real-time updates
-* of wind speed measurements, gust information and statistical data. It applies
-* visual styling to provide intuitive feedback about current wind conditions
+ * Controller for the Wind Speed control card, which is a component in the MVC architecture
+ * of the control panel application. This means the controller is responsible for
+ * connecting the wind speed data model with the corresponding view components,
+ * handling user interactions, and updating the UI based on real-time data changes.
+ *
+ * <p>This controller manages the wind speed display card, handling real-time updates
+ * of wind speed measurements, gust information and statistical data. It applies
+ * visual styling to provide intuitive feedback about current wind conditions. </p>
 
-* @author Andrea Sandnes & Mona Amundsen
-* @version 28.10.2025
-*/
+ * @author Andrea Sandnes & Mona Amundsen
+ * @version 28.10.2025
+ */
 public class WindSpeedCardController {
   private static final Logger log = AppLogger.get(WindSpeedCardController.class);
 
@@ -46,6 +53,9 @@ public class WindSpeedCardController {
   private final Button historyButton;
 
   private EventHandler<ActionEvent> historyButtonHandler;
+
+  private HistoricalDataStore historicalDataStore;
+  private ScheduledFuture<?> statsUpdateTask;
 
   /**
    * Creates a new WindSpeedCardController with the specified UI components.
@@ -77,8 +87,8 @@ public class WindSpeedCardController {
   }
 
   /**
-  * Initializes event handlers and starts any listeners required by this controller.
-  */
+   * Initializes event handlers and starts any listeners required by this controller.
+   */
   public void start() {
     log.info("Starting WindSpeedCardController");
     historyButtonHandler = e -> {
@@ -89,10 +99,17 @@ public class WindSpeedCardController {
   }
 
   /**
-  * Stops this controller and cleans up resources/listeners.
-  */
+   * Stops this controller and cleans up resources/listeners.
+   */
   public void stop() {
     log.info("Stopping WindSpeedCardController");
+
+    // Cancel statistics update task
+    if (statsUpdateTask != null && !statsUpdateTask.isCancelled()) {
+      statsUpdateTask.cancel(false);
+      log.debug("Statistics update task cancelled");
+    }
+
     if (historyButtonHandler != null) {
       historyButton.setOnAction(null);
       historyButtonHandler = null;
@@ -101,10 +118,56 @@ public class WindSpeedCardController {
   }
 
   /**
-  * Updates the wind speed display and status.
-  *
-  * @param speed the current wind speed in m/s
-  */
+   * Injects the historical data store and starts periodic statistics updates.
+   *
+   * <p>This method sets the historical data store used for querying
+   * 24-hour wind speed statistics. It also initiates a scheduled task
+   * that periodically fetches and updates the statistics display every 30 seconds.</p>
+
+   * @param historicalDataStore the data store for querying 24h statistics
+   */
+  public void setHistoricalDataStore(HistoricalDataStore historicalDataStore) {
+    this.historicalDataStore = historicalDataStore;
+
+    // Start periodic statistics updates (every 30 seconds)
+    statsUpdateTask = UiExecutors.scheduleAtFixedRate(
+      this::updateStatsFromHistory,
+      0, // Initial delay
+      30, // Period
+      TimeUnit.SECONDS
+    );
+
+    log.debug("WindSpeedCardController statistics updates started (every 30s)");
+  }
+
+  /**
+   * Queries historical data store and updates statistics display.
+   *
+   * <p>This method retrieves the latest 24-hour wind speed statistics
+   * from the historical data store and updates the corresponding UI labels.
+   * If no valid statistics are available, it logs a trace message.</p>
+   */
+  private void updateStatsFromHistory() {
+    if (historicalDataStore != null) {
+      Statistics stats = historicalDataStore.getStatistics("wind");
+
+      if (stats.isValid()) {
+        updateStatistics(stats.min(), stats.max(), stats.average());
+      } else {
+        log.trace("No valid temperature statistics available yet");
+      }
+    }
+  }
+
+  /**
+   * Updates the wind speed display and status.
+   *
+   * <p>This method updates the wind speed value shown on the control card,
+   * the progress bar indicating wind intensity, and the status label
+   * describing the current wind conditions based on the speed.</p>
+   *
+   * @param speed the current wind speed in m/s
+   */
   public void updateWindSpeed(double speed) {
     log.info("Wind speed updated: {} m/s", String.format("%.1f", speed));
 
@@ -121,29 +184,16 @@ public class WindSpeedCardController {
   }
 
   /**
-  * Updates the wind gust display.
-  *
-  * @param gust the maximum gust speed in m/s
-  */
-  public void updateGust(double gust) {
-    log.info("Wind gust updated: {} m/s", String.format("%.1f", gust));
-
-    fx(() -> {
-      gustLabel.setText(String.format("Gust: %.1f m/s", gust));
-    });
-  }
-
-  /**
-  * Updates the 24-hour statistical summary display.
-  * This method updates the minimum, maximum, and average wind speed labels
-  * with values calculated over the last 24 hours. These statistics provide
-  * historical context for current readings and help operators assess overall
-  * wind patterns and trends.
-  *
-  * @param min minimum wind speed in last 24h
-  * @param max maximum wind speed in last 24h
-  * @param avg average wind speed in last 24h
-  */
+   * Updates the 24-hour statistical summary display.
+   * This method updates the minimum, maximum, and average wind speed labels
+   * with values calculated over the last 24 hours. These statistics provide
+   * historical context for current readings and help operators assess overall
+   * wind patterns and trends.
+   *
+   * @param min minimum wind speed in last 24h
+   * @param max maximum wind speed in last 24h
+   * @param avg average wind speed in last 24h
+   */
   public void updateStatistics(double min, double max, double avg) {
     log.debug("Wind statistics updated: min={}, max={}, avg={}", String.format("%.1f", min),
             String.format("%.1f", max), String.format("%.1f", avg));
@@ -156,10 +206,15 @@ public class WindSpeedCardController {
   }
 
   /**
-  * Updates the wind status label and bar color based on wind speed.
-  *
-  * @param speed the current wind speed in m/s
-  */
+   * Updates the wind status label and bar color based on wind speed.
+   *
+   * <p>This method determines the appropriate wind status description and
+   * corresponding CSS class based on the current wind speed.
+   * It updates the status label text and applies the correct styling to both the label
+   * and the wind speed progress bar to visually indicate wind conditions.</p>
+   *
+   * @param speed the current wind speed in m/s
+   */
   private void updateWindStatus(double speed) {
     String status;
     String color;
@@ -209,10 +264,14 @@ public class WindSpeedCardController {
   }
 
   /**
-  * Ensures the given runnable executes on the JavaFX Application Thread.
-  *
-  * @param r the runnable to execute on the FX thread
-  */
+   * Ensures the given runnable executes on the JavaFX Application Thread.
+   *
+   * <p>If the current thread is the FX Application Thread, the runnable
+   * is executed immediately. Otherwise, it is scheduled to run later on the
+   * FX thread using Platform.runLater().</p>
+   *
+   * @param r the runnable to execute on the FX thread
+   */
   private static void fx(Runnable r) {
     if (Platform.isFxApplicationThread()) {
       r.run();
@@ -237,6 +296,8 @@ public class WindSpeedCardController {
   /**
    * Displays a dialog showing the wind change history.
    * This dialog lists all recorded changes made during the current session.
+   *
+   * <p>The dialog is modal and includes a close button to dismiss it.</p>
    */
   private void showHistoryDialog() {
     Dialog<Void> dialog = new Dialog<>();

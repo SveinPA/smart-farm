@@ -15,9 +15,11 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 
 /**
-* This class handles periodic rendering of the current greenhouse system
+* <h3>Display Manager - Live Console Dashboard</h3>
+*
+* <p>This class handles periodic rendering of the current greenhouse system
 * state to the console. It is read-only, which means it does not process
-* user input.
+* user input.</p>
 *
 * <p>The DisplayManager retrieves data from StateStore and displays
 * sensor and actuator information in a structured table format. It
@@ -49,8 +51,17 @@ import org.slf4j.Logger;
 * </p>
 *
 *
+* <p><strong>AI Usage:</strong> Console rendering approach (ANSI escape sequences for
+* cross-platform clearing) and scheduled refresh pattern (ScheduledExecutorService with
+* daemon threads) discussed with AI guidance. Pause/resume mechanism for avoiding
+* display conflicts during user input and timestamp formatting choices explored with
+* AI assistance. All implementation by Andrea Sandnes.
+*
 * @author Andrea Sandnes
-* @version 01.11.2025
+* @version 1.0
+* @since 01.11.2025
+* @see StateStore
+* @see ConsoleInputLoop
 */
 public class DisplayManager {
   private static final Logger log = AppLogger.get(DisplayManager.class);
@@ -69,7 +80,7 @@ public class DisplayManager {
   private volatile Instant lastUpdate = Instant.EPOCH;
 
   /**
-  * Creates a new DisplayManager bound to the given StateStore.
+  * Creates a new display manager.
   *
   * @param stateStore the data source providing current sensor
    *                   and actuator states
@@ -84,7 +95,8 @@ public class DisplayManager {
   }
 
   /**
-  * Starts the periodic console display updates.
+  * Starts automatic refresh of the console display.
+  * Refreshes every second until {@link #stop()} is called.
   */
   public void start() {
     log.info("Starting DisplayManager");
@@ -93,6 +105,7 @@ public class DisplayManager {
 
   /**
   * Stops the display updates and shuts down the background thread.
+  * Waits up to 2 seconds for graceful shutdown before forcing it.
   */
   public void stop() {
     log.info("Stopping DisplayManager");
@@ -222,7 +235,8 @@ public class DisplayManager {
   }
 
   /**
-  * Clears the console screen (platform-independent fallback).
+  * Clears the terminal screen using ANSI escape codes.
+  * Falls back to printing blank lines if escape codes don't work.
   */
   private void clearScreen() {
     try {
@@ -256,5 +270,12 @@ public class DisplayManager {
       case "hum" -> "humidity";
       default -> type;
     };
+  }
+
+  /**
+  * Displays current state once without continuous updates.
+  */
+  public void showOnce() {
+    refresh();
   }
 }

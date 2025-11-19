@@ -9,27 +9,77 @@ import edu.ntnu.bidata.smg.group8.control.logic.command.CommandInputHandler;
 import edu.ntnu.bidata.smg.group8.control.logic.state.StateStore;
 import org.slf4j.Logger;
 
-
 /**
-* Entry point for the Console-based version of the Control Panel.
-* This class provides a simple, text-only interface for interacting with
-* connected nodes through the PanelAgent network component. It manages
-* user input, system display, and communication with a remote message broker.
+* <h3>Console Control Panel Main - Entry Point for Text-Based Control Interface</h3>
+*
+* <p>This class is the <b>orchestrator</b> that ties together all components of the
+* console-based control panel: network communication, state management, user input,
+* and system display. </p>
+*
+* <p><b>Features:</b></p>
+* <ol>
+*     <li><b>Network communication:</b> Connects to message broker via PanelAgent</li>
+*     <li><b>Real-time display:</b> Shows current state of connected nodes</li>
+*     <li><b>Command interface:</b> Accepts user commands for controlling actuators</li>
+*     <li><b>Mock mode:</b> Supports offline testing with simulated sensor data</li>
+* </ol>
+*
+* <p><b>Usage Examples:</b></p>
+* <pre>
+*     # Default configuration (connects to localhost:23058)
+*     mvn exec:java -pl control-panel
+*     -> Panel ID: panel-1, Node ID: node-1, Broker: localhost:23048
+*
+*     # Custom broker connection
+*     mvn exec:java -pl control-panel "-Dbroker.host=localhost" "-Dbroker.port=23048"
+*     -> Connects to remote broker
+*
+*     # Mock mode for offline testing
+*     mvn exec:java -pl control-panel "-Dmock.file=test-data.json -Dmock.only=true"
+*     -> Runs without broker connection, uses simulated data
+* </pre>
+*
+* <p><b>Important Notes:</b></p>
+* <ul>
+*     <li>Broker must be running <b>before</b> starting the panel (unless mock-only mode)</li>
+*     <li>Display updates automatically when new sensor data arrives</li>
+*     <li>Commands are sent immediately to connected nodes via the broker</li>
+*     <li>Graceful shutdown ensures all connections are properly closed</li>
+* </ul>
 *
 * @author Andrea Sandnes
-* @version 02.11.2025
+* @version 1.0
+* @since 02.11.2025
+* @see PanelAgent
+* @see StateStore
+* @see DisplayManager
+* @see ConsoleInputLoop
 */
 public class ConsoleControlPanelMain {
   private static final Logger log = AppLogger.get(ConsoleControlPanelMain.class);
 
+  // -------------------------- Component references ------------------------------//
+
+  // Network agent for broker communication
   private PanelAgent agent;
+
+  // Display manager for rendering system state
   private DisplayManager display;
+
+  // Console input handler for user commands
   private ConsoleInputLoop inputLoop;
+
+  // Thread running the input loop
   private Thread inputThread;
+
+  // Thread running the mock data feeder
   private Thread mockThread;
 
   /**
-  * Launches the console control panel.
+  * Main entry point for the console control panel application.
+  *
+  * <p>Creates a new instance and delegates to {@link #run()} for initialization
+  * and execution.</p>
   *
   * @param args command line arguments
   */
@@ -101,38 +151,43 @@ public class ConsoleControlPanelMain {
       log.info("Mock-only mode: skipping broker connection");
     }
 
-    // Start display (always)
+    // Start display
     display = new DisplayManager(stateStore);
     display.setClearScreen(false);
-    display.start();
+    display.pause();
 
     // Start input loop only when agent is available (i.e., not mock-only)
     if (agent != null) {
       CommandInputHandler cmdHandler = new CommandInputHandler(agent);
-      inputLoop = new ConsoleInputLoop(cmdHandler, nodeId, display, stateStore);
+      inputLoop = new ConsoleInputLoop(cmdHandler, null, display, stateStore);
       inputThread = new Thread(inputLoop, "console-input");
       inputThread.setDaemon(false);
       inputThread.start();
-    } else {
-      log.info("Mock-only mode: ConsoleInputLoop not started (no broker)");
-    }
-
-    Runtime.getRuntime().addShutdownHook(new Thread(this::safeShutdown, "console-shutdown"));
 
     try {
-      if (inputThread != null) {
-        inputThread.join();
-      } else if (mockThread != null) {
-        mockThread.join();
-      } else {
-        Thread.sleep(Long.MAX_VALUE);
-      }
+      Thread.sleep(100);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
     }
+  }
+  display.start();
 
-    safeShutdown();
-    log.info("Console Control Panel stopped");
+  Runtime.getRuntime().addShutdownHook(new Thread(this::safeShutdown, "console-shutdown"));
+
+  try {
+    if (inputThread != null) {
+      inputThread.join();
+    } else if (mockThread != null) {
+      mockThread.join();
+    } else {
+      Thread.sleep(Long.MAX_VALUE);
+    }
+  } catch (InterruptedException e) {
+    Thread.currentThread().interrupt();
+  }
+
+  safeShutdown();
+  log.info("Console Control Panel stopped");
   }
 
   /**

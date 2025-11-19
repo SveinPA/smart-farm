@@ -15,11 +15,30 @@ import org.slf4j.Logger;
 /**
  * TCP listener for the broker.
  *
- * <p>Allowed application ports are in the inclusive range 
- * {@value #MIN_APP_PORT}..{@value #MAX_APP_PORT}.
- * Ports outside this range are rejected with {@link IllegalArgumentException}.
- *
- * <p>Default port (used by BrokerMain): 23048.
+ * <p>Implements a multi-threaded TCP server using a dual executor architecture:
+ * <ul>
+ *   <li>Single-thread executor for the accept loop (isolates blocking {@code accept()} calls)</li>
+ *   <li>Cached thread pool for client handlers (thread-per-connection)</li>
+ * </ul>
+ * 
+ * <p>Thread-safe start/stop lifecycle management using {@link AtomicBoolean} with 
+ * compareAndSet for idempotency. Server can be safely started and stopped multiple times.
+ * 
+ * <p>Port validation enforces IANA registered port range
+ * {@value #MIN_APP_PORT}..{@value #MAX_APP_PORT} to avoid conflicts with system ports
+ * and ephemeral ports. Default port (used by BrokerMain): 23048
+ * 
+ * <p><strong>AI Usage:</strong> Developed with AI assistance (Claude Code) for designing
+ * the dual executor architecture (accept loop isolation + client thread pool) and
+ * implementing thread-safe lifecycle management with AtomicBoolean compareAndSet patterns.
+ * Accept loop shutdown coordination (graceful error handling when socket closes during 
+ * stop) and ServerSocket configuration (SO_REUSEADDR, backlog) discussed with AI guidance.
+ * All implementation and testing by Svein Antonsen.
+ * 
+ * @author Svein Antonsen
+ * @since 1.0
+ * @see ClientHandler
+ * @see ConnectionRegistry
  */
 public final class TcpServer {
   private static final Logger log = AppLogger.get(TcpServer.class);

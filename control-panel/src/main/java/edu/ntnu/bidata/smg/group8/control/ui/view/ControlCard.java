@@ -12,10 +12,21 @@ import javafx.scene.layout.VBox;
 import org.slf4j.Logger;
 
 /**
-* A reusable control card component for the greenhouse control panel.
-* This card provides a consistent layout for displaying sensor values
-* and actuator controls with a title, value display, content area and footer.
-*/
+ * A reusable control card component for the greenhouse control panel.
+ * This card provides a consistent layout for displaying sensor values
+ * and actuator controls with a title, value display, content area and footer.
+ *
+ * <h2>Features of ControlCard:</h2>
+ * <ul>
+ *     <li>Title section for the card's name.</li>
+ *     <li>Value display for real-time sensor readings or actuator states.</li>
+ *     <li>Content area for additional controls or information.</li>
+ *     <li>Footer section for supplementary details or actions.</li>
+ * </ul>
+ *
+ * @author Andrea Sandnes
+ * @version 17.11.2025 (last updated)
+ */
 public class ControlCard extends StackPane {
   private static final Logger log = AppLogger.get(ControlCard.class);
 
@@ -28,10 +39,10 @@ public class ControlCard extends StackPane {
   private final HBox footer;
 
   /**
-  * Creates a new ControlCard with the specified title.
+   * Creates a new ControlCard with the specified title, and default value display.
 
-  * @param titleText the title text to display on the card
-  */
+   * @param titleText the title text to display on the card
+   */
   public ControlCard(String titleText) {
     log.debug("Creating ControlCard: {}", titleText);
 
@@ -72,47 +83,20 @@ public class ControlCard extends StackPane {
   }
 
   /**
-  * Gets the title label.
+   * Gets the footer.
 
-  * @return the title label
-  */
-  public Label getTitleLabel() {
-    return title;
-  }
-
-  /**
-  * Gets the value label.
-
-  * @return the value label
-  */
-  public Label getValueLabel() {
-    return value;
-  }
-
-  /**
-  * Gets the content box.
-
-  * @return the VBox containing main content
-  */
-  public VBox getContentBox() {
-    return contentBox;
-  }
-
-  /**
-  * Gets the footer.
-
-  * @return the HBox containing footer content
-  */
+   * @return the HBox containing footer content
+   */
   public HBox getFooter() {
     return footer;
   }
 
   /**
-  * Adds content nodes to the card's content area.
+   * Adds content nodes to the card's content area.
 
-  * @param nodes the nodes to add to the content area
-  * @return this ControlCard instance for method chaining
-  */
+   * @param nodes the nodes to add to the content area
+   * @return this ControlCard instance for method chaining
+   */
   public ControlCard addContent(Node... nodes) {
     log.trace("Adding {} content node(s) to card '{}'", nodes.length, title.getText());
 
@@ -121,16 +105,15 @@ public class ControlCard extends StackPane {
   }
 
   /**
-  * Sets the value text displayed on the card.
+   * Sets the value text displayed on the card.
 
-  * @param text the value text to display
-  * @return this ControlCard instance for method chaining
-  */
+   * @param text the value text to display
+   * @return this ControlCard instance for method chaining
+   */
   public ControlCard setValueText(String text) {
     log.debug("Updating card '{}' value: {} -> {}", title.getText(), value.getText(), text);
 
     value.setText(text);
     return this;
   }
-
 }
