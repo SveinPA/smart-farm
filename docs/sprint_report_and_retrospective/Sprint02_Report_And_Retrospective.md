@@ -8,7 +8,7 @@
 - **Sprint goal:** Establish a working module foundation with broker network layer, logging infrastructure, sensor/actuator implementations, and GUI framework 
 
 
-- **Group members:** 👥 
+- **Group members:** 👥
 - Ida Cathrin Bertheussen Soldal
 - Mona Løvlie Tønsager Amundsen
 - Svein Åge Pedersen Antonsen
@@ -19,19 +19,32 @@
 
 ## Completed Work
 ### Finished tasks
-- [x] **Task 1: Broker Network Layer**
-Implemented TCP server with basic connection handling, verified through unit and integration tests. FrameCodec for length-prefixed message framing completed. No live sensor node connection yet (Planned for sprint 3).
-- [x] **Task 2: Logging Infrastructrue**
-Implemented SLF4J + Logback logging framework in `common` module. Ready to be adopted by all team members across `broker`, `sensor-node`, and `control-panel` modules for consistent logging.
-- [x] **Task 3: Sensors and Actuators** 
-Implemented initial Sensors and Actuators. Implementation verified by comprehensive unit tests.
-- [x] **Task 4: GUI Framework** 
-JavaFX application structure established with main window and basic layout. UI components ready but not yet connected to network layer.
+- [x] **Issue #30:** Implement PhSensor, assignee: Ida
+- [x] **Issue #34:** Implement HeaterActuator, assignee: Mona
+- [x] **Issue #55:** Implement ValveActuator, assignee: Mona  
+- [x] **Issue #33:** Implement WindowActuator, assignee: Mona
+- [x] **Issue #37:** Implement FanActuator, assignee: Mona  
+- [x] **Issue #31:** Implement WindSpeedSensor, assignee: Ida  
+- [x] **Issue #29:** Implement FertilizerSensor, assignee: Ida  
+- [x] **Issue #45:** Implement Logger, assignee: Svein  
+- [x] **Issue #25:** Implement Sensor(Interface), assignee: Ida  
+- [x] **Issue #32:** Implement DashboardView (GUI), assignee: Andrea  
+- [x] **Issue #40:** Implement TcpServer, assignee: Svein  
+- [x] **Issue #44:** ConnectionInfo, assignee: Svein  
+- [x] **Issue #41:** Implement ClientHandler, assignee: Svein  
+- [x] **Issue #39:** Implement NodeConfig, assignee: Svein  
+- [x] **Issue #53:** Implement ActuatorInterface, assignee: Mona
+- [x] **Issue #51:** Implement ControlPanelView (GUI), assignee: Andrea  
+- [x] **Issue #49:** Implement MainApp (control-panel), assignee: Andrea  
+- [x] **Issue #52:** Implement AbstractActuator, assignee: Mona  
+- [x] **Issue #26:** Implement TemperatureSensor, assignee: Ida  
+- [x] **Issue #27:** Implement HumiditySensor, assignee: Ida  
+- [x] **Issue #28:** Implement LightSensor, assignee: Ida
 
 ## Not completed tasks:
-- **Issue 47**: DashboardController (GUI) - Blocked by network integration dependencies
-- **Issue 38**: ActuatorType(Enum) - Deprioritized in favor of class-based approch
-- **Issue 48**: NodeViewModel(GUI) - Requires working network connection to implement properly
+-**Issue #47:** DashboardController (GUI) - Blocked by network integration dependencies  
+-**Issue #38:** ActuatorType(Enum) - Deprioritized in favor of class-based approch  
+-**Issue #48:** NodeViewModel(GUI) - Requires working network connection to implement properly  
 
 These are moved back to `Backlog` for Sprint 3.
 
