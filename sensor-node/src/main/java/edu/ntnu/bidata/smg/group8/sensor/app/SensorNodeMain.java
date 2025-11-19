@@ -648,7 +648,15 @@ public final class SensorNodeMain {
       Thread.currentThread().interrupt();
       log.info("Interrupted - shutting down");
     } catch (Exception e) {
+      // Background mode detection fallback - stdin not available
       log.warn("Error reading user input: {}", e.getMessage());
+      log.info("Running in background mode - use stop-all script or Ctrl+C to stop");
+      try {
+        Thread.sleep(Long.MAX_VALUE);  // Keep thread alive in background mode
+      } catch (InterruptedException ie) {
+        Thread.currentThread().interrupt();
+        log.info("Interrupted - shutting down");
+      }
     }
   }
 }
