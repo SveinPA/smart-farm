@@ -71,6 +71,7 @@ start-all.bat
 ```bash
 # First time: Make script executable
 chmod +x start-all.sh
+chmod +x stop-all.sh
 
 # Launch everything
 ./start-all.sh
